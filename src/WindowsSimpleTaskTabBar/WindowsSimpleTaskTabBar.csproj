@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- net48 needs no runtime install; net8.0-windows is the modern target. One build produces both. -->
+    <TargetFrameworks>net8.0-windows;net48</TargetFrameworks>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>WindowsSimpleTaskTabBar</AssemblyName>
+    <RootNamespace>WindowsSimpleTaskTabBar</RootNamespace>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <AssemblyTitle>WindowsSimpleTaskTabBar</AssemblyTitle>
+    <Description>A slim always-on bar above the Windows taskbar that shows open windows as tabs.</Description>
+  </PropertyGroup>
+
+  <!-- For net48, skip the config file so the output is a single executable. -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net48'">
+    <GenerateSupportedRuntime>false</GenerateSupportedRuntime>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+  </PropertyGroup>
+
+  <!-- Required to build the net48 target on non-Windows machines. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!--
+    Core sources are compiled straight into this project. A DLL reference would mean shipping
+    two files, so the sources are shared instead to keep distribution to a single executable.
+    The test project references Core as a normal library.
+  -->
+  <ItemGroup>
+    <Compile Include="..\WindowsSimpleTaskTabBar.Core\**\*.cs"
+             Exclude="..\WindowsSimpleTaskTabBar.Core\bin\**;..\WindowsSimpleTaskTabBar.Core\obj\**"
+             LinkBase="Core" />
+  </ItemGroup>
+
+</Project>

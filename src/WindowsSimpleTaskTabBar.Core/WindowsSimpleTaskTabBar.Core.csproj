@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Library for logic that does not depend on the UI or the Windows API.
+    Code placed here can be unit tested on any operating system.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>WindowsSimpleTaskTabBar.Core</AssemblyName>
+    <RootNamespace>WindowsSimpleTaskTabBar.Core</RootNamespace>
+  </PropertyGroup>
+
+</Project>

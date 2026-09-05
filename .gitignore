@@ -1,0 +1,23 @@
+# Build output
+bin/
+obj/
+artifacts/
+publish/
+*.user
+*.suo
+
+# IDEs
+.vs/
+.idea/
+.vscode/
+
+# NuGet
+*.nupkg
+packages/
+
+# Test results
+TestResults/
+
+# Misc
+*.pdb
+*.log

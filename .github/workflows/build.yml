@@ -1,0 +1,75 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out the source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build (warnings treated as errors)
+        run: dotnet build -c Release --no-restore -warnaserror
+
+      - name: Run unit tests
+        run: dotnet test -c Release --no-build --verbosity normal
+
+      - name: Package A - no runtime install required (.NET Framework 4.8)
+        run: >
+          dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48
+          -o artifacts/net48
+
+      - name: Package B - small (.NET 8 runtime installed separately)
+        run: >
+          dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net8.0-windows
+          -r win-x64 --self-contained false -p:PublishSingleFile=true
+          -o artifacts/net8
+
+      - name: Package C - standalone (.NET 8 bundled, compressed)
+        run: >
+          dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net8.0-windows
+          -r win-x64 --self-contained true -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
+          -o artifacts/standalone
+
+      - name: Clean up and give each package a distinct name
+        shell: pwsh
+        run: |
+          Remove-Item -Path artifacts/*/*.pdb -Force -ErrorAction SilentlyContinue
+          Rename-Item artifacts/net48/WindowsSimpleTaskTabBar.exe WindowsSimpleTaskTabBar-net48.exe
+          Rename-Item artifacts/net8/WindowsSimpleTaskTabBar.exe WindowsSimpleTaskTabBar-net8.exe
+          Rename-Item artifacts/standalone/WindowsSimpleTaskTabBar.exe WindowsSimpleTaskTabBar-standalone.exe
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: WindowsSimpleTaskTabBar
+          path: artifacts/
+
+      - name: Attach to release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/net48/WindowsSimpleTaskTabBar-net48.exe
+            artifacts/net8/WindowsSimpleTaskTabBar-net8.exe
+            artifacts/standalone/WindowsSimpleTaskTabBar-standalone.exe
+          generate_release_notes: true

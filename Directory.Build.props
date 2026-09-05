@@ -1,0 +1,20 @@
+<Project>
+
+  <!-- Settings shared by every project. Imported before each project file. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <NeutralLanguage>en-US</NeutralLanguage>
+
+    <!-- Allows building the Windows targets on other operating systems. Ignored on Windows. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+
+    <Product>WindowsSimpleTaskTabBar</Product>
+    <Version>0.1.0</Version>
+    <Company>Kaoru Ishikura</Company>
+    <Authors>Kaoru Ishikura</Authors>
+    <Copyright>Copyright (c) 2026 Kaoru Ishikura</Copyright>
+  </PropertyGroup>
+
+</Project>
