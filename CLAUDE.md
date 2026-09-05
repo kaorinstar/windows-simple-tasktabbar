@@ -67,6 +67,12 @@ Program.cs → UI/MainForm.cs → Services/WindowService.cs → Interop/NativeMe
 
 - Line endings are LF, except `.bat`, `.cmd`, and `.ps1`, which use CRLF. This is enforced by
   `.gitattributes`.
+- Branch names are `<type>/<issue number>-<short description>`, for example `fix/18-tab-layout`,
+  `feat/13-tray-icon`, `ci/27-split-workflow`, `docs/20-version-file`. The types are `feat`,
+  `fix`, `docs`, `ci` and `chore`. Drop the issue number when the work has no issue.
+  A Claude Code session is assigned a `claude/...` branch by default. **That name is not part of
+  this convention** — it describes the session rather than the change. Point it out and move the
+  work to a branch that follows the convention before pushing.
 - Two target frameworks are supported: `net8.0-windows` and `net48`. Differences are handled
   with `#if NETFRAMEWORK`. **Do not break the net48 target.** Running on the .NET Framework 4.8
   that ships with Windows 10 and 11 is a hard distribution requirement.
