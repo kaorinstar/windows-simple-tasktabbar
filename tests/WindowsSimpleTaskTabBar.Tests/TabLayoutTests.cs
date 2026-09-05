@@ -33,6 +33,22 @@ public class TabLayoutTests
     }
 
     [Fact]
+    public void TabsFillTheAvailableWidthExactly()
+    {
+        // Two tabs have one gap between them, not two: 45 + 10 + 45 = 100.
+        Assert.Equal(45, TabLayout.CalculateTabWidth(100, 2, 10, 1, 1000));
+    }
+
+    [Fact]
+    public void OnlyTheGapsBetweenTabsAreReserved()
+    {
+        int width = TabLayout.CalculateTabWidth(600, 5, 4, 1, 1000);
+
+        Assert.Equal(116, width);                    // (600 - 4 gaps * 4px) / 5
+        Assert.True(5 * width + 4 * 4 <= 600);       // and the row still fits
+    }
+
+    [Fact]
     public void MaximumWinsWhenTheMinimumIsLarger()
     {
         Assert.Equal(50, TabLayout.CalculateTabWidth(1000, 100, 2, 200, 50));

@@ -20,7 +20,9 @@ public static class TabLayout
         if (tabCount <= 0) return 0;
         if (minWidth > maxWidth) minWidth = maxWidth;
 
-        int width = availableWidth / tabCount - gap;
+        // n tabs have n-1 gaps between them, not n. Reserving one gap per tab would
+        // leave a permanent sliver of unused space at the end of the row.
+        int width = (availableWidth - (tabCount - 1) * gap) / tabCount;
 
         if (width > maxWidth) width = maxWidth;
         if (width < minWidth) width = minWidth;

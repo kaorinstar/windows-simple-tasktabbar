@@ -19,17 +19,29 @@ public class MainForm : Form
         public bool Active;
     }
 
+    // A window icon, with the time it was fetched. See IconMaxAgeMs.
+    private sealed class CachedIcon
+    {
+        public Icon Icon;
+        public int FetchedAt;
+    }
+
     private const int BarHeightLogical = 34;
     private const int TabMaxWidthLogical = 220;
     private const int TabMinWidthLogical = 46;
     private const int TabGapLogical = 2;
+
+    // An application can change its icon while running, so a cached icon is fetched
+    // again once it is older than this. Only one icon is refreshed per pass, because
+    // WM_GETICON blocks until the owning window answers or the timeout expires.
+    private const int IconMaxAgeMs = 10_000;
 
     private uint _callbackMessage;
     private bool _appBarRegistered;
 
     private readonly List<TabItem> _tabs = new();
     private readonly List<IntPtr> _order = new();          // keeps the display order stable
-    private readonly Dictionary<IntPtr, Icon> _iconCache = new();
+    private readonly Dictionary<IntPtr, CachedIcon> _iconCache = new();
 
     private readonly System.Windows.Forms.Timer _timer = new();
     private NativeMethods.WinEventDelegate _winEventProc;   // kept in a field so it is not collected
@@ -39,6 +51,9 @@ public class MainForm : Form
 
     private int _hoverIndex = -1;
     private bool _hoverClose;
+
+    private readonly ToolTip _toolTip = new();
+    private string _toolTipText = string.Empty;
 
     private float _scale = 1.0f;
     private Font _font;
@@ -60,6 +75,13 @@ public class MainForm : Form
 
         _timer.Interval = 250;
         _timer.Tick += (_, __) => OnTimerTick();
+
+        // Titles are drawn with an ellipsis, so the tooltip is the only way to read a
+        // long one. ShowAlways is required because the bar is usually not the active window.
+        _toolTip.ShowAlways = true;
+        _toolTip.InitialDelay = 500;
+        _toolTip.ReshowDelay = 200;
+        _toolTip.AutoPopDelay = 10000;
 
         var menu = new ContextMenuStrip();
         menu.Items.Add("Refresh", null, (_, __) => { _dirty = true; RefreshTabs(); });
@@ -228,42 +250,91 @@ public class MainForm : Form
         IntPtr foreground = NativeMethods.GetForegroundWindow();
 
         // Keep the existing order and append newly opened windows at the end.
-        _order.RemoveAll(h => !current.Contains(h));
+        // Membership is tested through sets: this runs every 250 ms.
+        var live = new HashSet<IntPtr>(current);
+        _order.RemoveAll(h => !live.Contains(h));
+
+        var known = new HashSet<IntPtr>(_order);
         foreach (IntPtr h in current)
         {
-            if (!_order.Contains(h)) _order.Add(h);
+            if (known.Add(h)) _order.Add(h);
         }
 
         // Release icons that are no longer needed.
         foreach (IntPtr key in _iconCache.Keys.ToList())
         {
-            if (!_order.Contains(key))
+            if (!known.Contains(key))
             {
-                _iconCache[key]?.Dispose();
+                _iconCache[key].Icon?.Dispose();
                 _iconCache.Remove(key);
             }
         }
 
+        // Before the tabs are rebuilt, so no tab holds an icon that is about to be replaced.
+        RefreshStalestIcon();
+
         _tabs.Clear();
         foreach (IntPtr h in _order)
         {
-            if (!_iconCache.TryGetValue(h, out Icon icon))
+            if (!_iconCache.TryGetValue(h, out CachedIcon cached))
             {
-                icon = WindowService.GetWindowIcon(h);
-                _iconCache[h] = icon;
+                cached = new CachedIcon
+                {
+                    Icon = WindowService.GetWindowIcon(h),
+                    FetchedAt = Environment.TickCount,
+                };
+                _iconCache[h] = cached;
             }
 
             _tabs.Add(new TabItem
             {
                 Hwnd = h,
                 Title = WindowService.GetTitle(h),
-                Icon = icon,
+                Icon = cached.Icon,
                 Active = (h == foreground),
             });
         }
 
         LayoutTabs();
+
+        // The tab list has just been rebuilt, so a stored hover index would now point at
+        // a different window. Take it from where the pointer actually is.
+        RecomputeHover();
+        UpdateToolTip();
+
         Invalidate();
+    }
+
+    /// <summary>
+    /// Fetches the single oldest cached icon again, if it has passed <see cref="IconMaxAgeMs"/>.
+    /// Only one per pass: the underlying WM_GETICON call blocks until the owning window
+    /// answers or times out, and this runs on the UI thread.
+    /// </summary>
+    private void RefreshStalestIcon()
+    {
+        int now = Environment.TickCount;
+        IntPtr stalest = IntPtr.Zero;
+        int oldest = IconMaxAgeMs;
+
+        foreach (IntPtr h in _order)
+        {
+            if (!_iconCache.TryGetValue(h, out CachedIcon cached)) continue;
+
+            int age = unchecked(now - cached.FetchedAt);   // correct across TickCount wrapping
+            if (age >= oldest)
+            {
+                oldest = age;
+                stalest = h;
+            }
+        }
+
+        if (stalest == IntPtr.Zero) return;
+
+        CachedIcon entry = _iconCache[stalest];
+        Icon previous = entry.Icon;
+        entry.Icon = WindowService.GetWindowIcon(stalest);
+        entry.FetchedAt = Environment.TickCount;
+        previous?.Dispose();
     }
 
     private void LayoutTabs()
@@ -358,11 +429,11 @@ public class MainForm : Form
         }
 
         int radius = (int)Math.Round(6 * _scale);
+        int visible = VisibleTabCount();
 
-        for (int i = 0; i < _tabs.Count; i++)
+        for (int i = 0; i < visible; i++)
         {
             TabItem tab = _tabs[i];
-            if (tab.Bounds.Right > ClientSize.Width) break;   // skip tabs that do not fit
 
             Color fill = tab.Active ? _cTabActive : (i == _hoverIndex ? _cTabHover : _cTab);
             using (GraphicsPath path = RoundedTop(tab.Bounds, radius))
@@ -421,10 +492,24 @@ public class MainForm : Form
     // ---------------------------------------------------------------
     // Mouse input
     // ---------------------------------------------------------------
+    /// <summary>
+    /// How many tabs fit in the bar. Tabs past this point are not drawn, so painting and
+    /// hit testing both stop here; otherwise a click could reach a tab that is not on screen.
+    /// </summary>
+    private int VisibleTabCount()
+    {
+        int count = 0;
+        while (count < _tabs.Count && _tabs[count].Bounds.Right <= ClientSize.Width)
+            count++;
+        return count;
+    }
+
     private int HitTest(Point p, out bool onClose)
     {
         onClose = false;
-        for (int i = 0; i < _tabs.Count; i++)
+        int visible = VisibleTabCount();
+
+        for (int i = 0; i < visible; i++)
         {
             if (_tabs[i].Bounds.Contains(p))
             {
@@ -435,27 +520,62 @@ public class MainForm : Form
         return -1;
     }
 
+    /// <summary>
+    /// Recomputes the hovered tab from the pointer's current position.
+    /// </summary>
+    private void RecomputeHover()
+    {
+        Point p = PointToClient(MousePosition);
+
+        if (ClientRectangle.Contains(p))
+        {
+            _hoverIndex = HitTest(p, out _hoverClose);
+        }
+        else
+        {
+            _hoverIndex = -1;
+            _hoverClose = false;
+        }
+    }
+
+    private void SetHover(int index, bool onClose)
+    {
+        if (index == _hoverIndex && onClose == _hoverClose) return;
+
+        _hoverIndex = index;
+        _hoverClose = onClose;
+        UpdateToolTip();
+        Invalidate();
+    }
+
+    /// <summary>
+    /// Shows the full window title of the hovered tab. Titles are drawn with an ellipsis,
+    /// so this is the only way to read one that does not fit.
+    /// </summary>
+    private void UpdateToolTip()
+    {
+        string text = _hoverIndex >= 0 && _hoverIndex < _tabs.Count
+            ? _tabs[_hoverIndex].Title
+            : string.Empty;
+
+        // Setting the same text again restarts the tooltip and makes it flicker.
+        if (text == _toolTipText) return;
+
+        _toolTipText = text;
+        _toolTip.SetToolTip(this, text);
+    }
+
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e);
         int index = HitTest(e.Location, out bool onClose);
-        if (index != _hoverIndex || onClose != _hoverClose)
-        {
-            _hoverIndex = index;
-            _hoverClose = onClose;
-            Invalidate();
-        }
+        SetHover(index, onClose);
     }
 
     protected override void OnMouseLeave(EventArgs e)
     {
         base.OnMouseLeave(e);
-        if (_hoverIndex != -1)
-        {
-            _hoverIndex = -1;
-            _hoverClose = false;
-            Invalidate();
-        }
+        SetHover(-1, false);
     }
 
     protected override void OnMouseDown(MouseEventArgs e)
@@ -496,9 +616,11 @@ public class MainForm : Form
             NativeMethods.UnhookWinEvent(hook);
         _hooks.Clear();
 
-        foreach (Icon icon in _iconCache.Values)
-            icon?.Dispose();
+        foreach (CachedIcon cached in _iconCache.Values)
+            cached.Icon?.Dispose();
         _iconCache.Clear();
+
+        _toolTip.Dispose();
 
         UnregisterAppBar();
         base.OnFormClosing(e);
