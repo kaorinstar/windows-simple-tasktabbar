@@ -10,6 +10,11 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <AssemblyTitle>WindowsSimpleTaskTabBar</AssemblyTitle>
     <Description>A slim always-on bar above the Windows taskbar that shows open windows as tabs.</Description>
+    <!-- The executable's icon. The tray icon is read back out of the executable at run time,
+         so this one file serves both and there is no second copy to keep in step. -->
+    <!-- Forward slash: this project is also built on Linux, where MSBuild does not
+         translate a backslash in this property. -->
+    <ApplicationIcon>Properties/app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <!-- For net48, skip the config file so the output is a single executable. -->

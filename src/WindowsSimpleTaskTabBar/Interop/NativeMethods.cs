@@ -194,6 +194,14 @@ internal static class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool DestroyIcon(IntPtr hIcon);
 
+    /// <summary>
+    /// Pulls icons out of an executable. Asking for the small icon returns the entry that
+    /// matches the system's small icon size, rather than a scaled-down large one.
+    /// </summary>
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    public static extern uint ExtractIconExW(string lpszFile, int nIconIndex,
+        [Out] IntPtr[] phiconLarge, [Out] IntPtr[] phiconSmall, uint nIcons);
+
     // ---------------------------------------------------------------
     // Hooks for detecting window changes
     // ---------------------------------------------------------------
