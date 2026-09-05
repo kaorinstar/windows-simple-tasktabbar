@@ -55,6 +55,9 @@ public class MainForm : Form
     private readonly ToolTip _toolTip = new();
     private string _toolTipText = string.Empty;
 
+    private NotifyIcon _trayIcon;
+    private IntPtr _trayIconHandle;   // owned by this class; see LoadSmallApplicationIcon
+
     private float _scale = 1.0f;
     private Font _font;
 
@@ -83,11 +86,71 @@ public class MainForm : Form
         _toolTip.ReshowDelay = 200;
         _toolTip.AutoPopDelay = 10000;
 
+        ContextMenuStrip = BuildMenu();
+        CreateTrayIcon();
+    }
+
+    // ---------------------------------------------------------------
+    // Menu and tray icon
+    // ---------------------------------------------------------------
+
+    /// <summary>
+    /// Builds the application menu. The bar and the tray icon each need their own
+    /// <see cref="ContextMenuStrip"/> instance, but both are built here so the two
+    /// cannot drift apart.
+    /// </summary>
+    private ContextMenuStrip BuildMenu()
+    {
         var menu = new ContextMenuStrip();
         menu.Items.Add("Refresh", null, (_, __) => { _dirty = true; RefreshTabs(); });
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, __) => Close());
-        ContextMenuStrip = menu;
+        return menu;
+    }
+
+    /// <summary>
+    /// Puts an icon in the notification area. Without it the only way to reach the menu is
+    /// to right-click the bar itself, which is also where the tabs are.
+    /// </summary>
+    private void CreateTrayIcon()
+    {
+        _trayIcon = new NotifyIcon
+        {
+            Icon = LoadSmallApplicationIcon(),
+            Text = "WindowsSimpleTaskTabBar",
+            ContextMenuStrip = BuildMenu(),
+            Visible = true,
+        };
+    }
+
+    /// <summary>
+    /// Reads the small icon back out of this executable, so the tray and the executable
+    /// always show the same image and there is no second copy of it to keep in step.
+    /// </summary>
+    /// <remarks>
+    /// <c>Icon.ExtractAssociatedIcon</c> would be shorter, but it only ever returns the
+    /// large icon, which the notification area then shrinks. Asking Windows for the small
+    /// icon picks the entry drawn for that size instead.
+    /// </remarks>
+    private Icon LoadSmallApplicationIcon()
+    {
+        try
+        {
+            var small = new IntPtr[1];
+            if (NativeMethods.ExtractIconExW(Application.ExecutablePath, 0, null, small, 1) > 0
+                && small[0] != IntPtr.Zero)
+            {
+                _trayIconHandle = small[0];
+                // Icon.FromHandle does not take ownership, so the handle is destroyed on exit.
+                return Icon.FromHandle(_trayIconHandle);
+            }
+        }
+        catch
+        {
+            // Falls through to the system icon below.
+        }
+
+        return SystemIcons.Application;
     }
 
     protected override CreateParams CreateParams
@@ -621,6 +684,22 @@ public class MainForm : Form
         _iconCache.Clear();
 
         _toolTip.Dispose();
+
+        // Hide before disposing. A tray icon that is only disposed can be left behind as a
+        // dead entry in the notification area until the user hovers over it.
+        if (_trayIcon != null)
+        {
+            _trayIcon.Visible = false;
+            _trayIcon.ContextMenuStrip?.Dispose();   // the NotifyIcon does not own it
+            _trayIcon.Dispose();
+            _trayIcon = null;
+        }
+
+        if (_trayIconHandle != IntPtr.Zero)
+        {
+            NativeMethods.DestroyIcon(_trayIconHandle);
+            _trayIconHandle = IntPtr.Zero;
+        }
 
         UnregisterAppBar();
         base.OnFormClosing(e);
