@@ -1,6 +1,7 @@
 using System.Drawing.Drawing2D;
 using Microsoft.Win32;
 using WindowsSimpleTaskTabBar.Core.Layout;
+using WindowsSimpleTaskTabBar.Core.Settings;
 using WindowsSimpleTaskTabBar.Interop;
 using WindowsSimpleTaskTabBar.Services;
 
@@ -26,10 +27,11 @@ public class MainForm : Form
         public int FetchedAt;
     }
 
-    private const int BarHeightLogical = 34;
-    private const int TabMaxWidthLogical = 220;
-    private const int TabMinWidthLogical = 46;
-    private const int TabGapLogical = 2;
+    // Every drawing size now comes from BarMetrics, which derives them from the bar height
+    // so that the compact height shrinks the contents with it.
+    private AppSettings _settings = new();
+    private BarMetrics _metrics = BarMetrics.For(
+        AppSettings.HeightInPixels(BarHeightMode.Standard), 1.0f);
 
     // An application can change its icon while running, so a cached icon is fetched
     // again once it is older than this. Only one icon is refreshed per pass, because
@@ -56,6 +58,7 @@ public class MainForm : Form
     private string _toolTipText = string.Empty;
 
     private NotifyIcon _trayIcon;
+    private SettingsForm _settingsForm;
     private IntPtr _trayIconHandle;   // owned by this class; see LoadSmallApplicationIcon
 
     private float _scale = 1.0f;
@@ -73,6 +76,8 @@ public class MainForm : Form
         Text = "WindowsSimpleTaskTabBar";
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer
                  | ControlStyles.UserPaint | ControlStyles.ResizeRedraw, true);
+
+        _settings = SettingsStore.Load();
 
         ApplyTheme();
 
@@ -102,6 +107,8 @@ public class MainForm : Form
     private ContextMenuStrip BuildMenu()
     {
         var menu = new ContextMenuStrip();
+        menu.Items.Add("Settings...", null, (_, __) => ShowSettings());
+        menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Refresh", null, (_, __) => { _dirty = true; RefreshTabs(); });
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, __) => Close());
@@ -170,12 +177,65 @@ public class MainForm : Form
         uint dpi = NativeMethods.GetDpiForWindow(Handle);
         if (dpi == 0) dpi = 96;
         _scale = dpi / 96f;
-        _font = new Font("Yu Gothic UI", 12f * _scale, GraphicsUnit.Pixel);
+        RebuildMetrics();
 
         RegisterAppBar();
         RegisterHooks();
         RefreshTabs();
         _timer.Start();
+    }
+
+    // ---------------------------------------------------------------
+    // Settings
+    // ---------------------------------------------------------------
+
+    /// <summary>
+    /// Recomputes every drawing size and rebuilds the font. Called whenever the bar height or
+    /// the DPI changes, so the two can never disagree.
+    /// </summary>
+    private void RebuildMetrics()
+    {
+        _metrics = BarMetrics.For(AppSettings.HeightInPixels(_settings.BarHeight), _scale);
+
+        _font?.Dispose();
+        _font = new Font("Yu Gothic UI", _metrics.FontPixels, GraphicsUnit.Pixel);
+    }
+
+    /// <summary>
+    /// Opens the settings dialog. Only one at a time, and changes take effect as they are made.
+    /// </summary>
+    private void ShowSettings()
+    {
+        if (_settingsForm != null)
+        {
+            _settingsForm.Activate();
+            return;
+        }
+
+        using var form = new SettingsForm(_settings, ApplySettings);
+        _settingsForm = form;
+        try
+        {
+            form.ShowDialog();
+        }
+        finally
+        {
+            _settingsForm = null;
+        }
+    }
+
+    /// <summary>
+    /// Applies a settings change and writes it out. A failed write is not reported: losing a
+    /// preference is not worth interrupting the user for.
+    /// </summary>
+    private void ApplySettings()
+    {
+        RebuildMetrics();
+        UpdateAppBarPosition();   // the reserved area changes, so other windows resize with it
+        LayoutTabs();
+        Invalidate();
+
+        SettingsStore.Save(_settings);
     }
 
     // ---------------------------------------------------------------
@@ -215,7 +275,7 @@ public class MainForm : Form
         if (!_appBarRegistered) return;
 
         Rectangle screen = Screen.PrimaryScreen.Bounds;
-        int height = (int)Math.Round(BarHeightLogical * _scale);
+        int height = _metrics.BarHeight;
 
         var data = new NativeMethods.APPBARDATA
         {
@@ -258,8 +318,7 @@ public class MainForm : Form
             if (dpi > 0)
             {
                 _scale = dpi / 96f;
-                _font?.Dispose();
-                _font = new Font("Yu Gothic UI", 12f * _scale, GraphicsUnit.Pixel);
+                RebuildMetrics();
             }
             UpdateAppBarPosition();
         }
@@ -404,29 +463,26 @@ public class MainForm : Form
     {
         if (_tabs.Count == 0) return;
 
-        int gap = (int)Math.Round(TabGapLogical * _scale);
-        int maxW = (int)Math.Round(TabMaxWidthLogical * _scale);
-        int minW = (int)Math.Round(TabMinWidthLogical * _scale);
-        int margin = (int)Math.Round(4 * _scale);
-
+        int margin = _metrics.OuterMargin;
         int available = ClientSize.Width - margin * 2;
-        int width = TabLayout.CalculateTabWidth(available, _tabs.Count, gap, minW, maxW);
+        int width = TabLayout.CalculateTabWidth(
+            available, _tabs.Count, _metrics.TabGap, _metrics.TabMinWidth, _metrics.TabMaxWidth);
 
         int x = margin;
-        int top = (int)Math.Round(3 * _scale);
+        int top = _metrics.TopOffset;
         int height = ClientSize.Height - top;
 
         foreach (TabItem tab in _tabs)
         {
             tab.Bounds = new Rectangle(x, top, width, height);
 
-            int closeSize = (int)Math.Round(16 * _scale);
-            tab.CloseBounds = width > (int)Math.Round(90 * _scale)
-                ? new Rectangle(x + width - closeSize - (int)Math.Round(6 * _scale),
+            int closeSize = _metrics.CloseButtonSize;
+            tab.CloseBounds = width > _metrics.CloseButtonMinTabWidth
+                ? new Rectangle(x + width - closeSize - _metrics.SmallGap,
                                 top + (height - closeSize) / 2, closeSize, closeSize)
                 : Rectangle.Empty;
 
-            x += width + gap;
+            x += width + _metrics.TabGap;
         }
     }
 
@@ -486,12 +542,17 @@ public class MainForm : Form
 
         if (_tabs.Count == 0)
         {
-            TextRenderer.DrawText(g, "No windows to show", _font,
-                new Point((int)(8 * _scale), (int)(9 * _scale)), _cText);
+            // Centred in the bar rather than placed at a fixed offset, so it stays put when
+            // the bar height changes.
+            var emptyRect = new Rectangle(
+                _metrics.Padding, _metrics.TopOffset,
+                ClientSize.Width - _metrics.Padding * 2, ClientSize.Height - _metrics.TopOffset);
+            TextRenderer.DrawText(g, "No windows to show", _font, emptyRect, _cText,
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
             return;
         }
 
-        int radius = (int)Math.Round(6 * _scale);
+        int radius = _metrics.CornerRadius;
         int visible = VisibleTabCount();
 
         for (int i = 0; i < visible; i++)
@@ -503,8 +564,8 @@ public class MainForm : Form
             using (var brush = new SolidBrush(fill))
                 g.FillPath(brush, path);
 
-            int padding = (int)Math.Round(8 * _scale);
-            int iconSize = (int)Math.Round(16 * _scale);
+            int padding = _metrics.Padding;
+            int iconSize = _metrics.IconSize;
             int textLeft = tab.Bounds.Left + padding;
 
             if (tab.Icon != null)
@@ -512,12 +573,12 @@ public class MainForm : Form
                 var iconRect = new Rectangle(tab.Bounds.Left + padding,
                     tab.Bounds.Top + (tab.Bounds.Height - iconSize) / 2, iconSize, iconSize);
                 g.DrawIcon(tab.Icon, iconRect);
-                textLeft = iconRect.Right + (int)Math.Round(6 * _scale);
+                textLeft = iconRect.Right + _metrics.SmallGap;
             }
 
             int textRight = tab.CloseBounds.IsEmpty
                 ? tab.Bounds.Right - padding
-                : tab.CloseBounds.Left - (int)Math.Round(4 * _scale);
+                : tab.CloseBounds.Left - _metrics.OuterMargin;
 
             if (textRight > textLeft)
             {
@@ -534,7 +595,7 @@ public class MainForm : Form
                 Color color = (i == _hoverIndex && _hoverClose) ? Color.FromArgb(232, 74, 74) : _cText;
                 using var pen = new Pen(color, Math.Max(1f, 1.3f * _scale));
                 Rectangle c = tab.CloseBounds;
-                int inset = (int)Math.Round(4 * _scale);
+                int inset = _metrics.CloseButtonSize / 4;
                 g.DrawLine(pen, c.Left + inset, c.Top + inset, c.Right - inset, c.Bottom - inset);
                 g.DrawLine(pen, c.Right - inset, c.Top + inset, c.Left + inset, c.Bottom - inset);
             }
