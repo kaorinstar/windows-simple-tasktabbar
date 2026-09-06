@@ -344,6 +344,13 @@ public class MainForm : Form
             int delta = (short)((m.WParam.ToInt64() >> 16) & 0xFFFF);
             if (delta != 0) ScrollBy(delta > 0 ? -1 : 1);
         }
+        else if (m.Msg == 0x0207 /* WM_MBUTTONDOWN */)
+        {
+            // Handled here rather than through OnMouseDown, for the same reason as the wheel:
+            // the bar is usually not the active window, and the middle button does not
+            // activate one, so the message is not always turned into a MouseDown event.
+            CloseTabAt(PointFromLParam(m.LParam));
+        }
         else if (m.Msg == 0x007E /* WM_DISPLAYCHANGE */ || m.Msg == 0x02E0 /* WM_DPICHANGED */)
         {
             uint dpi = NativeMethods.GetDpiForWindow(Handle);
@@ -356,6 +363,23 @@ public class MainForm : Form
         }
 
         base.WndProc(ref m);
+    }
+
+    /// <summary>Client coordinates carried in the lParam of a mouse message.</summary>
+    private static Point PointFromLParam(IntPtr lParam)
+    {
+        long value = lParam.ToInt64();
+        return new Point((short)(value & 0xFFFF), (short)((value >> 16) & 0xFFFF));
+    }
+
+    /// <summary>Closes the window whose tab is under this point, if there is one.</summary>
+    private void CloseTabAt(Point p)
+    {
+        int index = HitTest(p, out _);
+        if (index < 0) return;
+
+        WindowService.Close(_tabs[index].Hwnd);
+        _dirty = true;
     }
 
     // ---------------------------------------------------------------
@@ -978,7 +1002,8 @@ public class MainForm : Form
 
         TabItem tab = _tabs[index];
 
-        if (e.Button == MouseButtons.Middle || (e.Button == MouseButtons.Left && onClose))
+        // The middle button is not handled here. See WM_MBUTTONDOWN in WndProc.
+        if (e.Button == MouseButtons.Left && onClose)
         {
             WindowService.Close(tab.Hwnd);
             _dirty = true;
