@@ -139,12 +139,18 @@ built and tested on every run, as a second compiler over the same source.
 
 ## Releasing
 
-Tags are `vYYYY.M.D` with no leading zeros, for example `v2026.9.6`. A second release on the same
-day adds a fourth part, `v2026.9.6.1`. The zeros are dropped deliberately: the tag, minus its
-leading `v`, is passed to the build as `-p:Version`, and every part of `AssemblyVersion` must be a
-plain integer, which `09` is not. A published executable therefore reports the version of its
-release in its file properties. Every other build keeps the `<Version>` in
-`Directory.Build.props`.
+Tags are `vMAJOR.MINOR.PATCH`, as semantic versioning describes, for example `v0.1.0`. Below
+`1.0.0` the minor number covers additions and changes, and the patch number covers fixes alone. No
+leading zeros: the tag, minus its leading `v`, is passed to the build as `-p:Version`, and every
+part of `AssemblyVersion` must be a plain integer, which `01` is not. A published executable
+therefore reports the version of its release in its file properties. Every other build keeps the
+`<Version>` in `Directory.Build.props`.
+
+Date-based tags (`vYYYY.M.D`) were used while #20 and #22 were written, and dropped before the
+first release. GitHub already prints the date of every release, so a date in the number added
+little, and it could say neither how large a change was nor that the application is still before
+`1.0.0`. **Do not reintroduce them.** Windows compares versions numerically, so a release published
+as `2026.9.6` could never be followed by `1.0.0`.
 
 `version.md` is the changelog, newest version at the top, one section per version.
 `version.ja.md` is its Japanese translation and is updated in the same commit, as the language

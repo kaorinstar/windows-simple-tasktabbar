@@ -108,8 +108,9 @@ source, but it is not published.
 
 ## Releasing
 
-Releases are tagged by date: `vYYYY.M.D`, with no leading zeros. `v2026.9.6`, not `v2026.09.06`.
-A second release on the same day adds a fourth part, `v2026.9.6.1`.
+Releases are tagged `vMAJOR.MINOR.PATCH`, as [semantic versioning](https://semver.org/) describes:
+`v0.1.0`, with no leading zeros. Below `1.0.0` the minor number rises when something is added or
+changed, and the patch number when something is only fixed.
 
 1. Add a section for the new version at the top of `version.md`, and the same section in
    `version.ja.md`. Write what changed for someone using the application, not which pull requests
@@ -118,15 +119,15 @@ A second release on the same day adds a fourth part, `v2026.9.6.1`.
 3. Tag that commit and push the tag:
 
    ```
-   git tag v2026.9.6
-   git push origin v2026.9.6
+   git tag v0.1.0
+   git push origin v0.1.0
    ```
 
 The release workflow then builds, tests, packages the executable and creates the release, using
 that section of `version.md` as the release notes. The executable is stamped with the version from
-the tag, so its file properties in Windows say which release it came from. A tag in the wrong format, or one with no
-section in `version.md`, fails the workflow before anything is built, so no half-finished release
-is published.
+the tag, so its file properties in Windows say which release it came from. A tag in the wrong
+format, or one with no section in `version.md`, fails the workflow before anything is built, so no
+half-finished release is published.
 
 ## Reliable window activation
 
