@@ -92,12 +92,19 @@ See [docs/architecture.md](docs/architecture.md) for details.
 
 ## Continuous integration
 
-Every push to `main` and every pull request runs a build and the unit tests on Windows.
-Warnings are treated as errors, so a warning fails the build.
+Two workflows run on Windows.
 
-Pushing a tag such as `v0.1.0` creates a release with the net48 package attached. The net8
-target is built and tested on every run as well, as a second compiler over the same source,
-but it is not published.
+`build.yml` verifies. Every push to `main` and every pull request runs a build and the unit
+tests. Warnings are treated as errors, so a warning fails the build. Nothing is packaged, and
+the run has read-only access to the repository.
+
+`release.yml` distributes. Pushing a tag such as `v0.1.0` builds, tests, packages, and creates
+a release with the net48 package attached. Starting the same workflow by hand produces the
+package as a downloadable build artifact and creates no release, so a change to it can be
+tried out before a tag is pushed.
+
+The net8 target is built and tested on every run as well, as a second compiler over the same
+source, but it is not published.
 
 ## Reliable window activation
 

@@ -1,24 +1,34 @@
+# Verification only: does the source still build, and do the tests still pass?
+#
+# Packaging and publishing live in .github/workflows/release.yml. Keep the build and test
+# steps below in step with that file; they are deliberately duplicated rather than shared,
+# because two files are easier to read than a composite action.
+
 name: build
 
 on:
   push:
     branches: [main]
-    tags: ['v*']
   pull_request:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: windows-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Check out the source
         uses: actions/checkout@v4
 
-      - name: Set up .NET 8
+      # The SDK is the build tooling, not a runtime the application needs. It builds both
+      # targets: net8.0-windows and net48. .NET Framework 4.8 is part of Windows and cannot be
+      # installed by this action, and the reference assemblies net48 compiles against come from
+      # a NuGet package named in the project file, so nothing else has to be set up here.
+      - name: Set up the .NET SDK (it builds both the net8 and net48 targets)
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -31,29 +41,3 @@ jobs:
 
       - name: Run unit tests
         run: dotnet test -c Release --no-build --verbosity normal
-
-      # Only the net48 build is published. .NET Framework 4.8 ships with Windows 10 version
-      # 1903 and later and with Windows 11, so this one file runs on every supported Windows,
-      # and on ARM as well because it is AnyCPU. The net8 target is still built and tested
-      # above, as a second compiler over the same source.
-      - name: Package the application (.NET Framework 4.8, no runtime install required)
-        run: >
-          dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48
-          -o artifacts
-
-      - name: Remove the debug symbols from the package
-        shell: pwsh
-        run: Remove-Item -Path artifacts/*.pdb -Force -ErrorAction SilentlyContinue
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: WindowsSimpleTaskTabBar
-          path: artifacts/
-
-      - name: Attach to release (tags only)
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: artifacts/WindowsSimpleTaskTabBar.exe
-          generate_release_notes: true

@@ -18,7 +18,8 @@ windows-simple-tasktabbar/
 ├── README.ja.md                   Japanese
 ├── .github/
 │   └── workflows/
-│       └── build.yml              Build, test, and release automation
+│       ├── build.yml              Build and test, on pushes and pull requests
+│       └── release.yml            Build, test, package, and publish a release
 ├── docs/
 │   ├── architecture.md            This document
 │   └── architecture.ja.md         Japanese translation
