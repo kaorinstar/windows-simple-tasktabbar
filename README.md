@@ -33,7 +33,7 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
 ## Download
 
 One file is attached to each [release](https://github.com/kaorinstar/windows-simple-tasktabbar/releases):
-`WindowsSimpleTaskTabBar-net48.exe`, about 23 KB.
+`WindowsSimpleTaskTabBar.exe`, about 23 KB.
 
 It targets .NET Framework 4.8, which ships with Windows 10 version 1903 and later and with
 Windows 11, so nothing has to be installed. It is a single file with no configuration file
@@ -73,7 +73,7 @@ dotnet test -c Release
 Producing the distributable packages:
 
 ```
-dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48 -o artifacts/net48
+dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48 -o artifacts
 ```
 
 ## Repository layout

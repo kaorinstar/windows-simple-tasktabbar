@@ -34,7 +34,7 @@ Warnings are treated as errors. Do not call a task finished while a warning rema
 Producing the package that is actually distributed:
 
 ```
-dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48 -o artifacts/net48
+dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48 -o artifacts
 ```
 
 ## Verification

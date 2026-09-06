@@ -33,7 +33,7 @@ Windows は、前面にないアプリが自分を前面へ出すことを制限
 ## ダウンロード
 
 [リリース](https://github.com/kaorinstar/windows-simple-tasktabbar/releases)には1つだけ添付しています。
-`WindowsSimpleTaskTabBar-net48.exe`、約23KBです。
+`WindowsSimpleTaskTabBar.exe`、約23KBです。
 
 .NET Framework 4.8 を使います。Windows 10 バージョン1903以降と Windows 11 には標準で
 含まれているため、配布先での準備は不要です。設定ファイルも付属しない1ファイル構成で、
@@ -70,7 +70,7 @@ dotnet test -c Release
 配布用の実行ファイルは次のように作ります。
 
 ```
-dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48 -o artifacts/net48
+dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48 -o artifacts
 ```
 
 ## フォルダー構成

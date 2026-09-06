@@ -39,13 +39,11 @@ jobs:
       - name: Package the application (.NET Framework 4.8, no runtime install required)
         run: >
           dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48
-          -o artifacts/net48
+          -o artifacts
 
-      - name: Clean up and name the package
+      - name: Remove the debug symbols from the package
         shell: pwsh
-        run: |
-          Remove-Item -Path artifacts/*/*.pdb -Force -ErrorAction SilentlyContinue
-          Rename-Item artifacts/net48/WindowsSimpleTaskTabBar.exe WindowsSimpleTaskTabBar-net48.exe
+        run: Remove-Item -Path artifacts/*.pdb -Force -ErrorAction SilentlyContinue
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -57,5 +55,5 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/net48/WindowsSimpleTaskTabBar-net48.exe
+          files: artifacts/WindowsSimpleTaskTabBar.exe
           generate_release_notes: true
