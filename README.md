@@ -20,7 +20,9 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
 - **Click a tab** — brings that window to the front, restoring it if minimized.
 - **Click the active tab** — minimizes it, the same as the Windows taskbar.
 - **Click the ×, or middle-click a tab** — closes that window.
-- **Right-click the bar** — opens a menu with Refresh and Exit.
+- **Right-click the bar** — opens a menu with Settings, Refresh and Exit.
+- **Scroll the wheel over the bar, or click the arrows at either end** — moves the row when
+  there are more tabs than fit. The row also follows the window you switch to.
 - The tab list updates automatically when windows open, close, change title, or gain focus.
   A two-second timer runs as a safety net.
 
@@ -123,12 +125,14 @@ success rate. The bar is thin, so the visual effect is negligible.
 - **Primary monitor only.** Multi-monitor support is not implemented.
 - **Full-screen applications cover the bar.** This is normal AppBar behaviour.
 - **Tabs cannot be reordered by dragging.**
-- **Tabs that do not fit are not shown.** There is no scrolling or wrapping yet.
+- **A tab never shrinks below its icon and the first four characters of its title.** Past that
+  the row scrolls, so on a narrow screen only part of the row is visible at a time. Nothing is
+  hidden: every window is still reachable by scrolling.
 
 ## Roadmap
 
 1. Drag to reorder tabs
-2. Horizontal scrolling, or grouping by application, when there are many tabs
+2. Grouping by application when there are many tabs
 3. Multi-monitor support
 4. Window preview on hover
 5. Pinned applications

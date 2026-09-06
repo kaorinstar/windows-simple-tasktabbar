@@ -23,19 +23,26 @@ windows-simple-tasktabbar/
 │   └── architecture.ja.md         この文書
 ├── src/
 │   ├── WindowsSimpleTaskTabBar.Core/           画面に依存しない処理
-│   │   └── Layout/
-│   │       └── TabLayout.cs       タブ幅などの計算
+│   │   ├── Layout/
+│   │   │   ├── BarMetrics.cs      バーの高さとDPIから決まる描画寸法
+│   │   │   └── TabStrip.cs        タブ幅・あふれ・スクロールの計算
+│   │   └── Settings/
+│   │       └── AppSettings.cs     設定項目と既定値
 │   └── WindowsSimpleTaskTabBar/                アプリ本体
 │       ├── Program.cs             起動処理
 │       ├── Interop/
 │       │   └── NativeMethods.cs   Windows API の呼び出し定義
 │       ├── Services/
+│       │   ├── SettingsStore.cs   設定ファイルの読み書き
 │       │   └── WindowService.cs   ウィンドウの列挙・前面化・終了
 │       └── UI/
-│           └── MainForm.cs        画面本体（AppBar登録・描画・操作）
+│           ├── MainForm.cs        画面本体（AppBar登録・描画・操作）
+│           └── SettingsForm.cs    設定画面
 └── tests/
     └── WindowsSimpleTaskTabBar.Tests/          単体テスト
-        └── TabLayoutTests.cs
+        ├── AppSettingsTests.cs
+        ├── BarMetricsTests.cs
+        └── TabStripTests.cs
 ```
 
 ## なぜ src と tests を分けるのか
@@ -79,7 +86,7 @@ DLL参照にすると配布ファイルが2つになり、「実行ファイル1
 ```
 Program.cs
    ↓
-UI/MainForm.cs  ──→  Core/Layout/TabLayout.cs（計算）
+UI/MainForm.cs  ──→  Core/Layout/（計算）
    ↓
 Services/WindowService.cs（ウィンドウ操作）
    ↓

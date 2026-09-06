@@ -24,19 +24,26 @@ windows-simple-tasktabbar/
 │   └── architecture.ja.md         Japanese translation
 ├── src/
 │   ├── WindowsSimpleTaskTabBar.Core/       Logic with no UI dependency
-│   │   └── Layout/
-│   │       └── TabLayout.cs                Tab width and fit calculations
+│   │   ├── Layout/
+│   │   │   ├── BarMetrics.cs               Drawing sizes, from bar height and DPI
+│   │   │   └── TabStrip.cs                 Tab width, overflow, scroll arithmetic
+│   │   └── Settings/
+│   │       └── AppSettings.cs              The settings and their defaults
 │   └── WindowsSimpleTaskTabBar/            The application
 │       ├── Program.cs                      Entry point
 │       ├── Interop/
 │       │   └── NativeMethods.cs            Windows API declarations
 │       ├── Services/
+│       │   ├── SettingsStore.cs            Reading and writing the settings file
 │       │   └── WindowService.cs            Enumerate, activate, close windows
 │       └── UI/
-│           └── MainForm.cs                 AppBar registration, painting, input
+│           ├── MainForm.cs                 AppBar registration, painting, input
+│           └── SettingsForm.cs             The settings dialog
 └── tests/
     └── WindowsSimpleTaskTabBar.Tests/      Unit tests
-        └── TabLayoutTests.cs
+        ├── AppSettingsTests.cs
+        ├── BarMetricsTests.cs
+        └── TabStripTests.cs
 ```
 
 ## Why src and tests are separate
@@ -82,7 +89,7 @@ Differences between the two are handled with `#if NETFRAMEWORK` in `Program.cs`.
 ```
 Program.cs
    ↓
-UI/MainForm.cs  ──→  Core/Layout/TabLayout.cs   (calculations)
+UI/MainForm.cs  ──→  Core/Layout/                (calculations)
    ↓
 Services/WindowService.cs                       (window operations)
    ↓
@@ -104,6 +111,17 @@ setting a window to topmost would not achieve this — it would overlap other wi
 
 See the README section on reliable window activation. The three strategies are deliberate: which
 one succeeds varies by environment, so none of them should be removed as redundant.
+
+### Too many tabs to fit
+
+Tabs share the width evenly until they reach the minimum in `Core/Layout/BarMetrics.cs`, which
+is wide enough for the icon and the first four characters of the title. Below that they stop
+shrinking and the row scrolls instead, by the mouse wheel, by an arrow at each end, or
+automatically when the foreground window changes. No tab is ever dropped: a window missing from
+the bar is the one failure this application must not have.
+
+An icon-only stage was tried and removed. A row of windows from one application shows the same
+icon over and over, so the text is the only thing that tells them apart.
 
 ### Refresh strategy
 
