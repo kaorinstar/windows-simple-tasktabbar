@@ -32,31 +32,18 @@ jobs:
       - name: Run unit tests
         run: dotnet test -c Release --no-build --verbosity normal
 
-      - name: Package A - no runtime install required (.NET Framework 4.8)
+      # Only the net48 build is published. .NET Framework 4.8 ships with Windows 10 version
+      # 1903 and later and with Windows 11, so this one file runs on every supported Windows,
+      # and on ARM as well because it is AnyCPU. The net8 target is still built and tested
+      # above, as a second compiler over the same source.
+      - name: Package the application (.NET Framework 4.8, no runtime install required)
         run: >
           dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48
-          -o artifacts/net48
+          -o artifacts
 
-      - name: Package B - small (.NET 8 runtime installed separately)
-        run: >
-          dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net8.0-windows
-          -r win-x64 --self-contained false -p:PublishSingleFile=true
-          -o artifacts/net8
-
-      - name: Package C - standalone (.NET 8 bundled, compressed)
-        run: >
-          dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net8.0-windows
-          -r win-x64 --self-contained true -p:PublishSingleFile=true
-          -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
-          -o artifacts/standalone
-
-      - name: Clean up and give each package a distinct name
+      - name: Remove the debug symbols from the package
         shell: pwsh
-        run: |
-          Remove-Item -Path artifacts/*/*.pdb -Force -ErrorAction SilentlyContinue
-          Rename-Item artifacts/net48/WindowsSimpleTaskTabBar.exe WindowsSimpleTaskTabBar-net48.exe
-          Rename-Item artifacts/net8/WindowsSimpleTaskTabBar.exe WindowsSimpleTaskTabBar-net8.exe
-          Rename-Item artifacts/standalone/WindowsSimpleTaskTabBar.exe WindowsSimpleTaskTabBar-standalone.exe
+        run: Remove-Item -Path artifacts/*.pdb -Force -ErrorAction SilentlyContinue
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -68,8 +55,5 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            artifacts/net48/WindowsSimpleTaskTabBar-net48.exe
-            artifacts/net8/WindowsSimpleTaskTabBar-net8.exe
-            artifacts/standalone/WindowsSimpleTaskTabBar-standalone.exe
+          files: artifacts/WindowsSimpleTaskTabBar.exe
           generate_release_notes: true

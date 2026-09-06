@@ -34,7 +34,7 @@ Warnings are treated as errors. Do not call a task finished while a warning rema
 Producing the package that is actually distributed:
 
 ```
-dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48 -o artifacts/net48
+dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48 -o artifacts
 ```
 
 ## Verification
@@ -121,7 +121,10 @@ In rough priority order:
 ## Continuous integration
 
 `.github/workflows/build.yml` builds and tests on Windows for every push to `main` and every
-pull request. Pushing a tag such as `v0.1.0` publishes a release with three packages attached.
+pull request. Pushing a tag such as `v0.1.0` publishes a release with the net48 package
+attached. That is the only package distributed: .NET Framework 4.8 ships with every supported
+version of Windows, and the build is AnyCPU, so it covers ARM as well. The net8 target is still
+built and tested on every run, as a second compiler over the same source.
 
 ## History
 
