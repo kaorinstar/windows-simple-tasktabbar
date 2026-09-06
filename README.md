@@ -32,17 +32,17 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
 
 ## Download
 
-Three packages are attached to each [release](https://github.com/kaorinstar/windows-simple-tasktabbar/releases).
+One file is attached to each [release](https://github.com/kaorinstar/windows-simple-tasktabbar/releases):
+`WindowsSimpleTaskTabBar-net48.exe`, about 23 KB.
 
-| Package | Size | Requirements | When to use |
-|---|---|---|---|
-| `WindowsSimpleTaskTabBar-net48.exe` | ~23 KB | None (Windows 10 version 1903 or later, Windows 11) | Recommended for most people |
-| `WindowsSimpleTaskTabBar-net8.exe` | ~171 KB | .NET 8 Desktop Runtime (x64) | If the runtime is already installed |
-| `WindowsSimpleTaskTabBar-standalone.exe` | ~69 MB | None (x64 only) | Older Windows versions |
+It targets .NET Framework 4.8, which ships with Windows 10 version 1903 and later and with
+Windows 11, so nothing has to be installed. It is a single file with no configuration file
+beside it, and it is built AnyCPU, so it also runs on ARM versions of Windows without
+emulating x64.
 
-The net48 package targets .NET Framework 4.8, which ships with Windows 10 version 1903 and
-later and with Windows 11. Nothing has to be installed, and the package is a single file with
-no configuration file beside it.
+Only this one package is published. A build carrying its own copy of .NET 8 would be about
+69 MB and x64 only, and would help solely on versions of Windows that are themselves out of
+support.
 
 ## Install
 
@@ -73,14 +73,7 @@ dotnet test -c Release
 Producing the distributable packages:
 
 ```
-# A. No runtime install required
 dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48 -o artifacts/net48
-
-# B. Small
-dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net8.0-windows -r win-x64 --self-contained false -p:PublishSingleFile=true -o artifacts/net8
-
-# C. Standalone
-dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net8.0-windows -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o artifacts/standalone
 ```
 
 ## Repository layout
@@ -102,7 +95,9 @@ See [docs/architecture.md](docs/architecture.md) for details.
 Every push to `main` and every pull request runs a build and the unit tests on Windows.
 Warnings are treated as errors, so a warning fails the build.
 
-Pushing a tag such as `v0.1.0` creates a release with all three packages attached.
+Pushing a tag such as `v0.1.0` creates a release with the net48 package attached. The net8
+target is built and tested on every run as well, as a second compiler over the same source,
+but it is not published.
 
 ## Reliable window activation
 

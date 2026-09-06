@@ -78,9 +78,14 @@ executable. The test project references Core as a normal library.
 One build produces both, from the same sources:
 
 - **`net48`** targets .NET Framework 4.8, which ships with Windows 10 version 1903 and later and
-  with Windows 11. Users install nothing.
-- **`net8.0-windows`** targets .NET 8, used during development and when newer runtime features
-  are needed.
+  with Windows 11. Users install nothing. **This is the only build distributed.**
+- **`net8.0-windows`** targets .NET 8. It is built and tested on every run but never published:
+  it is a second compiler over the same source, and it keeps the door open should .NET Framework
+  stop being an option.
+
+A build carrying its own copy of .NET 8 was published for a while and has been dropped. At about
+69 MB and x64 only, it helped solely on versions of Windows that are themselves out of support,
+and .NET Framework 4.8 can be installed there anyway.
 
 Differences between the two are handled with `#if NETFRAMEWORK` in `Program.cs`.
 

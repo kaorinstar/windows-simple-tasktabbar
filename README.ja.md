@@ -32,16 +32,15 @@ Windows は、前面にないアプリが自分を前面へ出すことを制限
 
 ## ダウンロード
 
-[リリース](https://github.com/kaorinstar/windows-simple-tasktabbar/releases)に3種類を添付しています。
+[リリース](https://github.com/kaorinstar/windows-simple-tasktabbar/releases)には1つだけ添付しています。
+`WindowsSimpleTaskTabBar-net48.exe`、約23KBです。
 
-| 版 | 大きさ | 必要な前提 | 用途 |
-|---|---|---|---|
-| `WindowsSimpleTaskTabBar-net48.exe` | 約23KB | なし（Windows 10 バージョン1903以降、Windows 11） | 通常はこれを使います |
-| `WindowsSimpleTaskTabBar-net8.exe` | 約171KB | .NET 8 Desktop Runtime（x64） | すでにランタイムがある環境向け |
-| `WindowsSimpleTaskTabBar-standalone.exe` | 約69MB | なし（x64のみ） | 古いWindows向け |
+.NET Framework 4.8 を使います。Windows 10 バージョン1903以降と Windows 11 には標準で
+含まれているため、配布先での準備は不要です。設定ファイルも付属しない1ファイル構成で、
+AnyCPUのため ARM版Windows でも x64エミュレーションなしで動きます。
 
-net48版は .NET Framework 4.8 を使います。Windows 10 バージョン1903以降と Windows 11 には
-標準で含まれているため、配布先での準備は不要です。設定ファイルも付属しない1ファイル構成です。
+配布はこの1つだけです。.NET 8 を同梱した版は約69MBかつ x64専用で、利点があるのは
+サポートが終了したWindowsに限られるためです。
 
 ## 導入のしかた
 
@@ -71,14 +70,7 @@ dotnet test -c Release
 配布用の実行ファイルは次のように作ります。
 
 ```
-# A. 導入不要版
 dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48 -o artifacts/net48
-
-# B. 軽量版
-dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net8.0-windows -r win-x64 --self-contained false -p:PublishSingleFile=true -o artifacts/net8
-
-# C. 単体版
-dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net8.0-windows -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o artifacts/standalone
 ```
 
 ## フォルダー構成
@@ -100,7 +92,9 @@ dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Rel
 `main` への push とプルリクエストのたびに、GitHub Actions が Windows 環境でビルドと
 単体テストを実行します。警告もエラー扱いのため、警告が残っていると失敗します。
 
-`v0.1.0` のようにタグを付けて push すると、リリースが作られ、上記3種類が添付されます。
+`v0.1.0` のようにタグを付けて push すると、リリースが作られ、net48版が添付されます。
+net8版も毎回ビルドとテストを行いますが、これは同じソースを別のコンパイラで検査するためで、
+配布はしません。
 
 ## 前面化を確実にする仕組み
 
