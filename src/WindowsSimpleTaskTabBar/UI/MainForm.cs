@@ -81,6 +81,16 @@ public class MainForm : Form
     private readonly ToolTip _toolTip = new();
     private string _toolTipText = string.Empty;
 
+    // Two menus for the bar: one for a tab, one for the space around the tabs. Neither is
+    // assigned to the ContextMenuStrip property, because which one to show depends on where
+    // the click landed, and that property would always show the same one.
+    private ContextMenuStrip _appMenu;
+    private ContextMenuStrip _tabMenu;
+    private IntPtr _menuTarget;              // the tab _tabMenu was opened on
+    private ToolStripItem _closeOthersItem;  // greyed out when there is nothing to act on
+    private ToolStripItem _closeLeftItem;
+    private ToolStripItem _closeRightItem;
+
     private NotifyIcon _trayIcon;
     private SettingsForm _settingsForm;
     private IntPtr _trayIconHandle;   // owned by this class; see LoadSmallApplicationIcon
@@ -115,7 +125,8 @@ public class MainForm : Form
         _toolTip.ReshowDelay = 200;
         _toolTip.AutoPopDelay = 10000;
 
-        ContextMenuStrip = BuildMenu();
+        _appMenu = BuildMenu();
+        _tabMenu = BuildTabMenu();
         CreateTrayIcon();
     }
 
@@ -137,6 +148,90 @@ public class MainForm : Form
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, __) => Close());
         return menu;
+    }
+
+    /// <summary>
+    /// Builds the menu for a single tab. It acts on <see cref="_menuTarget"/>, which is set
+    /// from the tab under the pointer each time the menu is opened, so one menu serves them all.
+    /// </summary>
+    /// <remarks>
+    /// Nothing here reports failure. A window belonging to an elevated process cannot be
+    /// controlled from a normal one, and Windows gives no error for it either; a dialog saying
+    /// so on every attempt would be worse than the silence.
+    /// </remarks>
+    private ContextMenuStrip BuildTabMenu()
+    {
+        var menu = new ContextMenuStrip();
+
+        menu.Items.Add("Close", null, (_, __) => { WindowService.Close(_menuTarget); _dirty = true; });
+        _closeOthersItem = menu.Items.Add("Close other tabs", null,
+            (_, __) => CloseWindows(_menuTarget, Side.Both));
+        _closeLeftItem = menu.Items.Add("Close tabs to the left", null,
+            (_, __) => CloseWindows(_menuTarget, Side.Left));
+        _closeRightItem = menu.Items.Add("Close tabs to the right", null,
+            (_, __) => CloseWindows(_menuTarget, Side.Right));
+
+        menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add("Minimize", null, (_, __) => { WindowService.Minimize(_menuTarget); _dirty = true; });
+
+        return menu;
+    }
+
+    /// <summary>Which side of a tab the closing commands act on.</summary>
+    private enum Side { Left, Right, Both }
+
+    /// <summary>
+    /// Closes the windows beside one tab: those before it, those after it, or all of them.
+    /// </summary>
+    /// <remarks>
+    /// The tab's position is looked up now rather than remembered from when the menu opened,
+    /// because closing a window elsewhere in the meantime would have moved it along the row.
+    /// </remarks>
+    private void CloseWindows(IntPtr target, Side side)
+    {
+        int index = _tabs.FindIndex(t => t.Hwnd == target);
+        if (index < 0) return;
+
+        // Taken as a copy first: the refresh that follows rebuilds the list this walks.
+        List<IntPtr> handles = _tabs.Select(t => t.Hwnd).ToList();
+
+        for (int i = 0; i < handles.Count; i++)
+        {
+            bool beside = side switch
+            {
+                Side.Left => i < index,
+                Side.Right => i > index,
+                _ => i != index,
+            };
+
+            if (beside) WindowService.Close(handles[i]);
+        }
+
+        _dirty = true;
+    }
+
+    /// <summary>
+    /// Shows the menu for whatever is under the pointer: the tab, or the bar itself.
+    /// </summary>
+    private void ShowContextMenu(Point p)
+    {
+        int index = HitTest(p, out _);
+
+        if (index >= 0)
+        {
+            _menuTarget = _tabs[index].Hwnd;
+
+            // A command with nothing to close is greyed out rather than silently doing nothing.
+            _closeOthersItem.Enabled = _tabs.Count > 1;
+            _closeLeftItem.Enabled = index > 0;
+            _closeRightItem.Enabled = index < _tabs.Count - 1;
+
+            _tabMenu.Show(this, p);
+        }
+        else
+        {
+            _appMenu.Show(this, p);
+        }
     }
 
     /// <summary>
@@ -1000,6 +1095,14 @@ public class MainForm : Form
     {
         base.OnMouseUp(e);
 
+        if (e.Button == MouseButtons.Right)
+        {
+            // Ignored while the left button is still doing something: a menu over a tab that is
+            // being dragged would be acting on a moving target.
+            if (!_dragging && _pressedHwnd == IntPtr.Zero) ShowContextMenu(e.Location);
+            return;
+        }
+
         if (e.Button != MouseButtons.Left) return;
 
         if (_dragging)
@@ -1213,6 +1316,9 @@ public class MainForm : Form
         _iconCache.Clear();
 
         _toolTip.Dispose();
+
+        _appMenu?.Dispose();
+        _tabMenu?.Dispose();
 
         // Hide before disposing. A tray icon that is only disposed can be left behind as a
         // dead entry in the notification area until the user hovers over it.
