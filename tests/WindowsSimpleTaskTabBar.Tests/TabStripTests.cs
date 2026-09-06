@@ -117,6 +117,52 @@ public class TabStripTests
         Assert.Equal(expected, TabStrip.ClampScroll(scroll, maxScroll));
     }
 
+    [Theory]
+    // 100px tabs with a 2px gap: slot 0 starts at 0, slot 1 at 102, slot 2 at 204.
+    [InlineData(0, 0)]        // where it started
+    [InlineData(50, 0)]       // not yet halfway to the next slot
+    [InlineData(51, 1)]       // just past halfway, so the neighbour steps aside
+    [InlineData(102, 1)]      // exactly over slot 1
+    [InlineData(204, 2)]
+    [InlineData(-40, 0)]      // dragged off the left end
+    [InlineData(9999, 4)]     // dragged off the right end, five tabs in the row
+    public void ATabDropsIntoTheSlotItsLeadingEdgeHasPassed(int offset, int expected)
+    {
+        Assert.Equal(expected, TabStrip.DropIndex(offset, 100, 2, 5));
+    }
+
+    [Fact]
+    public void ASingleTabHasNowhereToGo()
+    {
+        Assert.Equal(0, TabStrip.DropIndex(500, 100, 2, 1));
+        Assert.Equal(0, TabStrip.DropIndex(500, 100, 2, 0));
+    }
+
+    [Fact]
+    public void MovingATabKeepsTheOthersInOrder()
+    {
+        var items = new List<string> { "a", "b", "c", "d" };
+
+        TabStrip.Move(items, 0, 2);
+        Assert.Equal(new[] { "b", "c", "a", "d" }, items);
+
+        TabStrip.Move(items, 3, 0);
+        Assert.Equal(new[] { "d", "b", "c", "a" }, items);
+    }
+
+    [Fact]
+    public void AMoveThatChangesNothingIsLeftAlone()
+    {
+        var items = new List<string> { "a", "b", "c" };
+
+        TabStrip.Move(items, 1, 1);
+        TabStrip.Move(items, -1, 0);
+        TabStrip.Move(items, 0, 3);
+        TabStrip.Move<string>(null, 0, 1);
+
+        Assert.Equal(new[] { "a", "b", "c" }, items);
+    }
+
     [Fact]
     public void ATabAlreadyInViewDoesNotMoveTheRow()
     {

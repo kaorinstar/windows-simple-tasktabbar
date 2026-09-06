@@ -123,6 +123,17 @@ the bar is the one failure this application must not have.
 An icon-only stage was tried and removed. A row of windows from one application shows the same
 icon over and over, so the text is the only thing that tells them apart.
 
+### Dragging a tab
+
+A left press on a tab does nothing on its own. The window is activated on release, and only if
+the pointer is still on the same tab, because the same press may turn out to be a drag. Acting on
+the press instead would minimize a window the moment the user started to drag its tab.
+
+The drop position comes from `TabStrip.DropIndex`, a pure function: a tab takes the next slot as
+soon as its leading edge passes the middle of it. `RefreshTabs` keeps running during a drag, so
+the dragged tab is tracked by window handle rather than by index, and its position is reapplied
+after every layout pass.
+
 ### Refresh strategy
 
 `SetWinEventHook` reports window creation, destruction, show, hide, title change, and foreground
