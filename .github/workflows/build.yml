@@ -24,7 +24,11 @@ jobs:
       - name: Check out the source
         uses: actions/checkout@v4
 
-      - name: Set up .NET 8
+      # The SDK is the build tooling, not a runtime the application needs. It builds both
+      # targets: net8.0-windows and net48. .NET Framework 4.8 is part of Windows and cannot be
+      # installed by this action, and the reference assemblies net48 compiles against come from
+      # a NuGet package named in the project file, so nothing else has to be set up here.
+      - name: Set up the .NET SDK (it builds both the net8 and net48 targets)
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
