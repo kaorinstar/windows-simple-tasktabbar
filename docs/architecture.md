@@ -134,13 +134,6 @@ soon as its leading edge passes the middle of it. `RefreshTabs` keeps running du
 the dragged tab is tracked by window handle rather than by index, and its position is reapplied
 after every layout pass.
 
-### The wheel and the middle button are read in `WndProc`
-
-Both are handled as raw messages rather than through `OnMouseWheel` and `OnMouseDown`. The bar is
-usually not the active window, and neither the wheel nor the middle button activates one, so
-neither message can be relied on to arrive as a Windows Forms event. Reading them where they
-arrive removes that dependency.
-
 ### Refresh strategy
 
 `SetWinEventHook` reports window creation, destruction, show, hide, title change, and foreground
