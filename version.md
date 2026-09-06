@@ -8,7 +8,7 @@ written before the tag is pushed. See "Releasing" in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
-## v2026.9.6
+## v0.1.0
 
 The first release.
 
