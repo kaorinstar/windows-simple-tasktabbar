@@ -106,6 +106,27 @@ tried out before a tag is pushed.
 The net8 target is built and tested on every run as well, as a second compiler over the same
 source, but it is not published.
 
+## Releasing
+
+Releases are tagged by date: `vYYYY.M.D`, with no leading zeros. `v2026.9.6`, not `v2026.09.06`.
+A second release on the same day adds a fourth part, `v2026.9.6.1`.
+
+1. Add a section for the new version at the top of `version.md`, and the same section in
+   `version.ja.md`. Write what changed for someone using the application, not which pull requests
+   were merged.
+2. Commit both files to `main`.
+3. Tag that commit and push the tag:
+
+   ```
+   git tag v2026.9.6
+   git push origin v2026.9.6
+   ```
+
+The release workflow then builds, tests, packages the executable and creates the release, using
+that section of `version.md` as the release notes. A tag in the wrong format, or one with no
+section in `version.md`, fails the workflow before anything is built, so no half-finished release
+is published.
+
 ## Reliable window activation
 
 Windows prevents a process that is not in the foreground from bringing a window forward. A
