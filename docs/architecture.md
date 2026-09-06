@@ -134,6 +134,14 @@ soon as its leading edge passes the middle of it. `RefreshTabs` keeps running du
 the dragged tab is tracked by window handle rather than by index, and its position is reapplied
 after every layout pass.
 
+### Two menus, shown by hand
+
+The bar does not use the `ContextMenuStrip` property. That property always shows the same menu,
+and which menu belongs here depends on where the click landed: a tab has Close, Close others and
+Minimize, while the space around the tabs has Settings, Refresh and Exit. The right button is
+therefore read in `OnMouseUp`, and the menu shown from there. The tab menu acts on a window
+handle rather than an index, so a refresh while it is open cannot move it to another window.
+
 ### Refresh strategy
 
 `SetWinEventHook` reports window creation, destruction, show, hide, title change, and foreground

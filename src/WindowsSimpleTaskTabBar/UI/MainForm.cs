@@ -81,6 +81,13 @@ public class MainForm : Form
     private readonly ToolTip _toolTip = new();
     private string _toolTipText = string.Empty;
 
+    // Two menus for the bar: one for a tab, one for the space around the tabs. Neither is
+    // assigned to the ContextMenuStrip property, because which one to show depends on where
+    // the click landed, and that property would always show the same one.
+    private ContextMenuStrip _appMenu;
+    private ContextMenuStrip _tabMenu;
+    private IntPtr _menuTarget;              // the tab _tabMenu was opened on
+
     private NotifyIcon _trayIcon;
     private SettingsForm _settingsForm;
     private IntPtr _trayIconHandle;   // owned by this class; see LoadSmallApplicationIcon
@@ -115,7 +122,8 @@ public class MainForm : Form
         _toolTip.ReshowDelay = 200;
         _toolTip.AutoPopDelay = 10000;
 
-        ContextMenuStrip = BuildMenu();
+        _appMenu = BuildMenu();
+        _tabMenu = BuildTabMenu();
         CreateTrayIcon();
     }
 
@@ -137,6 +145,55 @@ public class MainForm : Form
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, __) => Close());
         return menu;
+    }
+
+    /// <summary>
+    /// Builds the menu for a single tab. It acts on <see cref="_menuTarget"/>, which is set
+    /// from the tab under the pointer each time the menu is opened, so one menu serves them all.
+    /// </summary>
+    /// <remarks>
+    /// Nothing here reports failure. A window belonging to an elevated process cannot be
+    /// controlled from a normal one, and Windows gives no error for it either; a dialog saying
+    /// so on every attempt would be worse than the silence.
+    /// </remarks>
+    private ContextMenuStrip BuildTabMenu()
+    {
+        var menu = new ContextMenuStrip();
+        menu.Items.Add("Close", null, (_, __) => { WindowService.Close(_menuTarget); _dirty = true; });
+        menu.Items.Add("Close others", null, (_, __) => CloseOtherWindows(_menuTarget));
+        menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add("Minimize", null, (_, __) => { WindowService.Minimize(_menuTarget); _dirty = true; });
+        return menu;
+    }
+
+    /// <summary>Closes every window on the bar except one.</summary>
+    private void CloseOtherWindows(IntPtr keep)
+    {
+        // Taken as a copy first: the refresh that follows rebuilds the list this walks.
+        foreach (IntPtr hwnd in _tabs.Select(t => t.Hwnd).ToList())
+        {
+            if (hwnd != keep) WindowService.Close(hwnd);
+        }
+
+        _dirty = true;
+    }
+
+    /// <summary>
+    /// Shows the menu for whatever is under the pointer: the tab, or the bar itself.
+    /// </summary>
+    private void ShowContextMenu(Point p)
+    {
+        int index = HitTest(p, out _);
+
+        if (index >= 0)
+        {
+            _menuTarget = _tabs[index].Hwnd;
+            _tabMenu.Show(this, p);
+        }
+        else
+        {
+            _appMenu.Show(this, p);
+        }
     }
 
     /// <summary>
@@ -1000,6 +1057,14 @@ public class MainForm : Form
     {
         base.OnMouseUp(e);
 
+        if (e.Button == MouseButtons.Right)
+        {
+            // Ignored while the left button is still doing something: a menu over a tab that is
+            // being dragged would be acting on a moving target.
+            if (!_dragging && _pressedHwnd == IntPtr.Zero) ShowContextMenu(e.Location);
+            return;
+        }
+
         if (e.Button != MouseButtons.Left) return;
 
         if (_dragging)
@@ -1213,6 +1278,9 @@ public class MainForm : Form
         _iconCache.Clear();
 
         _toolTip.Dispose();
+
+        _appMenu?.Dispose();
+        _tabMenu?.Dispose();
 
         // Hide before disposing. A tray icon that is only disposed can be left behind as a
         // dead entry in the notification area until the user hovers over it.

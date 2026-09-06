@@ -22,7 +22,8 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
 - **Click the ×, or middle-click a tab** — closes that window.
 - **Drag a tab sideways** — moves it to another position. The others step aside as it passes
   them, Esc abandons the move, and dragging against either end scrolls the row.
-- **Right-click the bar** — opens a menu with Settings, Refresh and Exit.
+- **Right-click a tab** — opens a menu with Close, Close others and Minimize.
+- **Right-click the space around the tabs** — opens a menu with Settings, Refresh and Exit.
 - **Scroll the wheel over the bar, or click the arrows at either end** — moves the row when
   there are more tabs than fit. The row also follows the window you switch to.
 - The tab list updates automatically when windows open, close, change title, or gain focus.
