@@ -5,10 +5,10 @@ namespace WindowsSimpleTaskTabBar.Tests;
 
 public class TabStripTests
 {
-    // The bar's real numbers at 100% scaling: gap 2, floor 86, cap 220.
+    // The bar's real numbers at 100% scaling: gap 2, floor 98, cap 220.
     private static TabStripLayout Measure(int available, int count)
     {
-        return TabStrip.Measure(available, count, 2, 86, 220);
+        return TabStrip.Measure(available, count, 2, 98, 220);
     }
 
     [Fact]
@@ -33,32 +33,32 @@ public class TabStripTests
     [Fact]
     public void TabsShareTheWidthEvenlyWhileThereIsRoom()
     {
-        TabStripLayout layout = Measure(1000, 10);
+        TabStripLayout layout = Measure(1000, 8);
 
-        Assert.Equal(98, layout.TabWidth);          // (1000 - 9 * 2) / 10
+        Assert.Equal(123, layout.TabWidth);         // (1000 - 7 * 2) / 8
         Assert.False(layout.CanScroll);
     }
 
     [Fact]
     public void TabsShrinkAsFarAsTheFloorWithoutScrolling()
     {
-        // 11 tabs in 1000px: (1000 - 10 * 2) / 11 = 89px each, still above the 86px floor.
-        TabStripLayout layout = Measure(1000, 11);
+        // 10 tabs in 1000px: (1000 - 9 * 2) / 10 = 98px each, exactly the floor.
+        TabStripLayout layout = Measure(1000, 10);
 
-        Assert.Equal(89, layout.TabWidth);
+        Assert.Equal(98, layout.TabWidth);
         Assert.False(layout.CanScroll);
     }
 
     [Fact]
     public void TheRowScrollsOnceTheFloorIsReached()
     {
-        // 12 tabs in 1000px would be 81px each, below the floor. Tabs hold 86px instead and
+        // 11 tabs in 1000px would be 89px each, below the floor. Tabs hold 98px instead and
         // the row scrolls, so every tab keeps its icon and the start of its title.
-        TabStripLayout layout = Measure(1000, 12);
+        TabStripLayout layout = Measure(1000, 11);
 
-        Assert.Equal(86, layout.TabWidth);
+        Assert.Equal(98, layout.TabWidth);
         Assert.True(layout.CanScroll);
-        Assert.Equal(12 * 86 + 11 * 2 - 1000, layout.MaxScroll);
+        Assert.Equal(11 * 98 + 10 * 2 - 1000, layout.MaxScroll);
     }
 
     [Fact]
@@ -66,9 +66,9 @@ public class TabStripTests
     {
         TabStripLayout layout = Measure(1000, 40);
 
-        Assert.Equal(86, layout.TabWidth);
+        Assert.Equal(98, layout.TabWidth);
         Assert.True(layout.CanScroll);
-        Assert.Equal(40 * 86 + 39 * 2 - 1000, layout.MaxScroll);
+        Assert.Equal(40 * 98 + 39 * 2 - 1000, layout.MaxScroll);
     }
 
     [Fact]

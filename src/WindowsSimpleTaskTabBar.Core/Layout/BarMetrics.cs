@@ -20,6 +20,12 @@ public sealed class BarMetrics
     /// </summary>
     private const int TitleCharacters = 4;
 
+    /// <summary>
+    /// Extra room for the ellipsis that marks a clipped title. It is drawn out of the same space
+    /// as the text, so without this allowance the last character is what gets dropped for it.
+    /// </summary>
+    private const int EllipsisCharacters = 1;
+
     private BarMetrics() { }
 
     public int BarHeight { get; private set; }
@@ -52,9 +58,9 @@ public sealed class BarMetrics
 
     /// <summary>
     /// Narrowest a tab is allowed to be. Tabs stop shrinking here and the row scrolls instead, so
-    /// a tab always keeps its icon and the first few characters of its title. Icons alone are not
-    /// enough: a row of windows from one application shows the same icon over and over, and only
-    /// the text tells them apart.
+    /// a tab always keeps its icon and the first four characters of its title, followed by an
+    /// ellipsis. Icons alone are not enough: a row of windows from one application shows the same
+    /// icon over and over, and only the text tells them apart.
     /// </summary>
     public int TabMinWidth { get; private set; }
 
@@ -91,9 +97,10 @@ public sealed class BarMetrics
             OuterMargin = Scaled(4, scale, 1),
         };
 
-        // Room for the icon, the padding either side, and TitleCharacters worth of text.
+        // Room for the icon, the padding either side, and the text with its ellipsis. The text is
+        // drawn with TextFormatFlags.NoPadding, so all of this reaches the characters themselves.
         metrics.TabMinWidth = metrics.Padding * 2 + metrics.IconSize + metrics.SmallGap
-                              + metrics.FontPixels * TitleCharacters;
+                              + metrics.FontPixels * (TitleCharacters + EllipsisCharacters);
 
         return metrics;
     }

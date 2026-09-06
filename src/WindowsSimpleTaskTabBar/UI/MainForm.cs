@@ -684,10 +684,13 @@ public class MainForm : Form
             {
                 var textRect = new Rectangle(textLeft, tab.Bounds.Top,
                     textRight - textLeft, tab.Bounds.Height);
+                // NoPadding matters here. Without it TextRenderer keeps a few pixels at each end
+                // for itself, which at the narrowest tab width costs a character of the title.
                 TextRenderer.DrawText(g, tab.Title, _font, textRect,
                     tab.Active ? _cTextActive : _cText,
                     TextFormatFlags.Left | TextFormatFlags.VerticalCenter
-                    | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+                    | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix
+                    | TextFormatFlags.NoPadding);
             }
 
             if (!tab.CloseBounds.IsEmpty && (i == _hoverIndex || tab.Active))

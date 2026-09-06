@@ -20,7 +20,7 @@ public class BarMetricsTests
         Assert.Equal(6, m.SmallGap);
         Assert.Equal(16, m.CloseButtonSize);
         Assert.Equal(90, m.CloseButtonMinTabWidth);
-        Assert.Equal(86, m.TabMinWidth);
+        Assert.Equal(98, m.TabMinWidth);
         Assert.Equal(24, m.ScrollButtonWidth);
         Assert.Equal(220, m.TabMaxWidth);
         Assert.Equal(2, m.TabGap);
@@ -50,9 +50,10 @@ public class BarMetricsTests
             // The icon, the padding either side, and the gap between icon and text.
             int chrome = m.Padding * 2 + m.IconSize + m.SmallGap;
 
-            // Whatever is left over is the title. One full-width character is about as wide as
-            // the font is tall, so this asks for four of them.
-            Assert.True(m.TabMinWidth - chrome >= m.FontPixels * 4);
+            // Whatever is left over is the title and the ellipsis after it. One full-width
+            // character is about as wide as the font is tall, so this asks for four characters
+            // plus a character's worth of ellipsis.
+            Assert.True(m.TabMinWidth - chrome >= m.FontPixels * 5);
         }
     }
 
