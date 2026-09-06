@@ -86,6 +86,49 @@ public static class TabStrip
     }
 
     /// <summary>
+    /// Which slot a dragged tab drops into. The tab takes a slot as soon as its leading edge
+    /// passes the middle of that slot, which is what makes the other tabs appear to step aside
+    /// while the pointer is still moving.
+    /// </summary>
+    /// <param name="offset">
+    /// Left edge of the dragged tab, measured from the start of the row rather than from the
+    /// left of the bar, so a scrolled row needs no special case.
+    /// </param>
+    /// <param name="tabWidth">Width of a single tab.</param>
+    /// <param name="gap">Space between two tabs.</param>
+    /// <param name="tabCount">Number of tabs, the dragged one included.</param>
+    public static int DropIndex(int offset, int tabWidth, int gap, int tabCount)
+    {
+        if (tabCount <= 1) return 0;
+        if (gap < 0) gap = 0;
+
+        int step = tabWidth + gap;
+        if (step <= 0) return 0;
+
+        if (offset < 0) offset = 0;
+
+        int index = (offset + step / 2) / step;
+        if (index > tabCount - 1) index = tabCount - 1;
+        return index;
+    }
+
+    /// <summary>
+    /// Moves one item to another position, keeping the others in their relative order. Out of
+    /// range positions and a move to where the item already is do nothing.
+    /// </summary>
+    public static void Move<T>(IList<T> items, int from, int to)
+    {
+        if (items == null) return;
+        if (from < 0 || from >= items.Count) return;
+        if (to < 0 || to >= items.Count) return;
+        if (from == to) return;
+
+        T item = items[from];
+        items.RemoveAt(from);
+        items.Insert(to, item);
+    }
+
+    /// <summary>
     /// Returns the scroll position that brings one tab fully into view, moving as little as
     /// possible. A tab already in view leaves the position alone.
     /// </summary>

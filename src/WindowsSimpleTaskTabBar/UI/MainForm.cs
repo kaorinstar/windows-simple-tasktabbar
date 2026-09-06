@@ -63,6 +63,21 @@ public class MainForm : Form
     private int _hoverButton = -1;           // 0 left arrow, 1 right arrow, -1 neither
     private IntPtr _lastForeground;
 
+    // Dragging a tab to a new position. A press is only a candidate for a drag: what it turns
+    // out to be is decided on release, so a press that does not move still acts as a click.
+    private IntPtr _pressedHwnd;             // the tab the left button went down on
+    private Point _pressOrigin;
+    private bool _dragging;
+    private IntPtr _dragHwnd;
+    private int _dragGrabOffset;             // pointer x minus the tab's left edge, at the press
+    private int _dragX;                      // pointer x now
+    private int _dragStartIndex = -1;        // where the dragged tab was when the drag began
+    private List<IntPtr> _orderBeforeDrag;   // to put back if the drag is cancelled
+    private int _lastDragScroll;             // TickCount of the last drag-driven scroll
+
+    /// <summary>How often the row scrolls while a tab is dragged against either end.</summary>
+    private const int DragScrollIntervalMs = 120;
+
     private readonly ToolTip _toolTip = new();
     private string _toolTipText = string.Empty;
 
@@ -434,8 +449,13 @@ public class MainForm : Form
             });
         }
 
+        // A window closed mid-drag takes the drag with it: there is nothing left to move.
+        if (_dragging && !_order.Contains(_dragHwnd)) EndDrag();
+
         LayoutTabs();
-        ScrollToForegroundTab(foreground);
+
+        // Not while dragging: the row must stay where the user is working, whatever gains focus.
+        if (!_dragging) ScrollToForegroundTab(foreground);
 
         // The tab list has just been rebuilt, so a stored hover index would now point at
         // a different window. Take it from where the pointer actually is.
@@ -540,6 +560,45 @@ public class MainForm : Form
 
             x += width + gap;
         }
+
+        if (_dragging) PositionDraggedTab();
+    }
+
+    /// <summary>
+    /// Puts the dragged tab under the pointer, where the tabs it has displaced are already
+    /// drawn around it. It stays inside the row, so it never covers the scroll arrows.
+    /// </summary>
+    private void PositionDraggedTab()
+    {
+        int index = _tabs.FindIndex(t => t.Hwnd == _dragHwnd);
+        if (index < 0) return;
+
+        TabItem tab = _tabs[index];
+        int left = DraggedTabLeft(tab.Bounds.Width);
+        int shift = left - tab.Bounds.Left;
+        if (shift == 0) return;
+
+        tab.Bounds = new Rectangle(left, tab.Bounds.Top, tab.Bounds.Width, tab.Bounds.Height);
+        if (!tab.CloseBounds.IsEmpty)
+        {
+            tab.CloseBounds = new Rectangle(
+                tab.CloseBounds.Left + shift, tab.CloseBounds.Top,
+                tab.CloseBounds.Width, tab.CloseBounds.Height);
+        }
+    }
+
+    /// <summary>
+    /// Where the dragged tab's left edge sits: under the pointer, held inside the row. Drawing
+    /// and the drop position both come from this, so what is seen is what is dropped.
+    /// </summary>
+    private int DraggedTabLeft(int width)
+    {
+        int left = _dragX - _dragGrabOffset;
+        int rightMost = _contentRect.Right - width;
+
+        if (left > rightMost) left = rightMost;
+        if (left < _contentRect.Left) left = _contentRect.Left;
+        return left;
     }
 
     /// <summary>
@@ -648,64 +707,73 @@ public class MainForm : Form
             return;
         }
 
-        int radius = _metrics.CornerRadius;
-
         // Clipped, so a partly scrolled tab stops at the edge of the row instead of painting
         // over the arrows.
         g.SetClip(_contentRect);
 
+        int dragIndex = _dragging ? _tabs.FindIndex(t => t.Hwnd == _dragHwnd) : -1;
+
         for (int i = 0; i < _tabs.Count; i++)
         {
-            TabItem tab = _tabs[i];
-            if (!IsTabVisible(tab)) continue;
-
-            Color fill = tab.Active ? _cTabActive : (i == _hoverIndex ? _cTabHover : _cTab);
-            using (GraphicsPath path = RoundedTop(tab.Bounds, radius))
-            using (var brush = new SolidBrush(fill))
-                g.FillPath(brush, path);
-
-            int padding = _metrics.Padding;
-            int iconSize = _metrics.IconSize;
-            int textLeft = tab.Bounds.Left + padding;
-
-            if (tab.Icon != null)
-            {
-                var iconRect = new Rectangle(tab.Bounds.Left + padding,
-                    tab.Bounds.Top + (tab.Bounds.Height - iconSize) / 2, iconSize, iconSize);
-                g.DrawIcon(tab.Icon, iconRect);
-                textLeft = iconRect.Right + _metrics.SmallGap;
-            }
-
-            int textRight = tab.CloseBounds.IsEmpty
-                ? tab.Bounds.Right - padding
-                : tab.CloseBounds.Left - _metrics.OuterMargin;
-
-            if (textRight > textLeft)
-            {
-                var textRect = new Rectangle(textLeft, tab.Bounds.Top,
-                    textRight - textLeft, tab.Bounds.Height);
-                // NoPadding matters here. Without it TextRenderer keeps a few pixels at each end
-                // for itself, which at the narrowest tab width costs a character of the title.
-                TextRenderer.DrawText(g, tab.Title, _font, textRect,
-                    tab.Active ? _cTextActive : _cText,
-                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter
-                    | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix
-                    | TextFormatFlags.NoPadding);
-            }
-
-            if (!tab.CloseBounds.IsEmpty && (i == _hoverIndex || tab.Active))
-            {
-                Color color = (i == _hoverIndex && _hoverClose) ? Color.FromArgb(232, 74, 74) : _cText;
-                using var pen = new Pen(color, Math.Max(1f, 1.3f * _scale));
-                Rectangle c = tab.CloseBounds;
-                int inset = _metrics.CloseButtonSize / 4;
-                g.DrawLine(pen, c.Left + inset, c.Top + inset, c.Right - inset, c.Bottom - inset);
-                g.DrawLine(pen, c.Right - inset, c.Top + inset, c.Left + inset, c.Bottom - inset);
-            }
+            if (i == dragIndex) continue;
+            if (IsTabVisible(_tabs[i])) DrawTab(g, _tabs[i], i);
         }
+
+        // The dragged tab goes last, so it passes over its neighbours rather than under them.
+        if (dragIndex >= 0 && IsTabVisible(_tabs[dragIndex]))
+            DrawTab(g, _tabs[dragIndex], dragIndex);
 
         g.ResetClip();
         DrawScrollButtons(g);
+    }
+
+    private void DrawTab(Graphics g, TabItem tab, int index)
+    {
+        Color fill = tab.Active ? _cTabActive : (index == _hoverIndex ? _cTabHover : _cTab);
+        using (GraphicsPath path = RoundedTop(tab.Bounds, _metrics.CornerRadius))
+        using (var brush = new SolidBrush(fill))
+            g.FillPath(brush, path);
+
+        int padding = _metrics.Padding;
+        int iconSize = _metrics.IconSize;
+        int textLeft = tab.Bounds.Left + padding;
+
+        if (tab.Icon != null)
+        {
+            var iconRect = new Rectangle(tab.Bounds.Left + padding,
+                tab.Bounds.Top + (tab.Bounds.Height - iconSize) / 2, iconSize, iconSize);
+            g.DrawIcon(tab.Icon, iconRect);
+            textLeft = iconRect.Right + _metrics.SmallGap;
+        }
+
+        int textRight = tab.CloseBounds.IsEmpty
+            ? tab.Bounds.Right - padding
+            : tab.CloseBounds.Left - _metrics.OuterMargin;
+
+        if (textRight > textLeft)
+        {
+            var textRect = new Rectangle(textLeft, tab.Bounds.Top,
+                textRight - textLeft, tab.Bounds.Height);
+            // NoPadding matters here. Without it TextRenderer keeps a few pixels at each end
+            // for itself, which at the narrowest tab width costs a character of the title.
+            TextRenderer.DrawText(g, tab.Title, _font, textRect,
+                tab.Active ? _cTextActive : _cText,
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter
+                | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix
+                | TextFormatFlags.NoPadding);
+        }
+
+        if (!tab.CloseBounds.IsEmpty && (index == _hoverIndex || tab.Active))
+        {
+            Color color = (index == _hoverIndex && _hoverClose)
+                ? Color.FromArgb(232, 74, 74)
+                : _cText;
+            using var pen = new Pen(color, Math.Max(1f, 1.3f * _scale));
+            Rectangle c = tab.CloseBounds;
+            int inset = _metrics.CloseButtonSize / 4;
+            g.DrawLine(pen, c.Left + inset, c.Top + inset, c.Right - inset, c.Bottom - inset);
+            g.DrawLine(pen, c.Right - inset, c.Top + inset, c.Left + inset, c.Bottom - inset);
+        }
     }
 
     /// <summary>
@@ -801,6 +869,14 @@ public class MainForm : Form
     /// </summary>
     private void RecomputeHover()
     {
+        // A tooltip or a highlight following the pointer during a drag only gets in the way.
+        if (_dragging)
+        {
+            _hoverIndex = -1;
+            _hoverClose = false;
+            return;
+        }
+
         Point p = PointToClient(MousePosition);
 
         if (ClientRectangle.Contains(p))
@@ -844,6 +920,20 @@ public class MainForm : Form
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e);
+
+        if (_dragging)
+        {
+            UpdateDrag(e.X);
+            return;
+        }
+
+        if (_pressedHwnd != IntPtr.Zero)
+        {
+            // The button may have been released over another window, which never reaches here.
+            if ((e.Button & MouseButtons.Left) == 0) EndPress();
+            else if (HasMovedFarEnoughToDrag(e.Location)) BeginDrag(e.X);
+            return;
+        }
 
         int button = HitTestScrollButton(e.Location);
         if (button != _hoverButton)
@@ -897,14 +987,214 @@ public class MainForm : Form
 
         if (e.Button == MouseButtons.Left)
         {
-            // Clicking the active tab minimizes it, the same as the taskbar does.
-            if (tab.Active && !NativeMethods.IsIconic(tab.Hwnd))
-                WindowService.Minimize(tab.Hwnd);
-            else
-                WindowService.Activate(tab.Hwnd);
-
-            _dirty = true;
+            // Nothing happens yet. The same press may turn into a drag, so what to do with it
+            // is decided on release: a press that does not move still acts exactly as a click.
+            _pressedHwnd = tab.Hwnd;
+            _pressOrigin = e.Location;
+            _dragGrabOffset = e.X - tab.Bounds.Left;
+            Capture = true;
         }
+    }
+
+    protected override void OnMouseUp(MouseEventArgs e)
+    {
+        base.OnMouseUp(e);
+
+        if (e.Button != MouseButtons.Left) return;
+
+        if (_dragging)
+        {
+            // Dropped where it was dragged to. The order is already the one on screen.
+            EndDrag(treatUnmovedAsClick: true);
+            return;
+        }
+
+        IntPtr pressed = _pressedHwnd;
+        EndPress();
+        if (pressed == IntPtr.Zero) return;
+
+        // Released somewhere else, so this was not a click on that tab.
+        int index = HitTest(e.Location, out bool onClose);
+        if (index < 0 || onClose || _tabs[index].Hwnd != pressed) return;
+
+        ClickTab(_tabs[index]);
+    }
+
+    /// <summary>
+    /// What a click on a tab does: brings the window forward, or minimizes it if it is already
+    /// the one at the front, the same as the taskbar does.
+    /// </summary>
+    private void ClickTab(TabItem tab)
+    {
+        if (tab.Active && !NativeMethods.IsIconic(tab.Hwnd))
+            WindowService.Minimize(tab.Hwnd);
+        else
+            WindowService.Activate(tab.Hwnd);
+
+        _dirty = true;
+    }
+
+    /// <summary>
+    /// Whether the pointer has moved far enough from the press for this to be a drag rather
+    /// than a click. Only sideways movement counts: a tab can only be moved along the row, and
+    /// treating an up or down twitch as a drag would make ordinary clicks feel unreliable.
+    /// </summary>
+    private bool HasMovedFarEnoughToDrag(Point p)
+    {
+        // DragSize is the whole box the pointer may wander in, centred on the press.
+        return Math.Abs(p.X - _pressOrigin.X) > SystemInformation.DragSize.Width / 2;
+    }
+
+    private void BeginDrag(int x)
+    {
+        _dragging = true;
+        _dragHwnd = _pressedHwnd;
+        _dragStartIndex = _order.IndexOf(_dragHwnd);
+        _orderBeforeDrag = new List<IntPtr>(_order);
+        _lastDragScroll = Environment.TickCount;
+
+        SetHover(-1, false);
+        UpdateDrag(x);
+    }
+
+    /// <summary>
+    /// Follows the pointer: moves the dragged tab in the order as soon as it passes a
+    /// neighbour, and scrolls the row when the tab is pushed against either end.
+    /// </summary>
+    private void UpdateDrag(int x)
+    {
+        _dragX = x;
+
+        int index = _tabs.FindIndex(t => t.Hwnd == _dragHwnd);
+        if (index < 0)
+        {
+            EndDrag();
+            return;
+        }
+
+        DragScroll();
+
+        int offset = DraggedTabLeft(_strip.TabWidth) - _contentRect.Left + _scroll;
+        int target = TabStrip.DropIndex(offset, _strip.TabWidth, _metrics.TabGap, _tabs.Count);
+
+        if (target != index)
+        {
+            // Both lists carry the same order: _tabs is what is drawn now, _order is what
+            // survives the next refresh.
+            TabStrip.Move(_order, index, target);
+            TabStrip.Move(_tabs, index, target);
+        }
+
+        LayoutTabs();
+        Invalidate();
+    }
+
+    /// <summary>
+    /// Scrolls the row while the dragged tab is held against one of its ends, so a tab can be
+    /// moved to a position that is not on screen at the time. Rate limited, because mouse moves
+    /// arrive far faster than a row this can be read at.
+    /// </summary>
+    private void DragScroll()
+    {
+        if (!_strip.CanScroll) return;
+
+        int direction = 0;
+        if (_dragX <= _contentRect.Left) direction = -1;
+        else if (_dragX >= _contentRect.Right) direction = 1;
+        if (direction == 0) return;
+
+        int now = Environment.TickCount;
+        if (unchecked(now - _lastDragScroll) < DragScrollIntervalMs) return;
+
+        _lastDragScroll = now;
+        ScrollBy(direction);
+    }
+
+    /// <summary>Ends a drag, keeping the order it arrived at.</summary>
+    /// <param name="treatUnmovedAsClick">
+    /// Whether a tab dropped back in the slot it started in counts as a click. A drag begins
+    /// after only a couple of pixels of movement, which an ordinary click can easily produce,
+    /// and a click that did nothing at all would feel broken. Nothing moved on screen, so
+    /// acting on it as a click is what the user saw happen.
+    /// </param>
+    private void EndDrag(bool treatUnmovedAsClick = false)
+    {
+        if (!_dragging) return;
+
+        int index = _tabs.FindIndex(t => t.Hwnd == _dragHwnd);
+        bool wasAClick = treatUnmovedAsClick && index >= 0 && index == _dragStartIndex;
+        TabItem dropped = wasAClick ? _tabs[index] : null;
+
+        _dragging = false;
+        _dragHwnd = IntPtr.Zero;
+        _dragStartIndex = -1;
+        _orderBeforeDrag = null;
+        EndPress();
+
+        if (wasAClick) ClickTab(dropped);
+
+        LayoutTabs();
+        RecomputeHover();
+        UpdateToolTip();
+        Invalidate();
+    }
+
+    /// <summary>
+    /// Abandons a drag and puts the order back as it was. Windows that opened during the drag
+    /// keep their places at the end; windows that closed are simply gone.
+    /// </summary>
+    private void CancelDrag()
+    {
+        if (!_dragging) return;
+
+        if (_orderBeforeDrag != null)
+        {
+            var before = new HashSet<IntPtr>(_orderBeforeDrag);
+            var live = new HashSet<IntPtr>(_order);
+
+            var restored = _orderBeforeDrag.Where(h => live.Contains(h)).ToList();
+            restored.AddRange(_order.Where(h => !before.Contains(h)));
+
+            _order.Clear();
+            _order.AddRange(restored);
+        }
+
+        EndDrag();
+        RefreshTabs();
+    }
+
+    private void EndPress()
+    {
+        _pressedHwnd = IntPtr.Zero;
+        Capture = false;
+    }
+
+    /// <summary>
+    /// Esc abandons a drag, as it does in a file manager. The bar takes focus when it is
+    /// clicked, so a drag in progress is exactly when this key can reach it.
+    /// </summary>
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+    {
+        if (_dragging && keyData == Keys.Escape)
+        {
+            CancelDrag();
+            return true;
+        }
+        return base.ProcessCmdKey(ref msg, keyData);
+    }
+
+    /// <summary>
+    /// Losing the mouse capture ends the drag. Another window taking over the pointer means no
+    /// further movement is seen, so carrying on would leave a tab stuck to a pointer that has
+    /// gone elsewhere.
+    /// </summary>
+    protected override void OnMouseCaptureChanged(EventArgs e)
+    {
+        base.OnMouseCaptureChanged(e);
+
+        if (Capture) return;
+        if (_dragging) CancelDrag();
+        else _pressedHwnd = IntPtr.Zero;
     }
 
     // ---------------------------------------------------------------

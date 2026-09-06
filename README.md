@@ -20,6 +20,8 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
 - **Click a tab** — brings that window to the front, restoring it if minimized.
 - **Click the active tab** — minimizes it, the same as the Windows taskbar.
 - **Click the ×, or middle-click a tab** — closes that window.
+- **Drag a tab sideways** — moves it to another position. The others step aside as it passes
+  them, Esc abandons the move, and dragging against either end scrolls the row.
 - **Right-click the bar** — opens a menu with Settings, Refresh and Exit.
 - **Scroll the wheel over the bar, or click the arrows at either end** — moves the row when
   there are more tabs than fit. The row also follows the window you switch to.
@@ -124,19 +126,19 @@ success rate. The bar is thin, so the visual effect is negligible.
   application elevated works, but then it runs elevated permanently.
 - **Primary monitor only.** Multi-monitor support is not implemented.
 - **Full-screen applications cover the bar.** This is normal AppBar behaviour.
-- **Tabs cannot be reordered by dragging.**
+- **The order is not remembered between runs.** Tabs come back in the order Windows lists the
+  windows in.
 - **A tab never shrinks below its icon and the first four characters of its title.** Past that
   the row scrolls, so on a narrow screen only part of the row is visible at a time. Nothing is
   hidden: every window is still reachable by scrolling.
 
 ## Roadmap
 
-1. Drag to reorder tabs
-2. Grouping by application when there are many tabs
-3. Multi-monitor support
-4. Window preview on hover
-5. Pinned applications
-6. Built-in start-with-Windows option
+1. Grouping by application when there are many tabs
+2. Multi-monitor support
+3. Window preview on hover
+4. Pinned applications
+5. Built-in start-with-Windows option
 
 ## Contributing
 
