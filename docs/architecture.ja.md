@@ -15,6 +15,8 @@ windows-simple-tasktabbar/
 ├── LICENSE
 ├── README.md                      英語版
 ├── README.ja.md                   日本語版
+├── version.md                     変更履歴。リリースの説明文もここから作ります
+├── version.ja.md                  変更履歴の日本語版
 ├── .github/
 │   └── workflows/
 │       ├── build.yml              push とプルリクエストでのビルドとテスト

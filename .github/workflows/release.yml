@@ -1,8 +1,8 @@
 # Distribution: build, test, package, and attach the package to a release.
 #
-# A tag push publishes the release. A manual run is a dry run: it produces the same package
-# as a workflow artifact and creates no release, so a change here can be tried out before a
-# tag exists.
+# A tag push publishes the release, with the notes taken from the matching section of
+# version.md. A manual run is a dry run: it produces the same package as a workflow artifact
+# and creates no release, so a change here can be tried out before a tag exists.
 #
 # The build and test steps repeat those in .github/workflows/build.yml. Change them in both
 # files.
@@ -26,6 +26,55 @@ jobs:
     steps:
       - name: Check out the source
         uses: actions/checkout@v4
+
+      # The notes come from version.md rather than from the commit log: what changed for someone
+      # using the application is not the same list as what was merged. Reading them first means a
+      # tag with no entry fails within seconds, instead of after a package has been built.
+      - name: Read this tag's release notes out of version.md
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          # Through the environment rather than inline, so that a tag name cannot become script.
+          TAG: ${{ github.ref_name }}
+        run: |
+          $tag = $env:TAG
+
+          # vYYYY.M.D, with an optional fourth part for a second release on the same day, and no
+          # leading zeros. The zeros matter because #22 feeds this number into AssemblyVersion,
+          # where every part must be a plain integer and 09 is not one.
+          if ($tag -notmatch '^v(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*)){2,3}$') {
+            Write-Error "Tag '$tag' is not of the form vYYYY.M.D or vYYYY.M.D.N, with no leading zeros. For example: v2026.9.6"
+            exit 1
+          }
+
+          $lines = @(Get-Content version.md)
+
+          $start = -1
+          for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i].Trim() -eq "## $tag") { $start = $i + 1; break }
+          }
+          if ($start -lt 0) {
+            Write-Error "version.md has no '## $tag' section. Write the entry, commit it, and move the tag onto that commit."
+            exit 1
+          }
+
+          $end = $lines.Count
+          for ($i = $start; $i -lt $lines.Count; $i++) {
+            if ($lines[$i].StartsWith('## ')) { $end = $i; break }
+          }
+
+          $notes = ''
+          if ($end -gt $start) {
+            $notes = ($lines[$start..($end - 1)] -join "`n").Trim()
+          }
+          if ([string]::IsNullOrWhiteSpace($notes)) {
+            Write-Error "The '## $tag' section in version.md is empty."
+            exit 1
+          }
+
+          Set-Content -Path release-notes.md -Value $notes -Encoding utf8NoBOM
+          Write-Host "Release notes for ${tag}:"
+          Write-Host $notes
 
       # The SDK is the build tooling, not a runtime the application needs. It builds both
       # targets: net8.0-windows and net48. .NET Framework 4.8 is part of Windows and cannot be
@@ -70,4 +119,4 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/WindowsSimpleTaskTabBar.exe
-          generate_release_notes: true
+          body_path: release-notes.md

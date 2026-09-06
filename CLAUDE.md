@@ -135,6 +135,18 @@ The net48 package is the only one distributed: .NET Framework 4.8 ships with eve
 version of Windows, and the build is AnyCPU, so it covers ARM as well. The net8 target is still
 built and tested on every run, as a second compiler over the same source.
 
+## Releasing
+
+Tags are `vYYYY.M.D` with no leading zeros, for example `v2026.9.6`. A second release on the same
+day adds a fourth part, `v2026.9.6.1`. The zeros are dropped deliberately: #22 will feed this
+number into `AssemblyVersion`, where every part must be a plain integer and `09` is not one.
+
+`version.md` is the changelog, newest version at the top, one section per version.
+`version.ja.md` is its Japanese translation and is updated in the same commit, as the language
+policy requires. `.github/workflows/release.yml` reads the section whose heading matches the tag
+and uses it as the release notes, so the entry has to be committed **before** the tag is pushed. A
+malformed tag, a missing section or an empty one fails the workflow before anything is built.
+
 ## History
 
 The initial design and implementation were produced in a chat session with Claude running on

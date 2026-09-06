@@ -16,6 +16,8 @@ windows-simple-tasktabbar/
 ├── CLAUDE.md                      Notes for AI coding assistants
 ├── README.md                      English
 ├── README.ja.md                   Japanese
+├── version.md                     Changelog, and the source of the release notes
+├── version.ja.md                  Japanese translation
 ├── .github/
 │   └── workflows/
 │       ├── build.yml              Build and test, on pushes and pull requests
