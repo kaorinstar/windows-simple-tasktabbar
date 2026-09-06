@@ -39,6 +39,15 @@ public sealed class BarMetrics
     /// <summary>A tab narrower than this has no room for a close button.</summary>
     public int CloseButtonMinTabWidth { get; private set; }
 
+    /// <summary>
+    /// Narrowest a tab can be and still show its icon. Below the readable minimum the title is
+    /// dropped and tabs keep shrinking to this before the row starts to scroll.
+    /// </summary>
+    public int IconOnlyTabWidth { get; private set; }
+
+    /// <summary>Width of one of the arrows that scroll the row.</summary>
+    public int ScrollButtonWidth { get; private set; }
+
     public int TabGap { get; private set; }
     public int TabMinWidth { get; private set; }
     public int TabMaxWidth { get; private set; }
@@ -67,6 +76,8 @@ public sealed class BarMetrics
             CloseButtonSize = FromHeight(barHeightLogical, scale, 16, 12),
             CloseButtonMinTabWidth = FromHeight(barHeightLogical, scale, 90, 40),
             TabMinWidth = FromHeight(barHeightLogical, scale, 46, 28),
+            IconOnlyTabWidth = FromHeight(barHeightLogical, scale, 32, 20),
+            ScrollButtonWidth = FromHeight(barHeightLogical, scale, 24, 16),
 
             // Sizes that do not follow the height: they are about the row, not the bar's thickness.
             TabGap = Scaled(2, scale, 1),

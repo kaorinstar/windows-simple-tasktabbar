@@ -54,6 +54,15 @@ public class MainForm : Form
     private int _hoverIndex = -1;
     private bool _hoverClose;
 
+    // Horizontal scrolling, used only once the tabs no longer fit even as icons.
+    private TabStripLayout _strip = new();
+    private int _scroll;
+    private Rectangle _contentRect;          // where tabs are drawn, between the arrows
+    private Rectangle _scrollLeftButton;
+    private Rectangle _scrollRightButton;
+    private int _hoverButton = -1;           // 0 left arrow, 1 right arrow, -1 neither
+    private IntPtr _lastForeground;
+
     private readonly ToolTip _toolTip = new();
     private string _toolTipText = string.Empty;
 
@@ -312,6 +321,14 @@ public class MainForm : Form
                     break;
             }
         }
+        else if (m.Msg == 0x020A /* WM_MOUSEWHEEL */)
+        {
+            // Handled here rather than through OnMouseWheel, which only fires for the focused
+            // control. The bar is usually not focused; Windows still delivers the message when
+            // "scroll inactive windows when I hover over them" is on, which it is by default.
+            int delta = (short)((m.WParam.ToInt64() >> 16) & 0xFFFF);
+            if (delta != 0) ScrollBy(delta > 0 ? -1 : 1);
+        }
         else if (m.Msg == 0x007E /* WM_DISPLAYCHANGE */ || m.Msg == 0x02E0 /* WM_DPICHANGED */)
         {
             uint dpi = NativeMethods.GetDpiForWindow(Handle);
@@ -418,6 +435,7 @@ public class MainForm : Form
         }
 
         LayoutTabs();
+        ScrollToForegroundTab(foreground);
 
         // The tab list has just been rebuilt, so a stored hover index would now point at
         // a different window. Take it from where the pointer actually is.
@@ -461,29 +479,107 @@ public class MainForm : Form
 
     private void LayoutTabs()
     {
-        if (_tabs.Count == 0) return;
-
         int margin = _metrics.OuterMargin;
-        int available = ClientSize.Width - margin * 2;
-        int width = TabLayout.CalculateTabWidth(
-            available, _tabs.Count, _metrics.TabGap, _metrics.TabMinWidth, _metrics.TabMaxWidth);
-
-        int x = margin;
         int top = _metrics.TopOffset;
         int height = ClientSize.Height - top;
+        int gap = _metrics.TabGap;
+
+        if (_tabs.Count == 0)
+        {
+            _strip = new TabStripLayout();
+            _scroll = 0;
+            _contentRect = new Rectangle(margin, top, ClientSize.Width - margin * 2, height);
+            _scrollLeftButton = Rectangle.Empty;
+            _scrollRightButton = Rectangle.Empty;
+            return;
+        }
+
+        // Measured twice on purpose. The arrows only appear when the row scrolls, and they take
+        // width away from the row, so the second pass measures against what is actually left.
+        // Narrowing the space can only make scrolling more likely, so this settles in two passes.
+        int available = ClientSize.Width - margin * 2;
+        _strip = TabStrip.Measure(available, _tabs.Count, gap,
+            _metrics.TabMinWidth, _metrics.IconOnlyTabWidth, _metrics.TabMaxWidth);
+
+        int contentLeft = margin;
+        if (_strip.CanScroll)
+        {
+            int button = _metrics.ScrollButtonWidth;
+            contentLeft = margin + button;
+            available -= button * 2;
+
+            _strip = TabStrip.Measure(available, _tabs.Count, gap,
+                _metrics.TabMinWidth, _metrics.IconOnlyTabWidth, _metrics.TabMaxWidth);
+
+            _scrollLeftButton = new Rectangle(margin, top, button, height);
+            _scrollRightButton = new Rectangle(
+                ClientSize.Width - margin - button, top, button, height);
+        }
+        else
+        {
+            _scrollLeftButton = Rectangle.Empty;
+            _scrollRightButton = Rectangle.Empty;
+        }
+
+        _contentRect = new Rectangle(contentLeft, top, available, height);
+        _scroll = TabStrip.ClampScroll(_scroll, _strip.MaxScroll);
+
+        int width = _strip.TabWidth;
+        int x = contentLeft - _scroll;
 
         foreach (TabItem tab in _tabs)
         {
             tab.Bounds = new Rectangle(x, top, width, height);
 
+            // An icon-only tab has no room for anything else.
             int closeSize = _metrics.CloseButtonSize;
-            tab.CloseBounds = width > _metrics.CloseButtonMinTabWidth
+            tab.CloseBounds = !_strip.IconOnly && width > _metrics.CloseButtonMinTabWidth
                 ? new Rectangle(x + width - closeSize - _metrics.SmallGap,
                                 top + (height - closeSize) / 2, closeSize, closeSize)
                 : Rectangle.Empty;
 
-            x += width + _metrics.TabGap;
+            x += width + gap;
         }
+    }
+
+    /// <summary>
+    /// Brings the newly activated window's tab into view. Only when the foreground window has
+    /// actually changed, so the row does not jump away from wherever the user scrolled it to.
+    /// </summary>
+    private void ScrollToForegroundTab(IntPtr foreground)
+    {
+        if (foreground == _lastForeground) return;
+        _lastForeground = foreground;
+
+        if (!_strip.CanScroll) return;
+
+        int index = _tabs.FindIndex(t => t.Hwnd == foreground);
+        if (index < 0) return;
+
+        int scrolled = TabStrip.ScrollToShow(index, _strip.TabWidth, _metrics.TabGap,
+            _contentRect.Width, _scroll, _strip.MaxScroll);
+        if (scrolled == _scroll) return;
+
+        _scroll = scrolled;
+        LayoutTabs();
+    }
+
+    /// <summary>
+    /// Moves the row by a number of tabs. Positive scrolls towards the end.
+    /// </summary>
+    private void ScrollBy(int tabs)
+    {
+        if (!_strip.CanScroll || tabs == 0) return;
+
+        int step = (_strip.TabWidth + _metrics.TabGap) * tabs;
+        int scrolled = TabStrip.ClampScroll(_scroll + step, _strip.MaxScroll);
+        if (scrolled == _scroll) return;
+
+        _scroll = scrolled;
+        LayoutTabs();
+        RecomputeHover();
+        UpdateToolTip();
+        Invalidate();
     }
 
     // ---------------------------------------------------------------
@@ -553,11 +649,15 @@ public class MainForm : Form
         }
 
         int radius = _metrics.CornerRadius;
-        int visible = VisibleTabCount();
 
-        for (int i = 0; i < visible; i++)
+        // Clipped, so a partly scrolled tab stops at the edge of the row instead of painting
+        // over the arrows.
+        g.SetClip(_contentRect);
+
+        for (int i = 0; i < _tabs.Count; i++)
         {
             TabItem tab = _tabs[i];
+            if (!IsTabVisible(tab)) continue;
 
             Color fill = tab.Active ? _cTabActive : (i == _hoverIndex ? _cTabHover : _cTab);
             using (GraphicsPath path = RoundedTop(tab.Bounds, radius))
@@ -570,7 +670,12 @@ public class MainForm : Form
 
             if (tab.Icon != null)
             {
-                var iconRect = new Rectangle(tab.Bounds.Left + padding,
+                // With no title to sit beside, the icon is centred instead of left-aligned.
+                int iconLeft = _strip.IconOnly
+                    ? tab.Bounds.Left + (tab.Bounds.Width - iconSize) / 2
+                    : tab.Bounds.Left + padding;
+
+                var iconRect = new Rectangle(iconLeft,
                     tab.Bounds.Top + (tab.Bounds.Height - iconSize) / 2, iconSize, iconSize);
                 g.DrawIcon(tab.Icon, iconRect);
                 textLeft = iconRect.Right + _metrics.SmallGap;
@@ -580,7 +685,7 @@ public class MainForm : Form
                 ? tab.Bounds.Right - padding
                 : tab.CloseBounds.Left - _metrics.OuterMargin;
 
-            if (textRight > textLeft)
+            if (!_strip.IconOnly && textRight > textLeft)
             {
                 var textRect = new Rectangle(textLeft, tab.Bounds.Top,
                     textRight - textLeft, tab.Bounds.Height);
@@ -600,6 +705,45 @@ public class MainForm : Form
                 g.DrawLine(pen, c.Right - inset, c.Top + inset, c.Left + inset, c.Bottom - inset);
             }
         }
+
+        g.ResetClip();
+        DrawScrollButtons(g);
+    }
+
+    /// <summary>
+    /// Draws the two arrows that scroll the row. The one pointing at an end the row has already
+    /// reached is dimmed, so it is clear which way there is still something to see.
+    /// </summary>
+    private void DrawScrollButtons(Graphics g)
+    {
+        if (!_strip.CanScroll) return;
+
+        DrawScrollButton(g, _scrollLeftButton, pointsLeft: true,
+            enabled: _scroll > 0, hovered: _hoverButton == 0);
+        DrawScrollButton(g, _scrollRightButton, pointsLeft: false,
+            enabled: _scroll < _strip.MaxScroll, hovered: _hoverButton == 1);
+    }
+
+    private void DrawScrollButton(Graphics g, Rectangle box, bool pointsLeft, bool enabled, bool hovered)
+    {
+        if (box.IsEmpty) return;
+
+        if (hovered && enabled)
+        {
+            using var brush = new SolidBrush(_cTabHover);
+            g.FillRectangle(brush, box);
+        }
+
+        Color color = enabled ? _cText : Color.FromArgb(90, _cText);
+        int arm = Math.Max(2, _metrics.IconSize / 4);
+        int cx = box.Left + box.Width / 2;
+        int cy = box.Top + box.Height / 2;
+        int tip = pointsLeft ? cx - arm / 2 : cx + arm / 2;
+        int tail = pointsLeft ? cx + arm / 2 : cx - arm / 2;
+
+        using var pen = new Pen(color, Math.Max(1f, 1.3f * _scale));
+        g.DrawLine(pen, tail, cy - arm, tip, cy);
+        g.DrawLine(pen, tip, cy, tail, cy + arm);
     }
 
     private static GraphicsPath RoundedTop(Rectangle r, int radius)
@@ -617,30 +761,40 @@ public class MainForm : Form
     // Mouse input
     // ---------------------------------------------------------------
     /// <summary>
-    /// How many tabs fit in the bar. Tabs past this point are not drawn, so painting and
-    /// hit testing both stop here; otherwise a click could reach a tab that is not on screen.
+    /// Whether any part of a tab falls inside the row. Painting and hit testing share this, so
+    /// a click can never reach a tab that is scrolled out of sight.
     /// </summary>
-    private int VisibleTabCount()
+    private bool IsTabVisible(TabItem tab)
     {
-        int count = 0;
-        while (count < _tabs.Count && _tabs[count].Bounds.Right <= ClientSize.Width)
-            count++;
-        return count;
+        return tab.Bounds.IntersectsWith(_contentRect);
     }
 
     private int HitTest(Point p, out bool onClose)
     {
         onClose = false;
-        int visible = VisibleTabCount();
 
-        for (int i = 0; i < visible; i++)
+        // Outside the row means the arrows or the margins, not a tab.
+        if (!_contentRect.Contains(p)) return -1;
+
+        for (int i = 0; i < _tabs.Count; i++)
         {
+            if (!IsTabVisible(_tabs[i])) continue;
+
             if (_tabs[i].Bounds.Contains(p))
             {
                 onClose = !_tabs[i].CloseBounds.IsEmpty && _tabs[i].CloseBounds.Contains(p);
                 return i;
             }
         }
+        return -1;
+    }
+
+    /// <summary>Which scroll arrow the point falls on, or -1 for neither.</summary>
+    private int HitTestScrollButton(Point p)
+    {
+        if (!_strip.CanScroll) return -1;
+        if (_scrollLeftButton.Contains(p)) return 0;
+        if (_scrollRightButton.Contains(p)) return 1;
         return -1;
     }
 
@@ -692,6 +846,14 @@ public class MainForm : Form
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e);
+
+        int button = HitTestScrollButton(e.Location);
+        if (button != _hoverButton)
+        {
+            _hoverButton = button;
+            Invalidate();
+        }
+
         int index = HitTest(e.Location, out bool onClose);
         SetHover(index, onClose);
     }
@@ -699,12 +861,30 @@ public class MainForm : Form
     protected override void OnMouseLeave(EventArgs e)
     {
         base.OnMouseLeave(e);
+
+        if (_hoverButton != -1)
+        {
+            _hoverButton = -1;
+            Invalidate();
+        }
+
         SetHover(-1, false);
     }
 
     protected override void OnMouseDown(MouseEventArgs e)
     {
         base.OnMouseDown(e);
+
+        if (e.Button == MouseButtons.Left)
+        {
+            int button = HitTestScrollButton(e.Location);
+            if (button >= 0)
+            {
+                ScrollBy(button == 0 ? -1 : 1);
+                return;
+            }
+        }
+
         int index = HitTest(e.Location, out bool onClose);
         if (index < 0) return;
 

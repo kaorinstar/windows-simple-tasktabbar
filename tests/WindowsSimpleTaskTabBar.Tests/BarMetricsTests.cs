@@ -21,6 +21,8 @@ public class BarMetricsTests
         Assert.Equal(16, m.CloseButtonSize);
         Assert.Equal(90, m.CloseButtonMinTabWidth);
         Assert.Equal(46, m.TabMinWidth);
+        Assert.Equal(32, m.IconOnlyTabWidth);
+        Assert.Equal(24, m.ScrollButtonWidth);
         Assert.Equal(220, m.TabMaxWidth);
         Assert.Equal(2, m.TabGap);
         Assert.Equal(4, m.OuterMargin);
@@ -37,6 +39,18 @@ public class BarMetricsTests
         Assert.True(compact.FontPixels < standard.FontPixels);
         Assert.True(compact.Padding < standard.Padding);
         Assert.True(compact.CloseButtonMinTabWidth < standard.CloseButtonMinTabWidth);
+    }
+
+    [Fact]
+    public void AnIconOnlyTabIsNarrowerThanOneWithATitle()
+    {
+        foreach (int height in new[] { 34, 24 })
+        {
+            BarMetrics m = BarMetrics.For(height, 1.0f);
+
+            Assert.True(m.IconOnlyTabWidth < m.TabMinWidth);
+            Assert.True(m.IconOnlyTabWidth >= m.IconSize);   // the icon still has to fit
+        }
     }
 
     [Fact]
