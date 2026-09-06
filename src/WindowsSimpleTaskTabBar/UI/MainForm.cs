@@ -87,6 +87,9 @@ public class MainForm : Form
     private ContextMenuStrip _appMenu;
     private ContextMenuStrip _tabMenu;
     private IntPtr _menuTarget;              // the tab _tabMenu was opened on
+    private ToolStripItem _closeOthersItem;  // greyed out when there is nothing to act on
+    private ToolStripItem _closeLeftItem;
+    private ToolStripItem _closeRightItem;
 
     private NotifyIcon _trayIcon;
     private SettingsForm _settingsForm;
@@ -159,20 +162,49 @@ public class MainForm : Form
     private ContextMenuStrip BuildTabMenu()
     {
         var menu = new ContextMenuStrip();
+
         menu.Items.Add("Close", null, (_, __) => { WindowService.Close(_menuTarget); _dirty = true; });
-        menu.Items.Add("Close others", null, (_, __) => CloseOtherWindows(_menuTarget));
+        _closeOthersItem = menu.Items.Add("Close other tabs", null,
+            (_, __) => CloseWindows(_menuTarget, Side.Both));
+        _closeLeftItem = menu.Items.Add("Close tabs to the left", null,
+            (_, __) => CloseWindows(_menuTarget, Side.Left));
+        _closeRightItem = menu.Items.Add("Close tabs to the right", null,
+            (_, __) => CloseWindows(_menuTarget, Side.Right));
+
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Minimize", null, (_, __) => { WindowService.Minimize(_menuTarget); _dirty = true; });
+
         return menu;
     }
 
-    /// <summary>Closes every window on the bar except one.</summary>
-    private void CloseOtherWindows(IntPtr keep)
+    /// <summary>Which side of a tab the closing commands act on.</summary>
+    private enum Side { Left, Right, Both }
+
+    /// <summary>
+    /// Closes the windows beside one tab: those before it, those after it, or all of them.
+    /// </summary>
+    /// <remarks>
+    /// The tab's position is looked up now rather than remembered from when the menu opened,
+    /// because closing a window elsewhere in the meantime would have moved it along the row.
+    /// </remarks>
+    private void CloseWindows(IntPtr target, Side side)
     {
+        int index = _tabs.FindIndex(t => t.Hwnd == target);
+        if (index < 0) return;
+
         // Taken as a copy first: the refresh that follows rebuilds the list this walks.
-        foreach (IntPtr hwnd in _tabs.Select(t => t.Hwnd).ToList())
+        List<IntPtr> handles = _tabs.Select(t => t.Hwnd).ToList();
+
+        for (int i = 0; i < handles.Count; i++)
         {
-            if (hwnd != keep) WindowService.Close(hwnd);
+            bool beside = side switch
+            {
+                Side.Left => i < index,
+                Side.Right => i > index,
+                _ => i != index,
+            };
+
+            if (beside) WindowService.Close(handles[i]);
         }
 
         _dirty = true;
@@ -188,6 +220,12 @@ public class MainForm : Form
         if (index >= 0)
         {
             _menuTarget = _tabs[index].Hwnd;
+
+            // A command with nothing to close is greyed out rather than silently doing nothing.
+            _closeOthersItem.Enabled = _tabs.Count > 1;
+            _closeLeftItem.Enabled = index > 0;
+            _closeRightItem.Enabled = index < _tabs.Count - 1;
+
             _tabMenu.Show(this, p);
         }
         else

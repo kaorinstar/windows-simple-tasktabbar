@@ -140,7 +140,9 @@ The bar does not use the `ContextMenuStrip` property. That property always shows
 and which menu belongs here depends on where the click landed: a tab has Close, Close others and
 Minimize, while the space around the tabs has Settings, Refresh and Exit. The right button is
 therefore read in `OnMouseUp`, and the menu shown from there. The tab menu acts on a window
-handle rather than an index, so a refresh while it is open cannot move it to another window.
+handle rather than an index, so a refresh while it is open cannot move it to another window; the
+commands that close one side of the row look the tab's position up when they run, for the same
+reason.
 
 ### Refresh strategy
 
