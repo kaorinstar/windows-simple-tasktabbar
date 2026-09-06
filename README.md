@@ -123,7 +123,8 @@ A second release on the same day adds a fourth part, `v2026.9.6.1`.
    ```
 
 The release workflow then builds, tests, packages the executable and creates the release, using
-that section of `version.md` as the release notes. A tag in the wrong format, or one with no
+that section of `version.md` as the release notes. The executable is stamped with the version from
+the tag, so its file properties in Windows say which release it came from. A tag in the wrong format, or one with no
 section in `version.md`, fails the workflow before anything is built, so no half-finished release
 is published.
 

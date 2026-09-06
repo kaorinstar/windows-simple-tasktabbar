@@ -129,7 +129,9 @@ repository.
   publishes a release with the net48 package attached. Starting it by hand produces the same
   package as a build artifact and creates no release. Only this workflow gets `contents: write`.
 
-Both files carry the same build and test steps. Change them together.
+Both files carry the same build and test steps. Change them together. The one deliberate
+difference is the version: a release build takes it from the tag, while a verification build keeps
+the value in `Directory.Build.props`.
 
 The net48 package is the only one distributed: .NET Framework 4.8 ships with every supported
 version of Windows, and the build is AnyCPU, so it covers ARM as well. The net8 target is still
@@ -138,8 +140,11 @@ built and tested on every run, as a second compiler over the same source.
 ## Releasing
 
 Tags are `vYYYY.M.D` with no leading zeros, for example `v2026.9.6`. A second release on the same
-day adds a fourth part, `v2026.9.6.1`. The zeros are dropped deliberately: #22 will feed this
-number into `AssemblyVersion`, where every part must be a plain integer and `09` is not one.
+day adds a fourth part, `v2026.9.6.1`. The zeros are dropped deliberately: the tag, minus its
+leading `v`, is passed to the build as `-p:Version`, and every part of `AssemblyVersion` must be a
+plain integer, which `09` is not. A published executable therefore reports the version of its
+release in its file properties. Every other build keeps the `<Version>` in
+`Directory.Build.props`.
 
 `version.md` is the changelog, newest version at the top, one section per version.
 `version.ja.md` is its Japanese translation and is updated in the same commit, as the language

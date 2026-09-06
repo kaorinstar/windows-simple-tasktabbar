@@ -2,7 +2,9 @@
 #
 # Packaging and publishing live in .github/workflows/release.yml. Keep the build and test
 # steps below in step with that file; they are deliberately duplicated rather than shared,
-# because two files are easier to read than a composite action.
+# because two files are easier to read than a composite action. The one deliberate difference
+# is the version: a release build takes it from the tag, while this one keeps the value in
+# Directory.Build.props.
 
 name: build
 
