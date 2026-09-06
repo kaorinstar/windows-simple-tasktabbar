@@ -17,7 +17,8 @@ windows-simple-tasktabbar/
 ├── README.ja.md                   日本語版
 ├── .github/
 │   └── workflows/
-│       └── build.yml              自動ビルドとリリースの設定
+│       ├── build.yml              push とプルリクエストでのビルドとテスト
+│       └── release.yml            ビルド・テスト・配布物の作成とリリース
 ├── docs/
 │   ├── architecture.md            英語版
 │   └── architecture.ja.md         この文書

@@ -120,9 +120,18 @@ In rough priority order:
 
 ## Continuous integration
 
-`.github/workflows/build.yml` builds and tests on Windows for every push to `main` and every
-pull request. Pushing a tag such as `v0.1.0` publishes a release with the net48 package
-attached. That is the only package distributed: .NET Framework 4.8 ships with every supported
+Two workflows run on Windows, so that a verification run never needs write access to the
+repository.
+
+- `.github/workflows/build.yml` builds and tests for every push to `main` and every pull
+  request. It packages nothing and runs with `contents: read`.
+- `.github/workflows/release.yml` builds, tests and packages. Pushing a tag such as `v0.1.0`
+  publishes a release with the net48 package attached. Starting it by hand produces the same
+  package as a build artifact and creates no release. Only this workflow gets `contents: write`.
+
+Both files carry the same build and test steps. Change them together.
+
+The net48 package is the only one distributed: .NET Framework 4.8 ships with every supported
 version of Windows, and the build is AnyCPU, so it covers ARM as well. The net8 target is still
 built and tested on every run, as a second compiler over the same source.
 

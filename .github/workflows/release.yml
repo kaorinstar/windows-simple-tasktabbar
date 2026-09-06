@@ -1,0 +1,69 @@
+# Distribution: build, test, package, and attach the package to a release.
+#
+# A tag push publishes the release. A manual run is a dry run: it produces the same package
+# as a workflow artifact and creates no release, so a change here can be tried out before a
+# tag exists.
+#
+# The build and test steps repeat those in .github/workflows/build.yml. Change them in both
+# files.
+
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out the source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build (warnings treated as errors)
+        run: dotnet build -c Release --no-restore -warnaserror
+
+      - name: Run unit tests
+        run: dotnet test -c Release --no-build --verbosity normal
+
+      # Only the net48 build is published. .NET Framework 4.8 ships with Windows 10 version
+      # 1903 and later and with Windows 11, so this one file runs on every supported Windows,
+      # and on ARM as well because it is AnyCPU. The net8 target is still built and tested
+      # above, as a second compiler over the same source.
+      - name: Package the application (.NET Framework 4.8, no runtime install required)
+        run: >
+          dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48
+          -o artifacts
+
+      - name: Remove the debug symbols from the package
+        shell: pwsh
+        run: Remove-Item -Path artifacts/*.pdb -Force -ErrorAction SilentlyContinue
+
+      - name: Upload the package as a build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WindowsSimpleTaskTabBar
+          path: artifacts/
+
+      # A manual run stops here. Only a v* tag creates the release.
+      - name: Attach the package to a release (tag pushes only)
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/WindowsSimpleTaskTabBar.exe
+          generate_release_notes: true
