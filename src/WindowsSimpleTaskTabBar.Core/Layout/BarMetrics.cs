@@ -14,6 +14,12 @@ public sealed class BarMetrics
     /// <summary>The height the proportions below are written against.</summary>
     private const int ReferenceHeight = 34;
 
+    /// <summary>
+    /// How many full-width characters of a title a tab keeps at its narrowest. One character is
+    /// about as wide as the font is tall, so this is measured in font sizes.
+    /// </summary>
+    private const int TitleCharacters = 4;
+
     private BarMetrics() { }
 
     public int BarHeight { get; private set; }
@@ -39,17 +45,19 @@ public sealed class BarMetrics
     /// <summary>A tab narrower than this has no room for a close button.</summary>
     public int CloseButtonMinTabWidth { get; private set; }
 
-    /// <summary>
-    /// Narrowest a tab can be and still show its icon. Below the readable minimum the title is
-    /// dropped and tabs keep shrinking to this before the row starts to scroll.
-    /// </summary>
-    public int IconOnlyTabWidth { get; private set; }
-
     /// <summary>Width of one of the arrows that scroll the row.</summary>
     public int ScrollButtonWidth { get; private set; }
 
     public int TabGap { get; private set; }
+
+    /// <summary>
+    /// Narrowest a tab is allowed to be. Tabs stop shrinking here and the row scrolls instead, so
+    /// a tab always keeps its icon and the first few characters of its title. Icons alone are not
+    /// enough: a row of windows from one application shows the same icon over and over, and only
+    /// the text tells them apart.
+    /// </summary>
     public int TabMinWidth { get; private set; }
+
     public int TabMaxWidth { get; private set; }
 
     /// <summary>Space between the ends of the bar and the first and last tabs.</summary>
@@ -64,7 +72,7 @@ public sealed class BarMetrics
 
         // Sizes that follow the height. The floors keep text and icons legible on a short bar;
         // without them a compact bar at a low DPI would ask for a 3 pixel font.
-        return new BarMetrics
+        var metrics = new BarMetrics
         {
             BarHeight = Scaled(barHeightLogical, scale, 1),
             TopOffset = FromHeight(barHeightLogical, scale, 3, 2),
@@ -75,8 +83,6 @@ public sealed class BarMetrics
             SmallGap = FromHeight(barHeightLogical, scale, 6, 3),
             CloseButtonSize = FromHeight(barHeightLogical, scale, 16, 12),
             CloseButtonMinTabWidth = FromHeight(barHeightLogical, scale, 90, 40),
-            TabMinWidth = FromHeight(barHeightLogical, scale, 46, 28),
-            IconOnlyTabWidth = FromHeight(barHeightLogical, scale, 32, 20),
             ScrollButtonWidth = FromHeight(barHeightLogical, scale, 24, 16),
 
             // Sizes that do not follow the height: they are about the row, not the bar's thickness.
@@ -84,6 +90,12 @@ public sealed class BarMetrics
             TabMaxWidth = Scaled(220, scale, 1),
             OuterMargin = Scaled(4, scale, 1),
         };
+
+        // Room for the icon, the padding either side, and TitleCharacters worth of text.
+        metrics.TabMinWidth = metrics.Padding * 2 + metrics.IconSize + metrics.SmallGap
+                              + metrics.FontPixels * TitleCharacters;
+
+        return metrics;
     }
 
     /// <summary>

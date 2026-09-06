@@ -54,7 +54,7 @@ public class MainForm : Form
     private int _hoverIndex = -1;
     private bool _hoverClose;
 
-    // Horizontal scrolling, used only once the tabs no longer fit even as icons.
+    // Horizontal scrolling, used once the tabs have shrunk as far as they are allowed to.
     private TabStripLayout _strip = new();
     private int _scroll;
     private Rectangle _contentRect;          // where tabs are drawn, between the arrows
@@ -499,7 +499,7 @@ public class MainForm : Form
         // Narrowing the space can only make scrolling more likely, so this settles in two passes.
         int available = ClientSize.Width - margin * 2;
         _strip = TabStrip.Measure(available, _tabs.Count, gap,
-            _metrics.TabMinWidth, _metrics.IconOnlyTabWidth, _metrics.TabMaxWidth);
+            _metrics.TabMinWidth, _metrics.TabMaxWidth);
 
         int contentLeft = margin;
         if (_strip.CanScroll)
@@ -509,7 +509,7 @@ public class MainForm : Form
             available -= button * 2;
 
             _strip = TabStrip.Measure(available, _tabs.Count, gap,
-                _metrics.TabMinWidth, _metrics.IconOnlyTabWidth, _metrics.TabMaxWidth);
+                _metrics.TabMinWidth, _metrics.TabMaxWidth);
 
             _scrollLeftButton = new Rectangle(margin, top, button, height);
             _scrollRightButton = new Rectangle(
@@ -531,9 +531,9 @@ public class MainForm : Form
         {
             tab.Bounds = new Rectangle(x, top, width, height);
 
-            // An icon-only tab has no room for anything else.
+            // A narrow tab gives its close button up to the title.
             int closeSize = _metrics.CloseButtonSize;
-            tab.CloseBounds = !_strip.IconOnly && width > _metrics.CloseButtonMinTabWidth
+            tab.CloseBounds = width > _metrics.CloseButtonMinTabWidth
                 ? new Rectangle(x + width - closeSize - _metrics.SmallGap,
                                 top + (height - closeSize) / 2, closeSize, closeSize)
                 : Rectangle.Empty;
@@ -670,12 +670,7 @@ public class MainForm : Form
 
             if (tab.Icon != null)
             {
-                // With no title to sit beside, the icon is centred instead of left-aligned.
-                int iconLeft = _strip.IconOnly
-                    ? tab.Bounds.Left + (tab.Bounds.Width - iconSize) / 2
-                    : tab.Bounds.Left + padding;
-
-                var iconRect = new Rectangle(iconLeft,
+                var iconRect = new Rectangle(tab.Bounds.Left + padding,
                     tab.Bounds.Top + (tab.Bounds.Height - iconSize) / 2, iconSize, iconSize);
                 g.DrawIcon(tab.Icon, iconRect);
                 textLeft = iconRect.Right + _metrics.SmallGap;
@@ -685,7 +680,7 @@ public class MainForm : Form
                 ? tab.Bounds.Right - padding
                 : tab.CloseBounds.Left - _metrics.OuterMargin;
 
-            if (!_strip.IconOnly && textRight > textLeft)
+            if (textRight > textLeft)
             {
                 var textRect = new Rectangle(textLeft, tab.Bounds.Top,
                     textRight - textLeft, tab.Bounds.Height);

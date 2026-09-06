@@ -5,10 +5,10 @@ namespace WindowsSimpleTaskTabBar.Tests;
 
 public class TabStripTests
 {
-    // The bar's real numbers at 100% scaling: gap 2, title floor 46, icon floor 32, cap 220.
+    // The bar's real numbers at 100% scaling: gap 2, floor 86, cap 220.
     private static TabStripLayout Measure(int available, int count)
     {
-        return TabStrip.Measure(available, count, 2, 46, 32, 220);
+        return TabStrip.Measure(available, count, 2, 86, 220);
     }
 
     [Fact]
@@ -27,42 +27,48 @@ public class TabStripTests
         TabStripLayout layout = Measure(1000, 2);
 
         Assert.Equal(220, layout.TabWidth);
-        Assert.False(layout.IconOnly);
         Assert.False(layout.CanScroll);
     }
 
     [Fact]
-    public void TabsShareTheWidthBeforeGivingUpTheirTitles()
+    public void TabsShareTheWidthEvenlyWhileThereIsRoom()
     {
         TabStripLayout layout = Measure(1000, 10);
 
         Assert.Equal(98, layout.TabWidth);          // (1000 - 9 * 2) / 10
-        Assert.False(layout.IconOnly);
         Assert.False(layout.CanScroll);
     }
 
     [Fact]
-    public void TitlesAreDroppedBeforeTheRowStartsToScroll()
+    public void TabsShrinkAsFarAsTheFloorWithoutScrolling()
     {
-        // 25 tabs in 1000px: (1000 - 24 * 2) / 25 = 38px each. Too narrow for a title,
-        // wide enough for an icon.
-        TabStripLayout layout = Measure(1000, 25);
+        // 11 tabs in 1000px: (1000 - 10 * 2) / 11 = 89px each, still above the 86px floor.
+        TabStripLayout layout = Measure(1000, 11);
 
-        Assert.Equal(38, layout.TabWidth);
-        Assert.True(layout.IconOnly);
+        Assert.Equal(89, layout.TabWidth);
         Assert.False(layout.CanScroll);
     }
 
     [Fact]
-    public void TheRowScrollsOnlyOnceIconsNoLongerFit()
+    public void TheRowScrollsOnceTheFloorIsReached()
     {
-        // 40 tabs in 1000px would be 21px each, below the 32px icon floor.
+        // 12 tabs in 1000px would be 81px each, below the floor. Tabs hold 86px instead and
+        // the row scrolls, so every tab keeps its icon and the start of its title.
+        TabStripLayout layout = Measure(1000, 12);
+
+        Assert.Equal(86, layout.TabWidth);
+        Assert.True(layout.CanScroll);
+        Assert.Equal(12 * 86 + 11 * 2 - 1000, layout.MaxScroll);
+    }
+
+    [Fact]
+    public void ManyTabsNeverShrinkPastTheFloor()
+    {
         TabStripLayout layout = Measure(1000, 40);
 
-        Assert.Equal(32, layout.TabWidth);
-        Assert.True(layout.IconOnly);
+        Assert.Equal(86, layout.TabWidth);
         Assert.True(layout.CanScroll);
-        Assert.Equal(40 * 32 + 39 * 2 - 1000, layout.MaxScroll);
+        Assert.Equal(40 * 86 + 39 * 2 - 1000, layout.MaxScroll);
     }
 
     [Fact]
@@ -84,7 +90,7 @@ public class TabStripTests
     public void TheCapWinsWhenTheFloorIsLarger()
     {
         // Nonsense input, but it must not produce a tab wider than the cap allows.
-        TabStripLayout layout = TabStrip.Measure(1000, 100, 2, 200, 180, 50);
+        TabStripLayout layout = TabStrip.Measure(1000, 100, 2, 200, 50);
 
         Assert.Equal(50, layout.TabWidth);
     }
@@ -93,7 +99,7 @@ public class TabStripTests
     public void OnlyTheGapsBetweenTabsAreReserved()
     {
         // Five tabs have four gaps, not five: the row must still fit what it measured.
-        TabStripLayout layout = TabStrip.Measure(600, 5, 4, 1, 1, 1000);
+        TabStripLayout layout = TabStrip.Measure(600, 5, 4, 1, 1000);
 
         Assert.Equal(116, layout.TabWidth);          // (600 - 4 * 4) / 5
         Assert.Equal(5 * 116 + 4 * 4, layout.ContentWidth);

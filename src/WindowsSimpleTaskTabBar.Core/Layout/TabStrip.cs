@@ -8,11 +8,6 @@ public sealed class TabStripLayout
     /// <summary>Width of a single tab.</summary>
     public int TabWidth { get; set; }
 
-    /// <summary>
-    /// True when the tabs are too narrow for a title, so only the icon is drawn.
-    /// </summary>
-    public bool IconOnly { get; set; }
-
     /// <summary>Width of the whole row: every tab, plus the gaps between them.</summary>
     public int ContentWidth { get; set; }
 
@@ -28,9 +23,10 @@ public sealed class TabStripLayout
 /// Fitting a row of tabs into the bar.
 /// </summary>
 /// <remarks>
-/// Tabs give up space in stages as their number grows: first they share the width evenly down
-/// to a readable minimum, then they keep shrinking without their titles, and only once even
-/// that floor is reached does the row start to scroll. Nothing is ever dropped.
+/// Tabs give up space in two stages as their number grows: first they share the width evenly
+/// down to a readable minimum, and once that floor is reached the row starts to scroll. A tab
+/// therefore always keeps its icon and the first few characters of its title. Nothing is ever
+/// dropped.
 ///
 /// This has no UI dependency, so it can be unit tested on any platform.
 /// </remarks>
@@ -39,18 +35,15 @@ public static class TabStrip
     /// <param name="availableWidth">Width the row may occupy.</param>
     /// <param name="tabCount">Number of tabs.</param>
     /// <param name="gap">Space between two tabs.</param>
-    /// <param name="minWidth">Narrowest tab that still has room for a title.</param>
-    /// <param name="iconOnlyWidth">Narrowest tab that still has room for an icon.</param>
+    /// <param name="minWidth">Narrowest a tab is allowed to be.</param>
     /// <param name="maxWidth">Widest a tab is allowed to be.</param>
     public static TabStripLayout Measure(int availableWidth, int tabCount, int gap,
-                                         int minWidth, int iconOnlyWidth, int maxWidth)
+                                         int minWidth, int maxWidth)
     {
         var layout = new TabStripLayout();
         if (tabCount <= 0) return layout;
 
-        if (iconOnlyWidth > minWidth) iconOnlyWidth = minWidth;
         if (minWidth > maxWidth) minWidth = maxWidth;
-        if (iconOnlyWidth > maxWidth) iconOnlyWidth = maxWidth;
         if (gap < 0) gap = 0;
 
         // The width each tab would get if they shared the space evenly.
@@ -65,17 +58,10 @@ public static class TabStrip
         {
             layout.TabWidth = share;
         }
-        else if (share >= iconOnlyWidth)
-        {
-            // Narrower than a title needs, but an icon still fits.
-            layout.TabWidth = share;
-            layout.IconOnly = true;
-        }
         else
         {
-            // Even icons no longer fit. Hold the floor and let the row scroll.
-            layout.TabWidth = iconOnlyWidth;
-            layout.IconOnly = true;
+            // Too many tabs to keep them all readable. Hold the floor and let the row scroll.
+            layout.TabWidth = minWidth;
         }
 
         if (layout.TabWidth < 1) layout.TabWidth = 1;
