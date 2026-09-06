@@ -27,6 +27,15 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
 
+  <!--
+    DataContractJsonSerializer, used to read and write the settings file. It is part of the
+    shared framework on net8.0, but .NET Framework needs the assembly referenced explicitly.
+    Referencing it avoids taking a NuGet dependency for something both targets already ship.
+  -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Reference Include="System.Runtime.Serialization" />
+  </ItemGroup>
+
   <!-- Required to build the net48 target on non-Windows machines. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3">
