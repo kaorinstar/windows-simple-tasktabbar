@@ -203,9 +203,9 @@ public class TabGroupingTests
     // ---------------------------------------------------------------
 
     /// <summary>The row after a drag, so a test reads as the result rather than as three numbers.</summary>
-    private static List<string> Dragged(string[] row, int target, int from)
+    private static List<string> Dragged(string[] row, int target, int from, bool movingGroup = false)
     {
-        TabGrouping.DragMove move = TabGrouping.PlanDrag(target, from, row);
+        TabGrouping.DragMove move = TabGrouping.PlanDrag(target, from, row, movingGroup);
         var result = new List<string>(row);
 
         TabStrip.MoveRange(result, move.Start, move.Count, move.To);
@@ -217,7 +217,7 @@ public class TabGroupingTests
     {
         string[] row = { "a.exe", "a.exe", "a.exe", "b.exe" };
 
-        TabGrouping.DragMove move = TabGrouping.PlanDrag(2, 0, row);
+        TabGrouping.DragMove move = TabGrouping.PlanDrag(2, 0, row, false);
 
         Assert.Equal(1, move.Count);
         Assert.Equal(0, move.Start);
@@ -272,7 +272,7 @@ public class TabGroupingTests
     {
         string[] row = { "a.exe", "b.exe" };
 
-        Assert.True(TabGrouping.PlanDrag(0, 0, row).IsNothing);
+        Assert.True(TabGrouping.PlanDrag(0, 0, row, false).IsNothing);
     }
 
     [Fact]
@@ -280,8 +280,30 @@ public class TabGroupingTests
     {
         string[] row = { "a.exe", "b.exe" };
 
-        Assert.True(TabGrouping.PlanDrag(1, 9, row).IsNothing);
-        Assert.True(TabGrouping.PlanDrag(1, 0, new List<string>()).IsNothing);
+        Assert.True(TabGrouping.PlanDrag(1, 9, row, false).IsNothing);
+        Assert.True(TabGrouping.PlanDrag(1, 0, new List<string>(), false).IsNothing);
+    }
+
+    [Fact]
+    public void ADragCarryingAGroupNoLongerReordersInsideIt()
+    {
+        // A group move leaves the pointer over the group it just carried across. Read as a move
+        // inside the group, it would pull the held tab to whichever slot the pointer had reached
+        // and reorder tabs the user never took hold of.
+        string[] row = { "b.exe", "a.exe", "a.exe" };
+
+        Assert.False(TabGrouping.PlanDrag(2, 1, row, false).IsNothing);   // not carrying: it moves
+        Assert.True(TabGrouping.PlanDrag(2, 1, row, true).IsNothing);     // carrying: it does not
+    }
+
+    [Fact]
+    public void ADragCarryingAGroupStillMovesTheGroup()
+    {
+        // Only moves inside the group are stopped. The group itself must still travel, or it
+        // could be moved once and never again.
+        string[] row = { "a.exe", "a.exe", "b.exe", "b.exe" };
+
+        Assert.Equal(new[] { "b.exe", "b.exe", "a.exe", "a.exe" }, Dragged(row, 3, 0, true));
     }
 
     [Fact]

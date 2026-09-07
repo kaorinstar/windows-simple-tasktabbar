@@ -165,7 +165,16 @@ public static class TabGrouping
     /// A tab with no group of its own - the only window of its application, or one whose
     /// executable could not be read - is a block of one, so it travels alone.
     /// </remarks>
-    public static DragMove PlanDrag(int target, int from, IList<string> arrangedGroupIds)
+    /// <param name="movingGroup">
+    /// Whether this drag has already carried a whole group somewhere. Once it has, it moves that
+    /// group and nothing else. A group move leaves the pointer over the group it just carried
+    /// across, and reading that as a move inside the group would pull the held tab to whichever
+    /// slot the pointer had reached - quietly reordering tabs the user never took hold of. So
+    /// the drag becomes a group drag and stays one; reordering inside a group is what a drag
+    /// that never leaves it is for.
+    /// </param>
+    public static DragMove PlanDrag(int target, int from, IList<string> arrangedGroupIds,
+        bool movingGroup)
     {
         var nothing = new DragMove(from, 0, from);
 
@@ -177,8 +186,10 @@ public static class TabGrouping
         int start = StartOfRun(arrangedGroupIds, from);
         int end = EndOfRun(arrangedGroupIds, start);
 
-        // Still over its own group: the tab moves by itself, as it always has.
-        if (target >= start && target <= end) return new DragMove(from, 1, target);
+        // Still over its own group: the tab moves by itself, unless this drag is already carrying
+        // the group, in which case the group's own order is left as the user had it.
+        if (target >= start && target <= end)
+            return movingGroup ? nothing : new DragMove(from, 1, target);
 
         int count = end - start + 1;
 

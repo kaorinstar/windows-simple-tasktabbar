@@ -91,9 +91,10 @@ public class MainForm : Form
     private List<IntPtr> _orderBeforeDrag;   // to put back if the drag is cancelled
     private int _lastDragScroll;             // TickCount of the last drag-driven scroll
 
-    // A whole group waits for the pointer to travel before it moves again. See
-    // TabStrip.MovedFarEnough for what goes wrong without it.
-    private bool _groupMoved;                // whether this drag has moved a group yet
+    // A drag that has moved a whole group keeps moving that group and nothing else, and waits
+    // for the pointer to travel before moving it again. TabGrouping.PlanDrag and
+    // TabStrip.MovedFarEnough say what each of those is for.
+    private bool _draggingGroup;             // whether this drag has carried a group yet
     private int _lastGroupMoveX;             // pointer x when it last did
 
     /// <summary>How often the row scrolls while a tab is dragged against either end.</summary>
@@ -1424,7 +1425,7 @@ public class MainForm : Form
     {
         _dragging = true;
         _dragHwnd = _pressedHwnd;
-        _groupMoved = false;
+        _draggingGroup = false;
         _dragStartIndex = _order.IndexOf(_dragHwnd);
         _orderBeforeDrag = new List<IntPtr>(_order);
         _lastDragScroll = Environment.TickCount;
@@ -1458,12 +1459,13 @@ public class MainForm : Form
             // Inside its own group the tab moves alone; once the pointer passes beyond it, the
             // whole group travels as a block. See TabGrouping.PlanDrag for why one is allowed
             // and the other is not.
-            TabGrouping.DragMove move = TabGrouping.PlanDrag(target, index, _groupIds);
+            TabGrouping.DragMove move =
+                TabGrouping.PlanDrag(target, index, _groupIds, _draggingGroup);
 
             // A group that has just moved holds still until the pointer has gone a tab's width,
             // or the row flickers between two arrangements under a resting hand. A tab moving
             // inside its own group is not held back: it already has the room it needs.
-            bool held = move.Count > 1 && _groupMoved
+            bool held = move.Count > 1 && _draggingGroup
                         && !TabStrip.MovedFarEnough(_dragX, _lastGroupMoveX, _strip.TabWidth);
 
             if (!held && !move.IsNothing)
@@ -1477,7 +1479,7 @@ public class MainForm : Form
 
                 if (move.Count > 1)
                 {
-                    _groupMoved = true;
+                    _draggingGroup = true;
                     _lastGroupMoveX = _dragX;
                 }
             }

@@ -191,6 +191,13 @@ in the tests is what holds that: if it ever fails, a dragged group springs back 
 A window that is the only one of its application, or one whose executable could not be read, is a
 block of one, so it travels alone.
 
+**A drag that has moved a group keeps moving that group and nothing else.** A group move leaves
+the pointer over the group it has just carried across, and reading that as a move inside the group
+would pull the held tab to whichever slot the pointer had reached, reordering tabs the user never
+took hold of - dragging a group somewhere quietly rearranged its contents. `PlanDrag` is told
+whether the drag is already carrying a group and answers with nothing rather than a move inside
+one. Reordering inside a group is what a drag that never leaves it is for.
+
 **A group that has just moved holds still until the pointer has gone a tab's width**, which
 `TabStrip.MovedFarEnough` decides. This is not a nicety. `DropIndex` reads the pointer alone, so
 the two arrangements - this group before that one, or after it - are separated by a single pixel
