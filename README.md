@@ -167,7 +167,8 @@ success rate. The bar is thin, so the visual effect is negligible.
   Task Manager is the example most people meet, because it elevates itself on an administrator
   account. Running this application elevated removes the limit, but then it runs elevated
   permanently.
-- **Primary monitor only.** Multi-monitor support is not implemented.
+- **Primary monitor only.** A bar on every monitor, each listing that monitor's windows, is
+  planned ([#62](https://github.com/kaorinstar/windows-simple-tasktabbar/issues/62)).
 - **Full-screen applications cover the bar.** This is normal AppBar behaviour.
 - **The order is not remembered between runs.** Tabs come back in the order Windows lists the
   windows in. Turning grouping off leaves the tabs where grouping put them rather than restoring
@@ -181,10 +182,10 @@ success rate. The bar is thin, so the visual effect is negligible.
 
 ## Roadmap
 
-1. Multi-monitor support
-2. Window preview on hover
-3. Pinned applications
-4. Built-in start-with-Windows option
+Planned work is kept in the [issue tracker](https://github.com/kaorinstar/windows-simple-tasktabbar/issues)
+rather than listed here, so there is one list to keep up to date. Two issues collect most of it:
+[#1](https://github.com/kaorinstar/windows-simple-tasktabbar/issues/1) for the tab strip and
+[#2](https://github.com/kaorinstar/windows-simple-tasktabbar/issues/2) for the settings.
 
 ## Contributing
 
