@@ -29,6 +29,8 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
   there are more tabs than fit. The row also follows the window you switch to.
 - The tab list updates automatically when windows open, close, change title, or gain focus.
   A two-second timer runs as a safety net.
+- **Switch Windows between light and dark** — the bar follows the colour setting and repaints as
+  soon as it changes, including the automatic switch some people schedule.
 
 ## Download
 
