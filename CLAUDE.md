@@ -190,11 +190,15 @@ version number rather than reconstructing the list from the commit log afterward
 `Unreleased`, so forgetting to rename it fails the workflow instead of publishing an empty
 release.
 
-Each entry in `version.md` quotes the size of that release's executable. Measure it from the
-published file rather than copying the entry above it: the figure sat at 23 KB while the
-application grew to more than twice that, and it reached a published release that way. The
-READMEs say only "under 100 KB" and point at `version.md`, so there is one number to keep right
-rather than five.
+Each entry in `version.md` quotes the size of that release's executable. Take it from the "Show
+the size of the net48 build" step of `build.yml`, which prints it on every run, rather than
+copying the entry above it: the figure sat at 23 KB while the application grew to more than twice
+that, and it reached a published release that way. The READMEs say only "under 100 KB" and point
+at `version.md`, so there is one number to keep right rather than five.
+
+That step is the one thing `build.yml` does that `release.yml` does not. It is there because the
+number is needed while a release is being prepared, which happens in a pull request, and pull
+requests run `build.yml`.
 
 ## History
 
