@@ -191,6 +191,15 @@ in the tests is what holds that: if it ever fails, a dragged group springs back 
 A window that is the only one of its application, or one whose executable could not be read, is a
 block of one, so it travels alone.
 
+**A group that has just moved holds still until the pointer has gone a tab's width**, which
+`TabStrip.MovedFarEnough` decides. This is not a nicety. `DropIndex` reads the pointer alone, so
+the two arrangements - this group before that one, or after it - are separated by a single pixel
+of pointer travel, and a hand that is merely resting crosses it again and again; the other group
+was seen flickering left and right across two tab widths. One tab dragged past another never had
+the problem, because the tab itself takes the slot under the pointer and that leaves half a tab
+of travel before the move would come undone. A block leaves no such room, so the room is made.
+A tab dragged inside its own group is not held back, having the room already.
+
 **The layout is not changed at all.** `TabStrip.Measure` gives every tab one width and one gap,
 and `DropIndex`, `ScrollToShow` and the hit testing all read that same step; a wider gap at a
 group boundary would mean changing all of them together, and the position a tab is drawn at

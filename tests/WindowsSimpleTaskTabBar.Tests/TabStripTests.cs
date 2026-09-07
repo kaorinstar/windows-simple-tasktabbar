@@ -251,4 +251,38 @@ public class TabStripTests
 
         Assert.Equal(new[] { "a", "b", "c", "d", "e" }, row);
     }
+
+    // ---------------------------------------------------------------
+    // Holding a group still until the pointer has travelled
+    // ---------------------------------------------------------------
+    [Fact]
+    public void APointerThatHasNotMovedIsNotFarEnough()
+    {
+        // The whole point: a resting hand must not swap two groups back and forth.
+        Assert.False(TabStrip.MovedFarEnough(500, 500, 98));
+        Assert.False(TabStrip.MovedFarEnough(503, 500, 98));
+    }
+
+    [Fact]
+    public void APointerThatHasMovedATabWidthIsFarEnough()
+    {
+        Assert.True(TabStrip.MovedFarEnough(598, 500, 98));
+        Assert.True(TabStrip.MovedFarEnough(700, 500, 98));
+    }
+
+    [Fact]
+    public void TheDistanceCountsInEitherDirection()
+    {
+        Assert.True(TabStrip.MovedFarEnough(402, 500, 98));
+        Assert.False(TabStrip.MovedFarEnough(497, 500, 98));
+    }
+
+    [Fact]
+    public void ATabWidthOfNothingStillAsksForSomeMovement()
+    {
+        // An empty row has no tab width to measure against, and letting every move through
+        // would be the flicker back again.
+        Assert.False(TabStrip.MovedFarEnough(500, 500, 0));
+        Assert.True(TabStrip.MovedFarEnough(501, 500, 0));
+    }
 }

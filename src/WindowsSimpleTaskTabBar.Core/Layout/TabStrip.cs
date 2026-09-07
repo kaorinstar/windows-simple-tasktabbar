@@ -116,6 +116,32 @@ public static class TabStrip
     /// Moves one item to another position, keeping the others in their relative order. Out of
     /// range positions and a move to where the item already is do nothing.
     /// </summary>
+    /// <summary>
+    /// Whether the pointer has travelled far enough since a whole group was last moved for
+    /// another group move to be allowed.
+    /// </summary>
+    /// <remarks>
+    /// Without this a group swap flickers. <see cref="DropIndex"/> reads the pointer alone, so
+    /// the row's two arrangements - this group before that one, or after it - are separated by a
+    /// single pixel of pointer travel, and a hand that is merely resting crosses it repeatedly.
+    /// One tab dragged past another does not have the problem: the tab itself takes the slot
+    /// under the pointer, which leaves half a tab of travel before the move would come undone.
+    /// A block that moves several tabs at once leaves no such room, so the room is made here.
+    ///
+    /// A tab's width is the measure because that is the distance between the slots a swap
+    /// happens at. Passing a wider group means crossing at least that far anyway, so nothing a
+    /// person means to do is held back.
+    /// </remarks>
+    public static bool MovedFarEnough(int pointerX, int lastMoveX, int tabWidth)
+    {
+        if (tabWidth < 1) tabWidth = 1;
+
+        int travelled = pointerX - lastMoveX;
+        if (travelled < 0) travelled = -travelled;
+
+        return travelled >= tabWidth;
+    }
+
     public static void Move<T>(IList<T> items, int from, int to)
     {
         if (items == null) return;

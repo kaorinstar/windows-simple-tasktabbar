@@ -91,6 +91,11 @@ public class MainForm : Form
     private List<IntPtr> _orderBeforeDrag;   // to put back if the drag is cancelled
     private int _lastDragScroll;             // TickCount of the last drag-driven scroll
 
+    // A whole group waits for the pointer to travel before it moves again. See
+    // TabStrip.MovedFarEnough for what goes wrong without it.
+    private bool _groupMoved;                // whether this drag has moved a group yet
+    private int _lastGroupMoveX;             // pointer x when it last did
+
     /// <summary>How often the row scrolls while a tab is dragged against either end.</summary>
     private const int DragScrollIntervalMs = 120;
 
@@ -1419,6 +1424,7 @@ public class MainForm : Form
     {
         _dragging = true;
         _dragHwnd = _pressedHwnd;
+        _groupMoved = false;
         _dragStartIndex = _order.IndexOf(_dragHwnd);
         _orderBeforeDrag = new List<IntPtr>(_order);
         _lastDragScroll = Environment.TickCount;
@@ -1454,7 +1460,13 @@ public class MainForm : Form
             // and the other is not.
             TabGrouping.DragMove move = TabGrouping.PlanDrag(target, index, _groupIds);
 
-            if (!move.IsNothing)
+            // A group that has just moved holds still until the pointer has gone a tab's width,
+            // or the row flickers between two arrangements under a resting hand. A tab moving
+            // inside its own group is not held back: it already has the room it needs.
+            bool held = move.Count > 1 && _groupMoved
+                        && !TabStrip.MovedFarEnough(_dragX, _lastGroupMoveX, _strip.TabWidth);
+
+            if (!held && !move.IsNothing)
             {
                 // _tabs is what is drawn now, _order is what survives the next refresh, and
                 // _groupIds is what the next drag step reads. A block move reorders the groups,
@@ -1462,6 +1474,12 @@ public class MainForm : Form
                 TabStrip.MoveRange(_order, move.Start, move.Count, move.To);
                 TabStrip.MoveRange(_tabs, move.Start, move.Count, move.To);
                 TabStrip.MoveRange(_groupIds, move.Start, move.Count, move.To);
+
+                if (move.Count > 1)
+                {
+                    _groupMoved = true;
+                    _lastGroupMoveX = _dragX;
+                }
             }
         }
         else if (target != index)
