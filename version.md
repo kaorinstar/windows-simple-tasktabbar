@@ -11,6 +11,16 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
+## Unreleased
+
+- The bar now looks for a newer release when it starts, and tells you when there is one: a
+  notification names the version, and the menu gains an entry that opens the release page in your
+  browser. Nothing is downloaded and nothing is replaced - you download the new executable
+  yourself, as you did to install it. The check reads one version number from github.com, sends
+  nothing about you, and runs at most once a day. Each release is announced once rather than at
+  every logon. A new box in the settings dialog turns it off, and the menu entry still lets you
+  ask whenever you like.
+
 ## v0.3.0
 
 - Tabs can be grouped by the application that owns them, from a new setting. Windows of one

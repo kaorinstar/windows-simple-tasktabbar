@@ -33,9 +33,12 @@ windows-simple-tasktabbar/
 │   │   ├── Layout/
 │   │   │   ├── BarMetrics.cs               Drawing sizes, from bar height and DPI
 │   │   │   └── TabStrip.cs                 Tab width, overflow, scroll arithmetic
-│   │   └── Settings/
-│   │       ├── AppGroup.cs                 One group the user defined by hand
-│   │       └── AppSettings.cs              The settings and their defaults
+│   │   ├── Settings/
+│   │   │   ├── AppGroup.cs                 One group the user defined by hand
+│   │   │   └── AppSettings.cs              The settings and their defaults
+│   │   └── Update/
+│   │       ├── ReleaseVersion.cs           Reading and comparing release version numbers
+│   │       └── UpdateCheckSchedule.cs      Whether a check for a new release is due
 │   └── WindowsSimpleTaskTabBar/            The application
 │       ├── Program.cs                      Entry point
 │       ├── Interop/
@@ -43,6 +46,7 @@ windows-simple-tasktabbar/
 │       ├── Services/
 │       │   ├── ProcessInfoCache.cs         The executable behind each window, remembered
 │       │   ├── SettingsStore.cs            Reading and writing the settings file
+│       │   ├── UpdateService.cs            Asking GitHub for the newest release
 │       │   └── WindowService.cs            Enumerate, activate, close windows
 │       └── UI/
 │           ├── MainForm.cs                 AppBar registration, painting, input
@@ -51,8 +55,10 @@ windows-simple-tasktabbar/
     └── WindowsSimpleTaskTabBar.Tests/      Unit tests
         ├── AppSettingsTests.cs
         ├── BarMetricsTests.cs
+        ├── ReleaseVersionTests.cs
         ├── TabGroupingTests.cs
-        └── TabStripTests.cs
+        ├── TabStripTests.cs
+        └── UpdateCheckScheduleTests.cs
 ```
 
 ## Why src and tests are separate
@@ -252,6 +258,75 @@ people recognise an application; two copies of one program installed in differen
 the same application to the person looking at the bar. The cost is that two unrelated programs
 both called `app.exe` are treated as one.
 
+### Telling the user a new version exists
+
+A release attaches one bare executable that the user copies into a folder of their own, so there
+is nothing - no installer, no package manager - that would ever tell them a newer one exists. The
+bar reads the version number of the newest release from GitHub and says so. **It does no more
+than that.** It downloads nothing and replaces nothing.
+
+That limit is the design, not a stage on the way to something else. The executable is not
+code-signed, so there is little for a downloaded replacement to be checked against; a
+self-replacement that failed would leave the user with an application that will not start; and
+once the installer in #21 puts the file in `Program Files`, writing over it needs elevation and
+the whole approach would have to be redone. Telling the user costs none of that.
+
+**The version is read from `api.github.com/repos/.../releases/latest`**, with
+`DataContractJsonSerializer` and a contract naming the one field that is used. That is the tool
+the settings file already uses, and no NuGet package for JSON is taken: the application is
+distributed as a single executable. Only `tag_name` is named, so a change elsewhere in the
+response cannot break the read. The alternative considered was reading the `Location` header of
+the redirect from `github.com/.../releases/latest`, which needs no parser at all; the documented
+endpoint was preferred, at the cost of an unauthenticated limit of 60 requests an hour per
+address, which one check a day does not approach.
+
+**The address handed to the shell is a constant.** `UpdateService.LatestReleaseUrl` is built from
+the owner and repository names in that file and never from anything the response contained.
+`Process.Start` opens whatever it is given, and a URL taken from a network answer is a URL chosen
+by whatever answered.
+
+**The check waits ten seconds after the bar appears.** At logon the network is frequently not up
+when the first window is drawn, and a check that ran immediately would fail for a reason that has
+nothing to do with whether a release exists. It rides the 250 ms timer that already runs, so no
+second timer is introduced.
+
+**Nothing is reported unless the user asked.** The automatic check is silent when it fails and
+silent when there is nothing newer, for the reason `SettingsStore.Load` gives for never raising a
+dialog: the bar starts at logon where nobody is watching. `Check for updates...` in the menu
+always answers, because a person pressed it. One path serves both, and a flag says which.
+
+**A release is announced once.** `LastNoticedRelease` in the settings holds what the user was last
+told, compared as a version rather than as a string so that `v0.4.0` and `0.4.0` are not two
+different pieces of news. Without it the notice would return at every logon until the user
+updated, which is how a reminder becomes a nuisance.
+
+**The time of the last check is written only when GitHub answered.** A machine that was offline at
+logon should try again on the next start rather than wait another day.
+
+**`AppSettings.CheckForUpdates` is `bool?` and not `bool`.** `DataContractJsonSerializer` does not
+run the constructor, so a settings file written before the setting existed leaves the property
+unset; a plain `bool` would arrive as `false` and turn the check off for exactly the people who
+already had the application, while a new installation got it. Null means "not chosen" and
+`Normalized` reads it as on; a `false` written into the file by hand is still honoured.
+
+**The menu entry sets its own text as it opens.** `BuildMenu` is called twice, once for the bar
+and once for the tray, so two live items exist for every entry and a field could only point at one
+of them. The `Opening` handler is added in `BuildMenu` too, so both copies get it from one place.
+
+**The time is stored as a string.** `DataContractJsonSerializer` writes a `DateTime` as
+`/Date(1757246400000+0900)/`, which carries a time zone and can be neither read nor typed by a
+person. The settings file is meant to be editable by hand.
+
+Everything decidable without a network or a window lives in `Core/Update/`: reading a version out
+of a tag, comparing two of them, and deciding whether a check is due. `Services/UpdateService.cs`
+makes the request and answers with one of three outcomes. `MainForm` owns the thread the answer
+comes back on, and everything the user sees.
+
+**While the repository is private (#26) this finds nothing.** An unauthenticated request for the
+latest release of a private repository fails, and the failure is indistinguishable from being
+offline, so no notice is ever shown. That is safe, and it is also why the feature cannot be tested
+end to end until the repository is published.
+
 ### Who owns what, and how a leak is caught
 
 The bar is open for as long as the user is logged in, so anything it fails to release stays lost
@@ -266,6 +341,8 @@ for the whole session. Ownership is therefore written down rather than assumed.
 | The AppBar registration | `MainForm` | `UnregisterAppBar` in `ReleaseResources` |
 | The process handle from `OpenProcess` | `WindowService.GetExecutablePath` | `CloseHandle` in that method's `finally` |
 | `Pen`, `SolidBrush`, `GraphicsPath` while painting | the `using` statement around them | end of the statement |
+| The `HttpClient` and the response of an update check | the `using` statements in `UpdateService.FetchLatestTag` | end of the statement |
+| The process `Process.Start` hands back when a release page is opened | the `using` statement in `MainForm.OpenReleasePage` | end of the statement |
 | Controls in `SettingsForm` | the `Controls` collection they are added to | the form's own `Dispose` |
 
 `ReleaseResources` runs from two places and does its work only once: `OnFormClosing`, so the

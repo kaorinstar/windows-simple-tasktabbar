@@ -1,4 +1,5 @@
 using WindowsSimpleTaskTabBar.Core.Grouping;
+using WindowsSimpleTaskTabBar.Core.Update;
 
 namespace WindowsSimpleTaskTabBar.Core.Settings;
 
@@ -28,7 +29,7 @@ public class AppSettings
     /// The schema this instance was written with. Present from the first release so that a later
     /// version can tell an old file apart from a new one instead of guessing.
     /// </summary>
-    public const int CurrentSchema = 2;
+    public const int CurrentSchema = 3;
 
     /// <summary>How many accents a group can be marked with.</summary>
     public const int AccentCount = 8;
@@ -56,6 +57,36 @@ public class AppSettings
     /// </summary>
     public List<AppGroup> Groups { get; set; } = new List<AppGroup>();
 
+    /// <summary>
+    /// Whether the bar looks for a newer release when it starts.
+    /// </summary>
+    /// <remarks>
+    /// Nullable, and on when it has not been chosen. <c>DataContractJsonSerializer</c> does not
+    /// run the constructor, so a settings file written before this setting existed leaves the
+    /// property unset: a plain <c>bool</c> would arrive as false and quietly turn the check off
+    /// for exactly the people who already use the application, while a new installation got it.
+    /// Null means "not chosen" and <see cref="Normalized"/> turns it on; a <c>false</c> written
+    /// into the file by hand is still honoured.
+    /// </remarks>
+    public bool? CheckForUpdates { get; set; } = true;
+
+    /// <summary>
+    /// When the last check reached GitHub, in UTC. Empty until one has.
+    /// </summary>
+    /// <remarks>
+    /// A string rather than a <c>DateTime</c>; <see cref="UpdateCheckSchedule"/> says why.
+    /// </remarks>
+    public string LastUpdateCheckUtc { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The newest release the user has already been told about.
+    /// </summary>
+    /// <remarks>
+    /// Without it the same notice would appear at every logon until the user updated, which is
+    /// how a reminder turns into a nuisance. Each release is announced once.
+    /// </remarks>
+    public string LastNoticedRelease { get; set; } = string.Empty;
+
     /// <summary>Bar height in logical pixels, before any DPI scaling.</summary>
     public static int HeightInPixels(BarHeightMode mode)
     {
@@ -75,6 +106,9 @@ public class AppSettings
             BarHeight = IsKnown(BarHeight) ? BarHeight : BarHeightMode.Standard,
             GroupByApplication = GroupByApplication,
             Groups = NormalizedGroups(Groups),
+            CheckForUpdates = CheckForUpdates ?? true,
+            LastUpdateCheckUtc = NormalizedStamp(LastUpdateCheckUtc),
+            LastNoticedRelease = NormalizedTag(LastNoticedRelease),
         };
     }
 
@@ -95,6 +129,28 @@ public class AppSettings
         BarHeight = tidy.BarHeight;
         GroupByApplication = tidy.GroupByApplication;
         Groups = tidy.Groups;
+        CheckForUpdates = tidy.CheckForUpdates;
+        LastUpdateCheckUtc = tidy.LastUpdateCheckUtc;
+        LastNoticedRelease = tidy.LastNoticedRelease;
+    }
+
+    /// <summary>
+    /// The time of the last update check, or empty when the file does not hold one this code can
+    /// read. A time it cannot read means the next check runs, which is the harmless direction.
+    /// </summary>
+    private static string NormalizedStamp(string text)
+    {
+        DateTime parsed = UpdateCheckSchedule.ParseStamp(text);
+        return parsed == DateTime.MinValue ? string.Empty : UpdateCheckSchedule.Stamp(parsed);
+    }
+
+    /// <summary>
+    /// The last announced release, or empty when the file does not hold a version number. This is
+    /// also what stops a hand-edited file from putting arbitrary text into a notification.
+    /// </summary>
+    private static string NormalizedTag(string text)
+    {
+        return ReleaseVersion.Parse(text) == null ? string.Empty : text.Trim();
     }
 
     private static bool IsKnown(BarHeightMode mode)

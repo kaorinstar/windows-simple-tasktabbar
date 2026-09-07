@@ -36,6 +36,18 @@
     <Reference Include="System.Runtime.Serialization" />
   </ItemGroup>
 
+  <!--
+    HttpClient, used to ask GitHub for the newest release. It is part of the shared framework on
+    net8.0; .NET Framework has it too, but does not reference the assembly by default.
+
+    A Reference and not a PackageReference. The NuGet System.Net.Http needs a binding redirect,
+    and this project ships no .config file, so the package form builds cleanly and then fails to
+    load on a user's machine.
+  -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
   <!-- Required to build the net48 target on non-Windows machines. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3">

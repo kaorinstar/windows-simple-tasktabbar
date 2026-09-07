@@ -183,6 +183,8 @@ plan.
   Turning grouping off also leaves the tabs where grouping put them: the order they opened in is
   not recorded anywhere.
 - Two applications whose executables share a file name are treated as one application.
+- The check for a new release finds nothing while the repository is private (#26). The failure
+  looks the same as being offline, so no notice is ever shown and nothing reports the reason.
 - A tab never shrinks below its icon and the first four characters of its title. Past that the
   row scrolls, so on a narrow screen only part of the row is visible at a time.
 

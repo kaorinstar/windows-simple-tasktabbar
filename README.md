@@ -38,6 +38,8 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
   A two-second timer runs as a safety net.
 - **Switch Windows between light and dark** — the bar follows the colour setting and repaints as
   soon as it changes, including the automatic switch some people schedule.
+- **A new version** — the bar checks for one when it starts and tells you when there is one.
+  Nothing is downloaded. See [Updates](#updates).
 
 ## Download
 
@@ -68,6 +70,26 @@ To exit, right-click the bar and choose **Exit**.
 
 To start it with Windows, press `Windows` + `R`, enter `shell:startup`, and place a shortcut
 to the executable in the folder that opens.
+
+## Updates
+
+There is no installer and no package manager, so nothing else would tell you that a new version
+exists. The bar therefore reads the version number of the newest release from `github.com`
+shortly after it starts.
+
+- **It reads one number.** Nothing about you or your machine is sent, and nothing is stored
+  anywhere but on your own computer.
+- **Nothing is downloaded and nothing is replaced.** If a newer release exists, the notification
+  area says so, and the menu gains **Update available: v0.4.0...**, which opens the release page
+  in your browser. You download the new executable and put it in place yourself, exactly as you
+  did to install it.
+- **At most once a day**, and each release is announced once rather than at every logon.
+- **To turn it off**, right-click the bar, choose **Settings...**, and clear the box under
+  **Updates**. **Check for updates...** stays in the menu, so you can still ask whenever you
+  like.
+
+The time of the last check is kept in `%APPDATA%\WindowsSimpleTaskTabBar\settings.json` beside
+your other settings.
 
 ## Build from source
 

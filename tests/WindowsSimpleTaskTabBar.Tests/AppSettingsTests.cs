@@ -222,4 +222,64 @@ public class AppSettingsTests
 
         Assert.Single(settings.Normalized().Groups);
     }
+
+    // ---------------------------------------------------------------
+    // The update check
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public void TheUpdateCheckIsOnUntilItIsTurnedOff()
+    {
+        Assert.True(new AppSettings().Normalized().CheckForUpdates);
+    }
+
+    [Fact]
+    public void ASettingsFileWrittenBeforeTheUpdateCheckExistedComesBackWithItOn()
+    {
+        // DataContractJsonSerializer does not run the constructor, so a file that predates this
+        // setting leaves the property unset. A plain bool would arrive as false and turn the
+        // check off for exactly the people who already have the application.
+        var settings = new AppSettings { Schema = 2, CheckForUpdates = null };
+
+        Assert.True(settings.Normalized().CheckForUpdates);
+    }
+
+    [Fact]
+    public void TurningTheUpdateCheckOffSurvivesNormalizing()
+    {
+        var settings = new AppSettings { CheckForUpdates = false };
+        settings.Normalize();
+
+        Assert.False(settings.CheckForUpdates);
+    }
+
+    [Fact]
+    public void AnUnreadableLastCheckTimeIsForgotten()
+    {
+        var settings = new AppSettings { LastUpdateCheckUtc = "yesterday" };
+
+        Assert.Equal(string.Empty, settings.Normalized().LastUpdateCheckUtc);
+    }
+
+    [Fact]
+    public void AReadableLastCheckTimeIsKept()
+    {
+        var settings = new AppSettings { LastUpdateCheckUtc = "2026-09-07T12:00:00Z" };
+
+        Assert.Equal("2026-09-07T12:00:00Z", settings.Normalized().LastUpdateCheckUtc);
+    }
+
+    [Theory]
+    [InlineData("v0.4.0", "v0.4.0")]
+    [InlineData("  v0.4.0  ", "v0.4.0")]
+    [InlineData("whatever", "")]
+    [InlineData(null, "")]
+    public void TheAnnouncedReleaseIsKeptOnlyWhenItIsAVersion(string stored, string expected)
+    {
+        // This is also what stops a hand-edited file from putting arbitrary text on screen: the
+        // value reaches a notification.
+        var settings = new AppSettings { LastNoticedRelease = stored };
+
+        Assert.Equal(expected, settings.Normalized().LastNoticedRelease);
+    }
 }
