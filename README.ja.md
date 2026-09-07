@@ -33,7 +33,8 @@ Windows は、前面にないアプリが自分を前面へ出すことを制限
 ## ダウンロード
 
 [リリース](https://github.com/kaorinstar/windows-simple-tasktabbar/releases)には1つだけ添付しています。
-`WindowsSimpleTaskTabBar.exe`、約23KBです。
+`WindowsSimpleTaskTabBar.exe` で、100KB未満です。各版の正確なサイズは
+[version.ja.md](version.ja.md) の該当する節に書いています。
 
 .NET Framework 4.8 を使います。Windows 10 バージョン1903以降と Windows 11 には標準で
 含まれているため、配布先での準備は不要です。設定ファイルも付属しない1ファイル構成で、

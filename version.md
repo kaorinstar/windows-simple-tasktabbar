@@ -29,6 +29,6 @@ The first release.
 - When there are more tabs than fit, the row scrolls with the mouse wheel or the arrows at either
   end, and follows the window you switch to. No window is dropped from the row.
 - The bar follows the Windows light or dark colour setting, read when it starts.
-- One executable of about 23 KB, with nothing to install alongside it. It is built against
+- One executable of 59,904 bytes, with nothing to install alongside it. It is built against
   .NET Framework 4.8, which ships with Windows 10 version 1903 and later and with Windows 11, and
   it is AnyCPU, so it also runs on ARM versions of Windows.
