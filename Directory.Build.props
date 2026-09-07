@@ -10,6 +10,11 @@
     <!-- Allows building the Windows targets on other operating systems. Ignored on Windows. -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
 
+    <!-- Without this the SDK appends the commit hash to InformationalVersion, and Windows shows
+         the result as the product version: "v0.1.0+5bf40ad...". The number a user reads should be
+         the number of the release. The commit is still recoverable from the tag. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+
     <Product>WindowsSimpleTaskTabBar</Product>
     <!-- The fallback version, used by local builds, branch builds and manual workflow runs. A
          release overrides it: .github/workflows/release.yml passes the tag, minus its leading v,

@@ -158,6 +158,12 @@ policy requires. `.github/workflows/release.yml` reads the section whose heading
 and uses it as the release notes, so the entry has to be committed **before** the tag is pushed. A
 malformed tag, a missing section or an empty one fails the workflow before anything is built.
 
+Each entry in `version.md` quotes the size of that release's executable. Measure it from the
+published file rather than copying the entry above it: the figure sat at 23 KB while the
+application grew to more than twice that, and it reached a published release that way. The
+READMEs say only "under 100 KB" and point at `version.md`, so there is one number to keep right
+rather than five.
+
 ## History
 
 The initial design and implementation were produced in a chat session with Claude running on
