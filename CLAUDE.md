@@ -133,6 +133,19 @@ Both files carry the same build and test steps. Change them together. The one de
 difference is the version: a release build takes it from the tag, while a verification build keeps
 the value in `Directory.Build.props`.
 
+Both check the dependencies for known vulnerabilities before building, with
+`dotnet list package --vulnerable --include-transitive`. That command exits 0 whether or not it
+finds anything, so the step reads its output and fails explicitly. Do not replace it with a NuGet
+package: the check comes with the SDK. It covers other people's code only; analysing this
+project's own code needs CodeQL, which is free on public repositories alone (#26).
+
+Every action is pinned to a full commit SHA, with its version in a comment beside it. A tag is a
+pointer its owner can move, and `softprops/action-gh-release` is a third-party action that runs
+with write access. `.github/dependabot.yml` watches NuGet and the actions weekly, so pinning does
+not mean going stale, and its pull requests run `build.yml` like any other. Dependabot names its
+own branches (`dependabot/...`), which is outside the naming convention above and cannot be
+changed.
+
 The net48 package is the only one distributed: .NET Framework 4.8 ships with every supported
 version of Windows, and the build is AnyCPU, so it covers ARM as well. The net8 target is still
 built and tested on every run, as a second compiler over the same source.
