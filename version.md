@@ -11,6 +11,13 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
+## Unreleased
+
+- The colours can now be chosen in the settings: follow Windows, always light, or always dark.
+  Following Windows stays the default, so nothing changes until you pick one of the other two.
+  With light or dark chosen, the bar keeps it when Windows switches its own setting, including
+  the automatic switch some people schedule.
+
 ## v0.3.0
 
 - Tabs can be grouped by the application that owns them, from a new setting. Windows of one

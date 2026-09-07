@@ -36,8 +36,9 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
   turn it on.
 - The tab list updates automatically when windows open, close, change title, or gain focus.
   A two-second timer runs as a safety net.
-- **Switch Windows between light and dark** — the bar follows the colour setting and repaints as
-  soon as it changes, including the automatic switch some people schedule.
+- **Choose the colours** — an option in the settings: follow Windows, always light, or always
+  dark. Following Windows is the default, and the bar repaints as soon as that setting changes,
+  including the automatic switch some people schedule. Light and dark stay as you set them.
 
 ## Download
 

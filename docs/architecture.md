@@ -33,9 +33,11 @@ windows-simple-tasktabbar/
 │   │   ├── Layout/
 │   │   │   ├── BarMetrics.cs               Drawing sizes, from bar height and DPI
 │   │   │   └── TabStrip.cs                 Tab width, overflow, scroll arithmetic
-│   │   └── Settings/
-│   │       ├── AppGroup.cs                 One group the user defined by hand
-│   │       └── AppSettings.cs              The settings and their defaults
+│   │   ├── Settings/
+│   │   │   ├── AppGroup.cs                 One group the user defined by hand
+│   │   │   └── AppSettings.cs              The settings and their defaults
+│   │   └── Theme/
+│   │       └── BarPalette.cs               The colours to draw with, from the setting
 │   └── WindowsSimpleTaskTabBar/            The application
 │       ├── Program.cs                      Entry point
 │       ├── Interop/
@@ -51,6 +53,7 @@ windows-simple-tasktabbar/
     └── WindowsSimpleTaskTabBar.Tests/      Unit tests
         ├── AppSettingsTests.cs
         ├── BarMetricsTests.cs
+        ├── BarPaletteTests.cs
         ├── TabGroupingTests.cs
         └── TabStripTests.cs
 ```

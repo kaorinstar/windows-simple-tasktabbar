@@ -32,9 +32,11 @@ windows-simple-tasktabbar/
 │   │   ├── Layout/
 │   │   │   ├── BarMetrics.cs      バーの高さとDPIから決まる描画寸法
 │   │   │   └── TabStrip.cs        タブ幅・あふれ・スクロールの計算
-│   │   └── Settings/
-│   │       ├── AppGroup.cs        利用者が作った1つのグループ
-│   │       └── AppSettings.cs     設定項目と既定値
+│   │   ├── Settings/
+│   │   │   ├── AppGroup.cs        利用者が作った1つのグループ
+│   │   │   └── AppSettings.cs     設定項目と既定値
+│   │   └── Theme/
+│   │       └── BarPalette.cs      設定から決まる描画色
 │   └── WindowsSimpleTaskTabBar/                アプリ本体
 │       ├── Program.cs             起動処理
 │       ├── Interop/
@@ -50,6 +52,7 @@ windows-simple-tasktabbar/
     └── WindowsSimpleTaskTabBar.Tests/          単体テスト
         ├── AppSettingsTests.cs
         ├── BarMetricsTests.cs
+        ├── BarPaletteTests.cs
         ├── TabGroupingTests.cs
         └── TabStripTests.cs
 ```

@@ -5,6 +5,7 @@ using Microsoft.Win32;
 using WindowsSimpleTaskTabBar.Core.Grouping;
 using WindowsSimpleTaskTabBar.Core.Layout;
 using WindowsSimpleTaskTabBar.Core.Settings;
+using WindowsSimpleTaskTabBar.Core.Theme;
 using WindowsSimpleTaskTabBar.Interop;
 using WindowsSimpleTaskTabBar.Services;
 
@@ -398,6 +399,7 @@ public class MainForm : Form
         // than only on the way out.
         _settings.Normalize();
 
+        ApplyTheme();             // the colour setting may have changed
         RebuildMetrics();
         UpdateAppBarPosition();   // the reserved area changes, so other windows resize with it
 
@@ -501,11 +503,15 @@ public class MainForm : Form
             }
             UpdateAppBarPosition();
         }
-        else if (m.Msg == 0x001A /* WM_SETTINGCHANGE */ && !_released && IsColourSetChange(m.LParam))
+        else if (m.Msg == 0x001A /* WM_SETTINGCHANGE */ && !_released && IsColourSetChange(m.LParam)
+                 && _settings.Colours == ColourMode.FollowWindows)
         {
             // Windows switches the light and dark setting under the user, on a schedule for some
             // people, and the bar would otherwise keep the colours it read at start-up and sit
             // visibly wrong against the taskbar beside it.
+            //
+            // Only when the bar is set to follow Windows. A user who asked for the light palette
+            // on a dark desktop chose that, and a scheduled switch must not undo it.
             ApplyTheme();
             Invalidate();
         }
@@ -882,56 +888,36 @@ public class MainForm : Form
     // ---------------------------------------------------------------
     // Painting
     // ---------------------------------------------------------------
+    /// <summary>
+    /// Puts the palette the colour setting asks for into the fields the painting reads.
+    /// </summary>
+    /// <remarks>
+    /// The Windows setting is read on every call, even when the user has chosen a fixed palette
+    /// and the answer is thrown away. It is one registry value, read when the settings change or
+    /// Windows repaints, so keeping the call in one place is worth more than the read costs.
+    /// </remarks>
     private void ApplyTheme()
     {
-        bool light = IsLightTheme();
-        if (light)
-        {
-            _cBack = Color.FromArgb(242, 243, 245);
-            _cTab = Color.FromArgb(226, 228, 232);
-            _cTabHover = Color.FromArgb(235, 237, 240);
-            _cTabActive = Color.FromArgb(255, 255, 255);
-            _cText = Color.FromArgb(70, 74, 80);
-            _cTextActive = Color.FromArgb(24, 26, 30);
-            _cLine = Color.FromArgb(210, 213, 218);
-        }
-        else
-        {
-            _cBack = Color.FromArgb(32, 33, 36);
-            _cTab = Color.FromArgb(48, 50, 54);
-            _cTabHover = Color.FromArgb(58, 61, 66);
-            _cTabActive = Color.FromArgb(78, 82, 88);
-            _cText = Color.FromArgb(178, 182, 188);
-            _cTextActive = Color.FromArgb(245, 246, 248);
-            _cLine = Color.FromArgb(24, 25, 28);
-        }
+        BarPalette palette = BarPalette.For(_settings.Colours, IsLightTheme());
 
-        SetAccents(light);
+        _cBack = FromRgb(palette.Background);
+        _cTab = FromRgb(palette.Tab);
+        _cTabHover = FromRgb(palette.TabHover);
+        _cTabActive = FromRgb(palette.TabActive);
+        _cText = FromRgb(palette.Text);
+        _cTextActive = FromRgb(palette.TextActive);
+        _cLine = FromRgb(palette.Line);
+
+        for (int i = 0; i < _accents.Length && i < palette.Accents.Count; i++)
+            _accents[i] = FromRgb(palette.Accents[i]);
+
         BackColor = _cBack;
     }
 
-    /// <summary>
-    /// The eight accents a group can be marked with, in the shade that reads against the tabs of
-    /// the current theme.
-    /// </summary>
-    /// <remarks>
-    /// The order matters as little as the names: a group's accent is picked from its own name,
-    /// so what these have to be is eight colours a person can tell apart at three pixels tall,
-    /// including on the lighter fill of the active tab.
-    ///
-    /// Called from ApplyTheme, so the accents follow a change of the Windows light and dark
-    /// setting along with everything else the bar draws.
-    /// </remarks>
-    private void SetAccents(bool light)
+    /// <summary>Turns one of Core's 0xRRGGBB numbers into an opaque colour.</summary>
+    private static Color FromRgb(int rgb)
     {
-        int[] rgb = light
-            ? new[] { 0x1A73E8, 0xD93025, 0xF29900, 0x188038,
-                      0xD01884, 0x8430CE, 0x007B83, 0x5F6368 }
-            : new[] { 0x8AB4F8, 0xF28B82, 0xFDD663, 0x81C995,
-                      0xFF8BCB, 0xC58AF9, 0x78D9EC, 0xBDC1C6 };
-
-        for (int i = 0; i < _accents.Length; i++)
-            _accents[i] = Color.FromArgb(255, Color.FromArgb(rgb[i]));
+        return Color.FromArgb(255, Color.FromArgb(rgb));
     }
 
     /// <summary>The colour a marked tab's accent is drawn in.</summary>
