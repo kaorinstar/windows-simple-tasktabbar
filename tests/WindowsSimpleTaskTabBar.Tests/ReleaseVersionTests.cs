@@ -76,7 +76,7 @@ public class ReleaseVersionTests
     [InlineData("v0.4.0", "0.3.0")]
     [InlineData("v0.3.1", "0.3.0")]
     [InlineData("v1.0.0", "v0.9.9")]
-    [InlineData("v0.3.0", "0.3")]
+    [InlineData("v0.4", "0.3.0")]
     public void ALaterReleaseIsNewer(string latest, string running)
     {
         Assert.True(ReleaseVersion.IsNewer(latest, running));
@@ -87,8 +87,12 @@ public class ReleaseVersionTests
     [InlineData("v0.3.0", "v0.3.0")]
     [InlineData("v0.2.0", "0.3.0")]
     [InlineData("v0.3.0", "0.3.0.0")]
+    [InlineData("v0.3.0", "0.3")]
     public void AReleaseThatIsNotLaterIsNotNewer(string latest, string running)
     {
+        // The last case is the one worth stating: a version written with fewer parts names the
+        // same release, so it must not be offered as an update. Anything else would show a notice
+        // that leads to the release already running.
         Assert.False(ReleaseVersion.IsNewer(latest, running));
     }
 
