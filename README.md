@@ -29,6 +29,8 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
   there are more tabs than fit. The row also follows the window you switch to.
 - The tab list updates automatically when windows open, close, change title, or gain focus.
   A two-second timer runs as a safety net.
+- **Switch Windows between light and dark** — the bar follows the colour setting and repaints as
+  soon as it changes, including the automatic switch some people schedule.
 
 ## Download
 
@@ -114,9 +116,10 @@ Releases are tagged `vMAJOR.MINOR.PATCH`, as [semantic versioning](https://semve
 `v0.1.0`, with no leading zeros. Below `1.0.0` the minor number rises when something is added or
 changed, and the patch number when something is only fixed.
 
-1. Add a section for the new version at the top of `version.md`, and the same section in
-   `version.ja.md`. Write what changed for someone using the application, not which pull requests
-   were merged.
+1. Rename the `## Unreleased` heading at the top of `version.md` to the new version, and do the
+   same in `version.ja.md`. Entries are written under that heading as each change lands, so the
+   list should already be there; add anything missing, and write it as what changed for someone
+   using the application rather than which pull requests were merged.
 2. Commit both files to `main`.
 3. Tag that commit and push the tag:
 
