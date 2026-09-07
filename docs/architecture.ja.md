@@ -35,6 +35,8 @@ windows-simple-tasktabbar/
 │   │   ├── Settings/
 │   │   │   ├── AppGroup.cs        利用者が作った1つのグループ
 │   │   │   └── AppSettings.cs     設定項目と既定値
+│   │   ├── Theme/
+│   │   │   └── BarPalette.cs      設定から決まる描画色
 │   │   └── Update/
 │   │       ├── ReleaseVersion.cs  リリースの版番号の読み取りと比較
 │   │       └── UpdateCheckSchedule.cs  確認の時期が来たかの判断
@@ -54,6 +56,7 @@ windows-simple-tasktabbar/
     └── WindowsSimpleTaskTabBar.Tests/          単体テスト
         ├── AppSettingsTests.cs
         ├── BarMetricsTests.cs
+        ├── BarPaletteTests.cs
         ├── ReleaseVersionTests.cs
         ├── TabGroupingTests.cs
         ├── TabStripTests.cs

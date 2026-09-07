@@ -13,6 +13,10 @@ in [README.md](README.md).
 
 ## Unreleased
 
+- The colours can now be chosen in the settings: follow Windows, always light, or always dark.
+  Following Windows stays the default, so nothing changes until you pick one of the other two.
+  With light or dark chosen, the bar keeps it when Windows switches its own setting, including
+  the automatic switch some people schedule.
 - The bar now looks for a newer release when it starts, and tells you when there is one: a
   notification names the version, and the menu gains an entry that opens the release page in your
   browser. Nothing is downloaded and nothing is replaced - you download the new executable

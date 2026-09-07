@@ -36,6 +36,8 @@ windows-simple-tasktabbar/
 │   │   ├── Settings/
 │   │   │   ├── AppGroup.cs                 One group the user defined by hand
 │   │   │   └── AppSettings.cs              The settings and their defaults
+│   │   ├── Theme/
+│   │   │   └── BarPalette.cs               The colours to draw with, from the setting
 │   │   └── Update/
 │   │       ├── ReleaseVersion.cs           Reading and comparing release version numbers
 │   │       └── UpdateCheckSchedule.cs      Whether a check for a new release is due
@@ -55,6 +57,7 @@ windows-simple-tasktabbar/
     └── WindowsSimpleTaskTabBar.Tests/      Unit tests
         ├── AppSettingsTests.cs
         ├── BarMetricsTests.cs
+        ├── BarPaletteTests.cs
         ├── ReleaseVersionTests.cs
         ├── TabGroupingTests.cs
         ├── TabStripTests.cs

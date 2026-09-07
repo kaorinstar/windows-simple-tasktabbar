@@ -15,6 +15,30 @@ public class AppSettingsTests
     }
 
     [Fact]
+    public void DefaultsToFollowingTheWindowsColours()
+    {
+        // What the bar did before the colour became a setting, so an update changes nothing.
+        Assert.Equal(ColourMode.FollowWindows, new AppSettings().Colours);
+    }
+
+    [Fact]
+    public void AnUnknownColourModeFallsBackToFollowingWindows()
+    {
+        var settings = new AppSettings { Colours = (ColourMode)99 };
+
+        Assert.Equal(ColourMode.FollowWindows, settings.Normalized().Colours);
+    }
+
+    [Fact]
+    public void NormalizingKeepsAValidColourChoice()
+    {
+        var settings = new AppSettings { Colours = ColourMode.Dark };
+        settings.Normalize();
+
+        Assert.Equal(ColourMode.Dark, settings.Colours);
+    }
+
+    [Fact]
     public void StandardIsTallerThanCompact()
     {
         Assert.True(AppSettings.HeightInPixels(BarHeightMode.Standard)
@@ -239,7 +263,7 @@ public class AppSettingsTests
         // DataContractJsonSerializer does not run the constructor, so a file that predates this
         // setting leaves the property unset. A plain bool would arrive as false and turn the
         // check off for exactly the people who already have the application.
-        var settings = new AppSettings { Schema = 2, CheckForUpdates = null };
+        var settings = new AppSettings { Schema = 3, CheckForUpdates = null };
 
         Assert.True(settings.Normalized().CheckForUpdates);
     }

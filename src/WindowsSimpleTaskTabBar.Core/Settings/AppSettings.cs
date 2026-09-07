@@ -16,6 +16,21 @@ public enum BarHeightMode
 }
 
 /// <summary>
+/// Which colours the bar draws with.
+/// </summary>
+public enum ColourMode
+{
+    /// <summary>The palette Windows is set to, followed as it changes.</summary>
+    FollowWindows = 0,
+
+    /// <summary>The light palette, whatever Windows is set to.</summary>
+    Light = 1,
+
+    /// <summary>The dark palette, whatever Windows is set to.</summary>
+    Dark = 2,
+}
+
+/// <summary>
 /// Every user setting, in one place.
 /// This type has no UI and no Windows API dependency, so it can be unit tested on any platform.
 /// </summary>
@@ -29,7 +44,7 @@ public class AppSettings
     /// The schema this instance was written with. Present from the first release so that a later
     /// version can tell an old file apart from a new one instead of guessing.
     /// </summary>
-    public const int CurrentSchema = 3;
+    public const int CurrentSchema = 4;
 
     /// <summary>How many accents a group can be marked with.</summary>
     public const int AccentCount = 8;
@@ -41,6 +56,15 @@ public class AppSettings
     public int Schema { get; set; } = CurrentSchema;
 
     public BarHeightMode BarHeight { get; set; } = BarHeightMode.Standard;
+
+    /// <summary>
+    /// Which palette the bar draws with, and whether it follows Windows.
+    /// </summary>
+    /// <remarks>
+    /// Follows Windows by default, which is what the bar did before this setting existed, so an
+    /// update changes nothing for someone who does not open the settings.
+    /// </remarks>
+    public ColourMode Colours { get; set; } = ColourMode.FollowWindows;
 
     /// <summary>
     /// Whether windows of one application are brought together in the row and marked as a group.
@@ -104,6 +128,7 @@ public class AppSettings
         {
             Schema = CurrentSchema,
             BarHeight = IsKnown(BarHeight) ? BarHeight : BarHeightMode.Standard,
+            Colours = IsKnown(Colours) ? Colours : ColourMode.FollowWindows,
             GroupByApplication = GroupByApplication,
             Groups = NormalizedGroups(Groups),
             CheckForUpdates = CheckForUpdates ?? true,
@@ -127,6 +152,7 @@ public class AppSettings
 
         Schema = tidy.Schema;
         BarHeight = tidy.BarHeight;
+        Colours = tidy.Colours;
         GroupByApplication = tidy.GroupByApplication;
         Groups = tidy.Groups;
         CheckForUpdates = tidy.CheckForUpdates;
@@ -156,6 +182,13 @@ public class AppSettings
     private static bool IsKnown(BarHeightMode mode)
     {
         return mode == BarHeightMode.Standard || mode == BarHeightMode.Compact;
+    }
+
+    private static bool IsKnown(ColourMode mode)
+    {
+        return mode == ColourMode.FollowWindows
+               || mode == ColourMode.Light
+               || mode == ColourMode.Dark;
     }
 
     /// <summary>
