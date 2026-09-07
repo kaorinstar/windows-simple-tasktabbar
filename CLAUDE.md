@@ -170,8 +170,7 @@ In rough priority order:
 - The order a user drags tabs into is not saved, so it is lost when the application exits.
   Turning grouping off also leaves the tabs where grouping put them: the order they opened in is
   not recorded anywhere.
-- Groups cannot be reordered, and two applications whose executables share a file name are
-  treated as one application.
+- Two applications whose executables share a file name are treated as one application.
 - A tab never shrinks below its icon and the first four characters of its title. Past that the
   row scrolls, so on a narrow screen only part of the row is visible at a time.
 

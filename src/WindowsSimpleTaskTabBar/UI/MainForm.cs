@@ -1447,12 +1447,24 @@ public class MainForm : Form
         int offset = DraggedTabLeft(_strip.TabWidth) - _contentRect.Left + _scroll;
         int target = TabStrip.DropIndex(offset, _strip.TabWidth, _metrics.TabGap, _tabs.Count);
 
-        // A tab cannot be dragged out of its group: grouping is worked out again on the next
-        // refresh, which would undo the move within 250 ms. See TabGrouping.ClampToGroup.
         if (_settings.GroupByApplication && _groupIds.Count == _tabs.Count)
-            target = TabGrouping.ClampToGroup(target, index, _groupIds);
+        {
+            // Inside its own group the tab moves alone; once the pointer passes beyond it, the
+            // whole group travels as a block. See TabGrouping.PlanDrag for why one is allowed
+            // and the other is not.
+            TabGrouping.DragMove move = TabGrouping.PlanDrag(target, index, _groupIds);
 
-        if (target != index)
+            if (!move.IsNothing)
+            {
+                // _tabs is what is drawn now, _order is what survives the next refresh, and
+                // _groupIds is what the next drag step reads. A block move reorders the groups,
+                // so all three have to move together.
+                TabStrip.MoveRange(_order, move.Start, move.Count, move.To);
+                TabStrip.MoveRange(_tabs, move.Start, move.Count, move.To);
+                TabStrip.MoveRange(_groupIds, move.Start, move.Count, move.To);
+            }
+        }
+        else if (target != index)
         {
             // Both lists carry the same order: _tabs is what is drawn now, _order is what
             // survives the next refresh.

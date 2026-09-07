@@ -189,4 +189,66 @@ public class TabStripTests
     {
         Assert.Equal(50, TabStrip.ScrollToShow(9, 100, 2, 500, 0, 50));
     }
+
+    // ---------------------------------------------------------------
+    // Moving a range, which is how a whole tab group is dragged
+    // ---------------------------------------------------------------
+    private static List<string> Row() => new() { "a", "b", "c", "d", "e" };
+
+    [Fact]
+    public void MovingARangeToTheRightKeepsItsOrder()
+    {
+        List<string> row = Row();
+
+        // Take a and b out, put them back starting at 2 of what is left: c, d, a, b, e.
+        TabStrip.MoveRange(row, 0, 2, 2);
+
+        Assert.Equal(new[] { "c", "d", "a", "b", "e" }, row);
+    }
+
+    [Fact]
+    public void MovingARangeToTheLeftKeepsItsOrder()
+    {
+        List<string> row = Row();
+
+        TabStrip.MoveRange(row, 3, 2, 0);
+
+        Assert.Equal(new[] { "d", "e", "a", "b", "c" }, row);
+    }
+
+    [Fact]
+    public void MovingARangeOfOneIsTheSameAsMovingOneItem()
+    {
+        List<string> byRange = Row();
+        List<string> byMove = Row();
+
+        TabStrip.MoveRange(byRange, 0, 1, 3);
+        TabStrip.Move(byMove, 0, 3);
+
+        Assert.Equal(byMove, byRange);
+    }
+
+    [Fact]
+    public void MovingARangeWhereItAlreadyIsChangesNothing()
+    {
+        List<string> row = Row();
+
+        TabStrip.MoveRange(row, 1, 2, 1);
+
+        Assert.Equal(new[] { "a", "b", "c", "d", "e" }, row);
+    }
+
+    [Fact]
+    public void ARangeOutsideTheRowIsIgnored()
+    {
+        List<string> row = Row();
+
+        TabStrip.MoveRange(row, 4, 3, 0);    // runs off the end
+        TabStrip.MoveRange(row, -1, 2, 0);   // starts before the beginning
+        TabStrip.MoveRange(row, 0, 2, 4);    // lands past what is left
+        TabStrip.MoveRange(row, 0, 0, 2);    // nothing to move
+        TabStrip.MoveRange<string>(null, 0, 1, 0);
+
+        Assert.Equal(new[] { "a", "b", "c", "d", "e" }, row);
+    }
 }

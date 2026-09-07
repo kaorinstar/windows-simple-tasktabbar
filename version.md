@@ -19,9 +19,9 @@ in [README.md](README.md).
   end of the row. Applications can also be combined into a group of your own, with a name and a
   colour you choose, so a browser and an editor can be shown as one group. The setting is off
   until you turn it on, and with it off the row behaves exactly as it did.
-- With grouping on, a tab can be dragged to another position inside its group, but not out of it:
-  the grouping is worked out again a few times a second and would put it straight back.
-  Applications are brought together from the settings dialog instead.
+- With grouping on, dragging a tab moves it inside its own group, and dragging it past a
+  neighbouring group carries the whole group with it, so the row can still be put in any order
+  you like. A window that is the only one of its application travels on its own.
 
 ## v0.2.0
 

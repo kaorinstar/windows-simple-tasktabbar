@@ -1,4 +1,5 @@
 using WindowsSimpleTaskTabBar.Core.Grouping;
+using WindowsSimpleTaskTabBar.Core.Layout;
 using WindowsSimpleTaskTabBar.Core.Settings;
 using Xunit;
 
@@ -200,41 +201,99 @@ public class TabGroupingTests
     // ---------------------------------------------------------------
     // Dragging
     // ---------------------------------------------------------------
+
+    /// <summary>The row after a drag, so a test reads as the result rather than as three numbers.</summary>
+    private static List<string> Dragged(string[] row, int target, int from)
+    {
+        TabGrouping.DragMove move = TabGrouping.PlanDrag(target, from, row);
+        var result = new List<string>(row);
+
+        TabStrip.MoveRange(result, move.Start, move.Count, move.To);
+        return result;
+    }
+
     [Fact]
-    public void ADraggedTabMovesFreelyInsideItsGroup()
+    public void ADragInsideItsOwnGroupMovesTheOneTab()
     {
         string[] row = { "a.exe", "a.exe", "a.exe", "b.exe" };
 
-        Assert.Equal(2, TabGrouping.ClampToGroup(2, 0, row));
-        Assert.Equal(0, TabGrouping.ClampToGroup(0, 2, row));
+        TabGrouping.DragMove move = TabGrouping.PlanDrag(2, 0, row);
+
+        Assert.Equal(1, move.Count);
+        Assert.Equal(0, move.Start);
+        Assert.Equal(2, move.To);
     }
 
     [Fact]
-    public void ADraggedTabStopsAtTheEdgeOfItsGroup()
+    public void ADragPastTheNextGroupTakesTheWholeGroupWithIt()
     {
-        string[] row = { "a.exe", "a.exe", "b.exe", "b.exe" };
+        string[] row = { "a.exe", "a.exe", "b.exe", "b.exe", "c.exe" };
 
-        Assert.Equal(1, TabGrouping.ClampToGroup(3, 0, row));   // pulled right, held at a's end
-        Assert.Equal(2, TabGrouping.ClampToGroup(0, 3, row));   // pulled left, held at b's start
+        // Dragging either tab of a gives the same result: a lands after b.
+        Assert.Equal(new[] { "b.exe", "b.exe", "a.exe", "a.exe", "c.exe" }, Dragged(row, 3, 0));
+        Assert.Equal(new[] { "b.exe", "b.exe", "a.exe", "a.exe", "c.exe" }, Dragged(row, 3, 1));
     }
 
     [Fact]
-    public void ATabWithNoKnownApplicationCannotBeDraggedAtAll()
+    public void ADragToTheLeftPutsTheGroupInFrontOfTheOneItPassed()
     {
-        // It is a group of one, so its only place is the one it is in.
-        string[] row = { "a.exe", "", "a.exe" };
+        string[] row = { "a.exe", "a.exe", "b.exe", "b.exe", "c.exe" };
 
-        Assert.Equal(1, TabGrouping.ClampToGroup(0, 1, row));
-        Assert.Equal(1, TabGrouping.ClampToGroup(2, 1, row));
+        Assert.Equal(new[] { "b.exe", "b.exe", "a.exe", "a.exe", "c.exe" }, Dragged(row, 0, 2));
     }
 
     [Fact]
-    public void ADragFromOutsideTheRowIsLeftAlone()
+    public void AGroupCanPassSeveralGroupsAtOnce()
+    {
+        string[] row = { "a.exe", "a.exe", "b.exe", "c.exe" };
+
+        Assert.Equal(new[] { "b.exe", "c.exe", "a.exe", "a.exe" }, Dragged(row, 3, 0));
+    }
+
+    [Fact]
+    public void ATabOfItsOwnTravelsAlone()
+    {
+        // The whole point of the request: one window of an application is a block of one.
+        string[] row = { "a.exe", "a.exe", "b.exe" };
+
+        Assert.Equal(new[] { "b.exe", "a.exe", "a.exe" }, Dragged(row, 0, 2));
+    }
+
+    [Fact]
+    public void AWindowWithNoKnownApplicationTravelsAlone()
+    {
+        string[] row = { "a.exe", "a.exe", "" };
+
+        Assert.Equal(new[] { "", "a.exe", "a.exe" }, Dragged(row, 0, 2));
+    }
+
+    [Fact]
+    public void AGroupDraggedOntoItselfMovesNothing()
     {
         string[] row = { "a.exe", "b.exe" };
 
-        Assert.Equal(1, TabGrouping.ClampToGroup(1, 9, row));
-        Assert.Equal(1, TabGrouping.ClampToGroup(1, 0, new List<string>()));
+        Assert.True(TabGrouping.PlanDrag(0, 0, row).IsNothing);
+    }
+
+    [Fact]
+    public void ADragFromOutsideTheRowMovesNothing()
+    {
+        string[] row = { "a.exe", "b.exe" };
+
+        Assert.True(TabGrouping.PlanDrag(1, 9, row).IsNothing);
+        Assert.True(TabGrouping.PlanDrag(1, 0, new List<string>()).IsNothing);
+    }
+
+    [Fact]
+    public void ArrangingAfterAGroupMoveChangesNothing()
+    {
+        // The move has to survive the next refresh, 250 ms later. Arrange orders groups by where
+        // each one's first window sits, so a block move is already the answer it would give. If
+        // this fails, a dragged group springs back to where it was.
+        string[] row = { "a.exe", "a.exe", "b.exe", "b.exe", "c.exe" };
+        List<string> moved = Dragged(row, 3, 0);
+
+        Assert.Equal(new[] { 0, 1, 2, 3, 4 }, TabGrouping.Arrange(moved));
     }
 
     // ---------------------------------------------------------------

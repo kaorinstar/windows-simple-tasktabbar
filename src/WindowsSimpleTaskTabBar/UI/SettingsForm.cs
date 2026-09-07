@@ -191,7 +191,7 @@ internal sealed class SettingsForm : Form
         var explanation = new Label
         {
             Text = "Windows of one application sit together and share a colour."
-                   + " A tab can be dragged inside its group, but not out of it.",
+                   + " Dragging a tab past another group moves its whole group.",
             AutoSize = true,
             MaximumSize = new Size(column * 2, 0),
             ForeColor = SystemColors.GrayText,

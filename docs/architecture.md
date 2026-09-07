@@ -176,11 +176,20 @@ next refresh, and dragging writes the same move to both lists by index, so arran
 would let the two disagree. Turning grouping off therefore leaves the tabs where grouping put
 them: the order they opened in is not recorded anywhere.
 
-**A tab can be dragged inside its group but not out of it.** Grouping is worked out again on the
-next refresh, so a move across a boundary would be undone within 250 ms, and a bar that undoes
-what the user just did is worse than one that would not let them do it. `ClampToGroup` holds the
-drop position inside the run of tabs sharing the group. Applications are brought together from
-the settings dialog instead.
+**A drag moves one tab inside its group, and the whole group once it passes beyond it.**
+`TabGrouping.PlanDrag` decides which, and `TabStrip.MoveRange` applies it to the three lists that
+have to agree: `_order`, `_tabs` and the group ids the next drag step reads.
+
+A single tab cannot leave its group, because grouping is worked out again on the next refresh and
+there is nowhere to record that it had left: within 250 ms it would be back, and a bar that undoes
+what the user just did is worse than one that would not let them do it. A whole group has no such
+problem, and the reason is the rule `Arrange` already follows. Arrange orders groups by where each
+one's first window sits, so a group whose tabs move together as a block is already the order
+Arrange would give back. The move is idempotent, and it stands. `ArrangeAfterAGroupMoveChangesNothing`
+in the tests is what holds that: if it ever fails, a dragged group springs back to where it was.
+
+A window that is the only one of its application, or one whose executable could not be read, is a
+block of one, so it travels alone.
 
 **The layout is not changed at all.** `TabStrip.Measure` gives every tab one width and one gap,
 and `DropIndex`, `ScrollToShow` and the hit testing all read that same step; a wider gap at a

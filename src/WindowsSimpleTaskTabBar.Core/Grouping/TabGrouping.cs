@@ -128,27 +128,71 @@ public static class TabGrouping
     }
 
     /// <summary>
-    /// Holds a dragged tab inside the run of tabs that share its group.
+    /// What one step of a drag moves: <see cref="Count"/> tabs from <see cref="Start"/>, landing
+    /// with the first of them at <see cref="To"/>. A count of one is a single tab, more than one
+    /// is a whole group.
+    /// </summary>
+    public sealed class DragMove
+    {
+        public DragMove() { }
+
+        public DragMove(int start, int count, int to)
+        {
+            Start = start;
+            Count = count;
+            To = to;
+        }
+
+        public int Start { get; set; }
+        public int Count { get; set; }
+        public int To { get; set; }
+
+        /// <summary>Whether this would leave the row as it is.</summary>
+        public bool IsNothing => Count <= 0 || Start == To;
+    }
+
+    /// <summary>
+    /// What a drag should move: one tab while it stays inside its own group, and the whole group
+    /// once it passes beyond it.
     /// </summary>
     /// <remarks>
-    /// Grouping is worked out from the settings on every refresh, so there is nowhere to record
-    /// a tab that was dragged out of its group: the next refresh, at most 250 ms later, would
-    /// put it back. A bar that undoes what the user just did is worse than one that would not
-    /// let them do it. Applications are brought together from the settings dialog instead.
+    /// A single tab cannot be dragged out of its group, because grouping is worked out again on
+    /// the next refresh and there would be nowhere to record that it had left: within 250 ms it
+    /// would be back. A whole group has no such problem. <see cref="Arrange"/> orders groups by
+    /// where each one's first window sits, so moving a group's tabs together as a block is
+    /// exactly the order Arrange gives back, and the move stands.
+    ///
+    /// A tab with no group of its own - the only window of its application, or one whose
+    /// executable could not be read - is a block of one, so it travels alone.
     /// </remarks>
-    public static int ClampToGroup(int target, int from, IList<string> arrangedGroupIds)
+    public static DragMove PlanDrag(int target, int from, IList<string> arrangedGroupIds)
     {
-        if (arrangedGroupIds == null || arrangedGroupIds.Count == 0) return target;
-        if (from < 0 || from >= arrangedGroupIds.Count) return target;
+        var nothing = new DragMove(from, 0, from);
 
-        int start = from;
-        while (start > 0 && SameGroup(arrangedGroupIds, start - 1, start)) start--;
+        if (arrangedGroupIds == null || arrangedGroupIds.Count == 0) return nothing;
+        if (from < 0 || from >= arrangedGroupIds.Count) return nothing;
+        if (target < 0) target = 0;
+        if (target > arrangedGroupIds.Count - 1) target = arrangedGroupIds.Count - 1;
 
+        int start = StartOfRun(arrangedGroupIds, from);
         int end = EndOfRun(arrangedGroupIds, start);
 
-        if (target < start) return start;
-        if (target > end) return end;
-        return target;
+        // Still over its own group: the tab moves by itself, as it always has.
+        if (target >= start && target <= end) return new DragMove(from, 1, target);
+
+        int count = end - start + 1;
+
+        if (target < start)
+        {
+            // The block lands in front of the group the pointer is over. That group sits to the
+            // left of the block, so taking the block out does not move it.
+            return new DragMove(start, count, StartOfRun(arrangedGroupIds, target));
+        }
+
+        // The block lands behind the group the pointer is over. That group sits to the right of
+        // the block, so taking the block out brings it count places nearer the front.
+        int passedEnd = EndOfRun(arrangedGroupIds, StartOfRun(arrangedGroupIds, target));
+        return new DragMove(start, count, passedEnd - count + 1);
     }
 
     /// <summary>
@@ -197,6 +241,14 @@ public static class TabGrouping
         }
 
         return hash;
+    }
+
+    /// <summary>The first index of the run of equal group ids that <paramref name="index"/> is in.</summary>
+    private static int StartOfRun(IList<string> groupIds, int index)
+    {
+        int start = index;
+        while (start > 0 && SameGroup(groupIds, start - 1, start)) start--;
+        return start;
     }
 
     /// <summary>The last index of the run of equal group ids that starts at <paramref name="start"/>.</summary>

@@ -22,7 +22,8 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
 - **Click the ×, or middle-click a tab** — closes that window.
 - **Drag a tab sideways** — moves it to another position. The others step aside as it passes
   them, Esc abandons the move, and dragging against either end scrolls the row. With grouping
-  on, a tab moves within its own group and stops at its edge.
+  on, a tab moves within its own group, and dragging it past a neighbouring group carries the
+  whole group with it. A window that is the only one of its application travels on its own.
 - **Right-click a tab** — opens a menu with Close, Close other tabs, Close tabs to the left,
   Close tabs to the right and Minimize.
 - **Right-click the space around the tabs** — opens a menu with Settings, Refresh and Exit.
@@ -171,8 +172,6 @@ success rate. The bar is thin, so the visual effect is negligible.
 - **The order is not remembered between runs.** Tabs come back in the order Windows lists the
   windows in. Turning grouping off leaves the tabs where grouping put them rather than restoring
   the order they opened in, which is not recorded anywhere.
-- **Groups cannot be reordered.** A group sits where its first window opened. Only the tabs
-  inside a group can be dragged.
 - **Two different applications with the same executable name share a group.** Applications are
   matched on the file name, because that is what people recognise, so two unrelated programs
   both installed as `app.exe` are treated as one.

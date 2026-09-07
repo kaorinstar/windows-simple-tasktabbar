@@ -129,6 +129,32 @@ public static class TabStrip
     }
 
     /// <summary>
+    /// Takes <paramref name="count"/> neighbouring items from <paramref name="start"/> and puts
+    /// them back with the first of them at <paramref name="to"/>, keeping their order.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="to"/> is an index into the list with the range already taken out, which
+    /// is the only reading that lets a range be moved to either side without two rules. Moving
+    /// one item is the same as <see cref="Move"/>.
+    /// </remarks>
+    public static void MoveRange<T>(IList<T> items, int start, int count, int to)
+    {
+        if (items == null) return;
+        if (count <= 0) return;
+        if (start < 0 || start + count > items.Count) return;
+
+        int remaining = items.Count - count;
+        if (to < 0 || to > remaining) return;
+        if (to == start) return;
+
+        var moved = new List<T>(count);
+        for (int i = 0; i < count; i++) moved.Add(items[start + i]);
+
+        for (int i = 0; i < count; i++) items.RemoveAt(start);
+        for (int i = 0; i < count; i++) items.Insert(to + i, moved[i]);
+    }
+
+    /// <summary>
     /// Returns the scroll position that brings one tab fully into view, moving as little as
     /// possible. A tab already in view leaves the position alone.
     /// </summary>
