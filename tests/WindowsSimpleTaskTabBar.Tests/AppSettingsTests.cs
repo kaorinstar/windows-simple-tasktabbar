@@ -15,6 +15,30 @@ public class AppSettingsTests
     }
 
     [Fact]
+    public void DefaultsToFollowingTheWindowsColours()
+    {
+        // What the bar did before the colour became a setting, so an update changes nothing.
+        Assert.Equal(ColourMode.FollowWindows, new AppSettings().Colours);
+    }
+
+    [Fact]
+    public void AnUnknownColourModeFallsBackToFollowingWindows()
+    {
+        var settings = new AppSettings { Colours = (ColourMode)99 };
+
+        Assert.Equal(ColourMode.FollowWindows, settings.Normalized().Colours);
+    }
+
+    [Fact]
+    public void NormalizingKeepsAValidColourChoice()
+    {
+        var settings = new AppSettings { Colours = ColourMode.Dark };
+        settings.Normalize();
+
+        Assert.Equal(ColourMode.Dark, settings.Colours);
+    }
+
+    [Fact]
     public void StandardIsTallerThanCompact()
     {
         Assert.True(AppSettings.HeightInPixels(BarHeightMode.Standard)

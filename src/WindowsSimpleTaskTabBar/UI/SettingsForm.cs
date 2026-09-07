@@ -35,6 +35,18 @@ internal sealed class SettingsForm : Form
 
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
         Justification = "Owned by the Controls collection it is added to.")]
+    private RadioButton _followWindows;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private RadioButton _light;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private RadioButton _dark;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
     private CheckBox _groupByApplication;
 
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
@@ -101,6 +113,7 @@ internal sealed class SettingsForm : Form
             Dock = DockStyle.Fill,
         };
         root.Controls.Add(BuildHeightGroup());
+        root.Controls.Add(BuildColourGroup());
         root.Controls.Add(BuildGroupingGroup());
 
         var note = new Label
@@ -165,6 +178,67 @@ internal sealed class SettingsForm : Form
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Margin = new Padding(12, 12, 12, 6),
+        };
+        box.Controls.Add(choices);
+        return box;
+    }
+
+    /// <remarks>
+    /// Three buttons rather than a tick box for dark: "follow Windows" is not the same choice as
+    /// light or dark, and a tick box would have to say so in its label.
+    /// </remarks>
+    private GroupBox BuildColourGroup()
+    {
+        _followWindows = new RadioButton
+        {
+            Text = "Follow Windows",
+            AutoSize = true,
+            Margin = new Padding(4, 4, 4, 2),
+        };
+        _followWindows.CheckedChanged += (_, __) => OnColoursChanged();
+
+        _light = new RadioButton
+        {
+            Text = "Light",
+            AutoSize = true,
+            Margin = new Padding(4, 2, 4, 2),
+        };
+        _light.CheckedChanged += (_, __) => OnColoursChanged();
+
+        _dark = new RadioButton
+        {
+            Text = "Dark",
+            AutoSize = true,
+            Margin = new Padding(4, 2, 4, 4),
+        };
+        _dark.CheckedChanged += (_, __) => OnColoursChanged();
+
+        var explanation = new Label
+        {
+            Text = "Light and Dark stay as you set them when Windows changes its own setting.",
+            AutoSize = true,
+            ForeColor = SystemColors.GrayText,
+            Margin = new Padding(4, 0, 4, 4),
+        };
+
+        var choices = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.TopDown,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(8, 4, 8, 8),
+        };
+        choices.Controls.Add(_followWindows);
+        choices.Controls.Add(_light);
+        choices.Controls.Add(_dark);
+        choices.Controls.Add(explanation);
+
+        var box = new GroupBox
+        {
+            Text = "Colours",
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(12, 6, 12, 6),
         };
         box.Controls.Add(choices);
         return box;
@@ -338,6 +412,9 @@ internal sealed class SettingsForm : Form
         _loading = true;
         _standard.Checked = _settings.BarHeight == BarHeightMode.Standard;
         _compact.Checked = _settings.BarHeight == BarHeightMode.Compact;
+        _followWindows.Checked = _settings.Colours == ColourMode.FollowWindows;
+        _light.Checked = _settings.Colours == ColourMode.Light;
+        _dark.Checked = _settings.Colours == ColourMode.Dark;
         _groupByApplication.Checked = _settings.GroupByApplication;
         _groupDetail.Enabled = _settings.GroupByApplication;
         _loading = false;
@@ -355,6 +432,21 @@ internal sealed class SettingsForm : Form
         if (mode == _settings.BarHeight) return;
 
         _settings.BarHeight = mode;
+        _onChanged();
+    }
+
+    private void OnColoursChanged()
+    {
+        if (_loading) return;
+
+        // As with the height above: CheckedChanged fires for the button being cleared as well as
+        // the one being set, so the stored value decides whether anything happened.
+        ColourMode mode = _light.Checked ? ColourMode.Light
+            : _dark.Checked ? ColourMode.Dark
+            : ColourMode.FollowWindows;
+        if (mode == _settings.Colours) return;
+
+        _settings.Colours = mode;
         _onChanged();
     }
 
