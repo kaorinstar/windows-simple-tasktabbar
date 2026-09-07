@@ -152,11 +152,15 @@ jobs:
           Write-Host "dotnet $publishArgs"
           dotnet @publishArgs
 
-      - name: Show the version the package carries
+      # The size is printed as well as the version, because version.md quotes the size of the
+      # release it describes and the figure has to come from somewhere other than the entry above
+      # it. A manual run prints it before the tag is pushed.
+      - name: Show the version and size the package carries
         shell: pwsh
         run: |
           $file = Get-Item artifacts/WindowsSimpleTaskTabBar.exe
           $file.VersionInfo | Format-List FileVersion, ProductVersion, FileDescription
+          Write-Host "Size: $($file.Length) bytes"
 
       - name: Remove the debug symbols from the package
         shell: pwsh

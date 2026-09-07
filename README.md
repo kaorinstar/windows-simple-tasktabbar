@@ -153,9 +153,13 @@ success rate. The bar is thin, so the visual effect is negligible.
 
 ## Known limitations
 
-- **Elevated applications cannot be controlled.** Windows integrity levels prevent a normal
-  process from activating or closing a window owned by an elevated process. Running this
-  application elevated works, but then it runs elevated permanently.
+- **A window owned by an elevated application cannot be fully controlled.** Windows integrity
+  levels stop a normal process from acting on one. Switching to a window that is already on
+  screen usually works, because the bar is in the foreground by the time it asks; restoring one
+  from minimized does not, and neither does closing it, and Windows reports no error either way.
+  Task Manager is the example most people meet, because it elevates itself on an administrator
+  account. Running this application elevated removes the limit, but then it runs elevated
+  permanently.
 - **Primary monitor only.** Multi-monitor support is not implemented.
 - **Full-screen applications cover the bar.** This is normal AppBar behaviour.
 - **The order is not remembered between runs.** Tabs come back in the order Windows lists the
