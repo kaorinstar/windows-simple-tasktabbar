@@ -21,7 +21,8 @@ windows-simple-tasktabbar/
 ├── .github/
 │   └── workflows/
 │       ├── build.yml              Build and test, on pushes and pull requests
-│       └── release.yml            Build, test, package, and publish a release
+│       ├── release.yml            Build, test, package, and publish a release
+│       └── report-build-status.yml  Open an issue when a push fails to build
 ├── docs/
 │   ├── architecture.md            This document
 │   └── architecture.ja.md         Japanese translation
