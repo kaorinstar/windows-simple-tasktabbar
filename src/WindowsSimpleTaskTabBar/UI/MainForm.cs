@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing.Drawing2D;
 using Microsoft.Win32;
 using WindowsSimpleTaskTabBar.Core.Layout;
@@ -88,11 +89,28 @@ public class MainForm : Form
     private ContextMenuStrip _appMenu;
     private ContextMenuStrip _tabMenu;
     private IntPtr _menuTarget;              // the tab _tabMenu was opened on
+
+    // The menu owns these three, and disposing it disposes them. CA2213 sees a disposable field
+    // and asks for a second release here, which would be one more thing to keep in step.
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by _tabMenu.Items, which releases it.")]
     private ToolStripItem _closeOthersItem;  // greyed out when there is nothing to act on
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by _tabMenu.Items, which releases it.")]
     private ToolStripItem _closeLeftItem;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by _tabMenu.Items, which releases it.")]
     private ToolStripItem _closeRightItem;
 
     private NotifyIcon _trayIcon;
+
+    // Only a record of which dialog is open, so a second request can bring it forward. The
+    // using statement in ShowSettings owns it, and this field is null again by the time that
+    // statement ends.
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the using statement in ShowSettings.")]
     private SettingsForm _settingsForm;
     private IntPtr _trayIconHandle;   // owned by this class; see LoadSmallApplicationIcon
 

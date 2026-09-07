@@ -178,6 +178,12 @@ failures: `CA1001` for a type that holds a disposable field without being dispos
 releases. `EnableNETAnalyzers` in `Directory.Build.props` is what brings them to the `net48`
 target, which the SDK would otherwise leave unanalysed.
 
+Where a Windows Forms container owns a field — a control in a `Controls` collection, an item in
+a menu — the field carries a `SuppressMessage` naming that owner. `CA2213` cannot see ownership
+of that kind and would otherwise ask for a second release, which is one more thing to keep in
+step. `CA2000` is given `dispose_ownership_transfer_at_method_call` for the same reason: without
+it, every control added to a collection reads as an object dropped without being disposed.
+
 The analyzers read the source, not a running program, so they cannot see a collection that grows
 without limit. That needs a person:
 

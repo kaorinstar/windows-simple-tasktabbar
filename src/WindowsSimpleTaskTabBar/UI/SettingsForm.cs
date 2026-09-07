@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using WindowsSimpleTaskTabBar.Core.Settings;
 
 namespace WindowsSimpleTaskTabBar.UI;
@@ -19,7 +20,14 @@ internal sealed class SettingsForm : Form
     private readonly Action _onChanged;
     private bool _loading;
 
+    // Both are added to a Controls collection in BuildControls, and a control is disposed by
+    // whatever it was added to. CA2213 cannot see that, so the ownership is stated here.
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
     private RadioButton _standard;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
     private RadioButton _compact;
 
     /// <param name="settings">The live settings object, edited in place.</param>
