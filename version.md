@@ -13,6 +13,10 @@ in [README.md](README.md).
 
 ## Unreleased
 
+- The colours can now be chosen in the settings: follow Windows, always light, or always dark.
+  Following Windows stays the default, so nothing changes until you pick one of the other two.
+  With light or dark chosen, the bar keeps it when Windows switches its own setting, including
+  the automatic switch some people schedule.
 - Two tab groups left on the automatic colour are no longer marked in the same one. There are
   eight colours, and each group used to take the one its name gave it without looking at what the
   other groups held, so with three groups there was about one chance in three of a repeat. A

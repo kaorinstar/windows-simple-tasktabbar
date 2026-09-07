@@ -33,9 +33,11 @@ windows-simple-tasktabbar/
 │   │   ├── Layout/
 │   │   │   ├── BarMetrics.cs               Drawing sizes, from bar height and DPI
 │   │   │   └── TabStrip.cs                 Tab width, overflow, scroll arithmetic
-│   │   └── Settings/
-│   │       ├── AppGroup.cs                 One group the user defined by hand
-│   │       └── AppSettings.cs              The settings and their defaults
+│   │   ├── Settings/
+│   │   │   ├── AppGroup.cs                 One group the user defined by hand
+│   │   │   └── AppSettings.cs              The settings and their defaults
+│   │   └── Theme/
+│   │       └── BarPalette.cs               The colours to draw with, from the setting
 │   └── WindowsSimpleTaskTabBar/            The application
 │       ├── Program.cs                      Entry point
 │       ├── Interop/
@@ -45,12 +47,14 @@ windows-simple-tasktabbar/
 │       │   ├── SettingsStore.cs            Reading and writing the settings file
 │       │   └── WindowService.cs            Enumerate, activate, close windows
 │       └── UI/
+│           ├── AccentPalette.cs            What each accent is called, for the settings
 │           ├── MainForm.cs                 AppBar registration, painting, input
 │           └── SettingsForm.cs             The settings dialog
 └── tests/
     └── WindowsSimpleTaskTabBar.Tests/      Unit tests
         ├── AppSettingsTests.cs
         ├── BarMetricsTests.cs
+        ├── BarPaletteTests.cs
         ├── TabGroupingTests.cs
         └── TabStripTests.cs
 ```
@@ -230,9 +234,9 @@ would colour the whole bar and tell the user nothing.
 
 ### Which accent a group is given
 
-`TabGrouping.AccentFor` answers with a number from 0 to 7, which `AccentPalette` turns into the
-colour of the current theme. A group whose accent the user chose keeps that one. The rest are
-derived, and the derivation has two parts.
+`TabGrouping.AccentFor` answers with a number from 0 to 7, which is an index into
+`BarPalette.Accents` and so into the shade of the palette in use. A group whose accent the user
+chose keeps that one. The rest are derived, and the derivation has two parts.
 
 The first is a hash of the group's name, FNV-1a over its lower-cased characters, taken modulo the
 palette size. It is written out rather than taken from `string.GetHashCode`, which is randomized

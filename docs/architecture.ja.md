@@ -32,9 +32,11 @@ windows-simple-tasktabbar/
 │   │   ├── Layout/
 │   │   │   ├── BarMetrics.cs      バーの高さとDPIから決まる描画寸法
 │   │   │   └── TabStrip.cs        タブ幅・あふれ・スクロールの計算
-│   │   └── Settings/
-│   │       ├── AppGroup.cs        利用者が作った1つのグループ
-│   │       └── AppSettings.cs     設定項目と既定値
+│   │   ├── Settings/
+│   │   │   ├── AppGroup.cs        利用者が作った1つのグループ
+│   │   │   └── AppSettings.cs     設定項目と既定値
+│   │   └── Theme/
+│   │       └── BarPalette.cs      設定から決まる描画色
 │   └── WindowsSimpleTaskTabBar/                アプリ本体
 │       ├── Program.cs             起動処理
 │       ├── Interop/
@@ -44,12 +46,14 @@ windows-simple-tasktabbar/
 │       │   ├── SettingsStore.cs   設定ファイルの読み書き
 │       │   └── WindowService.cs   ウィンドウの列挙・前面化・終了
 │       └── UI/
+│           ├── AccentPalette.cs   設定画面に出す色の名前
 │           ├── MainForm.cs        画面本体（AppBar登録・描画・操作）
 │           └── SettingsForm.cs    設定画面
 └── tests/
     └── WindowsSimpleTaskTabBar.Tests/          単体テスト
         ├── AppSettingsTests.cs
         ├── BarMetricsTests.cs
+        ├── BarPaletteTests.cs
         ├── TabGroupingTests.cs
         └── TabStripTests.cs
 ```
@@ -184,9 +188,9 @@ Interop/NativeMethods.cs（Windows API）
 
 ### グループの色の決め方
 
-`TabGrouping.AccentFor` は 0 から 7 までの番号を返し、`AccentPalette` がそれを現在のテーマの
-色に変換します。ユーザーが色を選んだグループは、その色をそのまま使います。それ以外は計算で
-決めます。計算は2段階です。
+`TabGrouping.AccentFor` は 0 から 7 までの番号を返します。この番号は `BarPalette.Accents` の
+添字であり、使用中の配色での色を指します。ユーザーが色を選んだグループは、その色をそのまま
+使います。それ以外は計算で決めます。計算は2段階です。
 
 1段階目は、グループ名のハッシュです。名前を小文字にして FNV-1a を計算し、色数で割った余りを
 使います。`string.GetHashCode` を使わず自分で書いているのは、.NET Core 以降ではプロセスごとに
