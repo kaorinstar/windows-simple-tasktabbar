@@ -38,3 +38,21 @@ csharp_new_line_before_open_brace = all
 csharp_prefer_braces = when_multiline:suggestion
 csharp_style_namespace_declarations = file_scoped:suggestion
 csharp_using_directive_placement = outside_namespace:suggestion
+
+# Resource leaks. The bar stays open all day and creates an icon, a font and a menu while it
+# runs, so an object that is never released stays lost for as long as the session lasts. These
+# three rules are the ones that find it, and all three are off in the default set. The rest of
+# that set is left alone: the build treats a warning as an error, so a rule turned on here is a
+# rule that has to pass.
+#
+# CA1001  a type that holds a disposable field has to be disposable itself
+# CA2000  a disposable object created and then dropped without being disposed
+# CA2213  a disposable field that Dispose does not release
+dotnet_diagnostic.CA1001.severity = warning
+dotnet_diagnostic.CA2000.severity = warning
+dotnet_diagnostic.CA2213.severity = warning
+
+# Windows Forms hands ownership over on the call: a control added to a Controls collection, or
+# an item added to a menu, is disposed by whatever it was added to. Without this option CA2000
+# reports every one of them as dropped, which is exactly the code that is already correct.
+dotnet_code_quality.CA2000.dispose_ownership_transfer_at_method_call = true
