@@ -11,7 +11,7 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
-## Unreleased
+## v0.3.0
 
 - Tabs can be grouped by the application that owns them, from a new setting. Windows of one
   application sit together and share a colour along the top edge of their tabs, with a rule
@@ -22,6 +22,7 @@ in [README.md](README.md).
 - With grouping on, dragging a tab moves it inside its own group, and dragging it past a
   neighbouring group carries the whole group with it, so the row can still be put in any order
   you like. A window that is the only one of its application travels on its own.
+- The executable is 77,312 bytes, against 60,416 in v0.2.0.
 
 ## v0.2.0
 
