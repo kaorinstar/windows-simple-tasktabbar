@@ -251,6 +251,31 @@ That step is the one thing `build.yml` does that `release.yml` does not. It is t
 number is needed while a release is being prepared, which happens in a pull request, and pull
 requests run `build.yml`.
 
+### An assistant cannot push the tag
+
+The credentials a Claude Code session is given push branches, not tags: `git push origin v0.3.0`
+comes back `HTTP 403` from GitHub, and there is no tag or release call among the GitHub tools
+either. **Do not hand anyone `git tag` and `git push` commands to run on their own machine.** They
+are working from a browser, and asking them to find a clone and a terminal is asking them to do
+the awkward part of the job by hand.
+
+Everything up to the tag is an assistant's to do: the changelog heading renamed to the version,
+the size read from the build, the pull request, and its merge. Then hand over exactly this:
+
+1. Open https://github.com/kaorinstar/windows-simple-tasktabbar/releases/new
+2. **Choose a tag** → type the version, for example `v0.3.0` → pick
+   **Create new tag: v0.3.0 on publish**
+3. Check **Target** is `main`
+4. Leave the title and the description empty. `release.yml` fills them from `version.md`
+5. **Publish release**
+
+Publishing creates the tag, the tag runs `release.yml`, and the workflow attaches the net48
+executable and replaces the description with the matching section of `version.md`. Watch it at
+https://github.com/kaorinstar/windows-simple-tasktabbar/actions/workflows/release.yml and check
+the result at https://github.com/kaorinstar/windows-simple-tasktabbar/releases: the executable
+attached, the notes from `version.md`, and the size in those notes matching the size of the file
+beside them.
+
 ## History
 
 The initial design and implementation were produced in a chat session with Claude running on
