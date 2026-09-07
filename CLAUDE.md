@@ -260,7 +260,8 @@ are working from a browser, and asking them to find a clone and a terminal is as
 the awkward part of the job by hand.
 
 Everything up to the tag is an assistant's to do: the changelog heading renamed to the version,
-the size read from the build, the pull request, and its merge. Then hand over exactly this:
+the `<Version>` in `Directory.Build.props` set to that same number, the size read from the build,
+the pull request, and its merge. Then hand over exactly this:
 
 1. Open https://github.com/kaorinstar/windows-simple-tasktabbar/releases/new
 2. **Choose a tag** → type the version, for example `v0.3.0` → pick

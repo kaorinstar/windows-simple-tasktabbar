@@ -24,8 +24,10 @@
     <Product>WindowsSimpleTaskTabBar</Product>
     <!-- The fallback version, used by local builds, branch builds and manual workflow runs. A
          release overrides it: .github/workflows/release.yml passes the tag, minus its leading v,
-         as -p:Version, so a published executable carries the version of its release. -->
-    <Version>0.1.0</Version>
+         as -p:Version, so a published executable carries the version of its release. It is set to
+         the version last released, so a build taken from a branch does not claim to be older than
+         the release it came after. Preparing a release moves it on with the changelog heading. -->
+    <Version>0.3.0</Version>
     <Company>Kaoru Ishikura</Company>
     <Authors>Kaoru Ishikura</Authors>
     <Copyright>Copyright (c) 2026 Kaoru Ishikura</Copyright>
