@@ -93,7 +93,8 @@ dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Rel
 GitHub Actions のワークフローは2つあり、いずれも Windows 環境で動きます。
 
 `build.yml` は検査用です。`main` への push とプルリクエストのたびに、ビルドと単体テストを
-実行します。警告もエラー扱いのため、警告が残っていると失敗します。配布物は作らず、
+実行します。警告もエラー扱いのため、警告が残っていると失敗します。その前に、依存している
+パッケージに既知の脆弱性がないかを確認し、見つかった場合も失敗します。配布物は作らず、
 リポジトリへの権限も読み取りのみです。
 
 `release.yml` は配布用です。`v0.1.0` のようにタグを付けて push すると、ビルドとテストの後に

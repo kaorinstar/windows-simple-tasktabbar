@@ -24,19 +24,37 @@ jobs:
 
     steps:
       - name: Check out the source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4.4.0
 
       # The SDK is the build tooling, not a runtime the application needs. It builds both
       # targets: net8.0-windows and net48. .NET Framework 4.8 is part of Windows and cannot be
       # installed by this action, and the reference assemblies net48 compiles against come from
       # a NuGet package named in the project file, so nothing else has to be set up here.
       - name: Set up the .NET SDK (it builds both the net8 and net48 targets)
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9   # v4.3.1
         with:
           dotnet-version: '8.0.x'
 
       - name: Restore dependencies
         run: dotnet restore
+
+      # dotnet list package --vulnerable exits 0 whether or not it finds anything, so the output
+      # has to be read. The check comes with the SDK: no service, no account, no package of its
+      # own. It needs the restore above, and runs before the build so that a known-vulnerable
+      # dependency stops the run early.
+      - name: Check the dependencies for known vulnerabilities
+        shell: pwsh
+        run: |
+          $report = dotnet list package --vulnerable --include-transitive 2>&1 | Out-String
+          Write-Host $report
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "dotnet list package exited with $LASTEXITCODE."
+            exit 1
+          }
+          if ($report -match 'has the following vulnerable packages') {
+            Write-Error "A dependency has a known vulnerability. The report above names it."
+            exit 1
+          }
 
       - name: Build (warnings treated as errors)
         run: dotnet build -c Release --no-restore -warnaserror

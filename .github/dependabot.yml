@@ -1,0 +1,24 @@
+# Dependabot opens a pull request when something this repository depends on has a newer version.
+# Those pull requests run .github/workflows/build.yml like any other, so an update that breaks the
+# net48 target is caught before it is merged.
+#
+# Two ecosystems are watched. NuGet covers the four packages the projects reference. GitHub Actions
+# covers the actions the workflows use, which are pinned to commit SHAs: without this, pinning
+# would mean going stale.
+#
+# Dependabot names its own branches (dependabot/...). That is outside the branch naming convention
+# in CLAUDE.md and cannot be changed.
+version: 2
+
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
