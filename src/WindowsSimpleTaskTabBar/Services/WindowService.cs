@@ -114,7 +114,9 @@ internal static class WindowService
 
         try
         {
-            var sb = new StringBuilder(260);
+            // Larger than MAX_PATH on purpose. A path longer than the buffer is not truncated:
+            // the call fails, and the window would silently lose its group.
+            var sb = new StringBuilder(1024);
             uint size = (uint)sb.Capacity;
             return NativeMethods.QueryFullProcessImageNameW(process, 0, sb, ref size)
                 ? sb.ToString()

@@ -19,18 +19,21 @@ namespace WindowsSimpleTaskTabBar.Services;
 /// </remarks>
 internal sealed class ProcessInfoCache
 {
-    private readonly Dictionary<IntPtr, string> _paths = new();
-    private readonly Dictionary<IntPtr, string> _names = new();
+    // The path and the name it was taken from, in one entry. Two dictionaries would have to be
+    // kept to the same set of keys, and reading one for a handle only the other knew about
+    // would throw.
+    private sealed class Entry
+    {
+        public string Path = string.Empty;
+        public string Name = string.Empty;
+    }
+
+    private readonly Dictionary<IntPtr, Entry> _entries = new();
 
     /// <summary>Full path of the owning executable, or an empty string when it is not known.</summary>
     public string Path(IntPtr hwnd)
     {
-        if (_paths.TryGetValue(hwnd, out string path)) return path;
-
-        path = WindowService.GetExecutablePath(hwnd);
-        _paths[hwnd] = path;
-        _names[hwnd] = TabGrouping.KeyFor(path);
-        return path;
+        return Lookup(hwnd).Path;
     }
 
     /// <summary>
@@ -39,27 +42,30 @@ internal sealed class ProcessInfoCache
     /// </summary>
     public string Name(IntPtr hwnd)
     {
-        if (_names.TryGetValue(hwnd, out string name)) return name;
+        return Lookup(hwnd).Name;
+    }
 
-        Path(hwnd);
-        return _names[hwnd];
+    private Entry Lookup(IntPtr hwnd)
+    {
+        if (_entries.TryGetValue(hwnd, out Entry entry)) return entry;
+
+        string path = WindowService.GetExecutablePath(hwnd);
+        entry = new Entry { Path = path, Name = TabGrouping.KeyFor(path) };
+        _entries[hwnd] = entry;
+        return entry;
     }
 
     /// <summary>Drops everything remembered about windows that are no longer open.</summary>
     public void Forget(ICollection<IntPtr> live)
     {
-        foreach (IntPtr key in _paths.Keys.ToList())
+        foreach (IntPtr key in _entries.Keys.ToList())
         {
-            if (live.Contains(key)) continue;
-
-            _paths.Remove(key);
-            _names.Remove(key);
+            if (!live.Contains(key)) _entries.Remove(key);
         }
     }
 
     public void Clear()
     {
-        _paths.Clear();
-        _names.Clear();
+        _entries.Clear();
     }
 }
