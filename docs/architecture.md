@@ -152,6 +152,43 @@ handle rather than an index, so a refresh while it is open cannot move it to ano
 commands that close one side of the row look the tab's position up when they run, for the same
 reason.
 
+### Who owns what, and how a leak is caught
+
+The bar is open for as long as the user is logged in, so anything it fails to release stays lost
+for the whole session. Ownership is therefore written down rather than assumed.
+
+| Object | Owner | Released |
+|---|---|---|
+| Window icons | `_iconCache` in `MainForm` | when the window closes, when the icon is refreshed, and in `ReleaseResources` |
+| `Font`, `ToolTip`, both menus, `NotifyIcon`, the timer | `MainForm` | `ReleaseResources` |
+| The tray icon handle from `ExtractIconExW` | `MainForm` | `DestroyIcon` in `ReleaseResources` |
+| Event hooks from `SetWinEventHook` | `_hooks` in `MainForm` | `UnhookWinEvent` in `ReleaseResources` |
+| The AppBar registration | `MainForm` | `UnregisterAppBar` in `ReleaseResources` |
+| `Pen`, `SolidBrush`, `GraphicsPath` while painting | the `using` statement around them | end of the statement |
+| Controls in `SettingsForm` | the `Controls` collection they are added to | the form's own `Dispose` |
+
+`ReleaseResources` runs from two places and does its work only once: `OnFormClosing`, so the
+desktop gets its space back the moment the bar is closed, and `Dispose(bool)`, so nothing is left
+registered when the form is disposed without having been closed. It runs before the base
+`Dispose`, because removing the AppBar registration needs a window handle that still exists.
+
+Three analyzer rules guard this, raised to warnings in `.editorconfig` and therefore build
+failures: `CA1001` for a type that holds a disposable field without being disposable itself,
+`CA2000` for an object created and then dropped, and `CA2213` for a field `Dispose` never
+releases. `EnableNETAnalyzers` in `Directory.Build.props` is what brings them to the `net48`
+target, which the SDK would otherwise leave unanalysed.
+
+The analyzers read the source, not a running program, so they cannot see a collection that grows
+without limit. That needs a person:
+
+1. Start the bar and open Task Manager, Details tab.
+2. Add the Memory, Handles, USER objects and GDI objects columns, and find
+   `WindowsSimpleTaskTabBar.exe`.
+3. Open and close windows, change the bar height, drag tabs and open the menus, for at least 30
+   minutes.
+4. All four numbers should move up and down and settle. A number that only ever rises is the
+   symptom to report.
+
 ### Refresh strategy
 
 `SetWinEventHook` reports window creation, destruction, show, hide, title change, and foreground

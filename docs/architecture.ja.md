@@ -104,3 +104,43 @@ Interop/NativeMethods.cs（Windows API）
 
 上の層から下の層だけを呼びます。逆向きの呼び出しはしません。
 `NativeMethods` の呼び出しは `Interop` に閉じ込め、他の場所には書かない方針です。
+
+## 資源の持ち主と、漏れの見つけ方
+
+このバーはログインしている間ずっと動きます。解放し忘れた資源は、その回のセッションが終わるまで
+戻ってきません。そのため、どのオブジェクトを誰が持つのかを決めてあります。
+
+| オブジェクト | 持ち主 | 解放する場所 |
+|---|---|---|
+| ウィンドウのアイコン | `MainForm` の `_iconCache` | ウィンドウを閉じたとき、アイコンを取り直したとき、`ReleaseResources` |
+| フォント、ツールチップ、2つのメニュー、通知領域アイコン、タイマー | `MainForm` | `ReleaseResources` |
+| `ExtractIconExW` で得たアイコンハンドル | `MainForm` | `ReleaseResources` の `DestroyIcon` |
+| `SetWinEventHook` のフック | `MainForm` の `_hooks` | `ReleaseResources` の `UnhookWinEvent` |
+| AppBar の登録 | `MainForm` | `ReleaseResources` の `UnregisterAppBar` |
+| 描画中の `Pen`、`SolidBrush`、`GraphicsPath` | 囲っている `using` | `using` を抜けるとき |
+| `SettingsForm` の各コントロール | 追加先の `Controls` | フォーム自身の `Dispose` |
+
+`ReleaseResources` は2か所から呼ばれ、実際の処理は最初の1回だけ行います。1つは
+`OnFormClosing` で、バーを閉じた時点で画面の領域を返すためです。もう1つは `Dispose(bool)` で、
+閉じずに破棄された場合でも登録を残さないためです。基底クラスの `Dispose` より先に動かします。
+AppBar の登録解除には、まだ有効なウィンドウハンドルが必要だからです。
+
+これを守るために、3つの解析ルールを `.editorconfig` で警告に設定しています。ビルドは警告を
+エラーとして扱うため、違反があればビルドが失敗します。
+
+- `CA1001`：破棄が必要なフィールドを持つのに、自身が破棄可能でない型
+- `CA2000`：作ったまま破棄されないオブジェクト
+- `CA2213`：`Dispose` が解放していないフィールド
+
+`Directory.Build.props` の `EnableNETAnalyzers` は、これらを `net48` 側にも適用するための設定
+です。この指定がないと、SDK は `net48` を解析しません。
+
+解析はソースコードを読むだけなので、動かしている間に増え続ける状態までは分かりません。そこは人
+が確認します。
+
+1. バーを起動し、タスクマネージャーの「詳細」タブを開きます。
+2. 「メモリ」「ハンドル」「USER オブジェクト」「GDI オブジェクト」の列を表示し、
+   `WindowsSimpleTaskTabBar.exe` を探します。
+3. ウィンドウの開閉、バーの高さの変更、タブの並べ替え、メニューの開閉を、30分以上続けます。
+4. 4つの数値が上下しながら落ち着けば問題ありません。上がり続ける数値があれば、それが報告すべき
+   兆候です。

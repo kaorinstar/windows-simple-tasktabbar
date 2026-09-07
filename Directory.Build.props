@@ -10,6 +10,12 @@
     <!-- Allows building the Windows targets on other operating systems. Ignored on Windows. -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
 
+    <!-- The SDK turns its analyzers on by default only for net5.0 and later, which would leave
+         the net48 target unanalysed. This line covers both targets. Every rule keeps its default
+         severity; the three that find a resource left undisposed are raised to warnings in
+         .editorconfig, and the build treats a warning as an error. -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+
     <!-- Without this the SDK appends the commit hash to InformationalVersion, and Windows shows
          the result as the product version: "v0.1.0+5bf40ad...". The number a user reads should be
          the number of the release. The commit is still recoverable from the tag. -->

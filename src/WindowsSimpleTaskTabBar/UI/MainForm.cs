@@ -40,6 +40,7 @@ public class MainForm : Form
 
     private uint _callbackMessage;
     private bool _appBarRegistered;
+    private bool _released;               // see ReleaseResources
 
     private readonly List<TabItem> _tabs = new();
     private readonly List<IntPtr> _order = new();          // keeps the display order stable
@@ -782,6 +783,10 @@ public class MainForm : Form
 
     protected override void OnPaint(PaintEventArgs e)
     {
+        // A paint request can still arrive between the close and the window being destroyed,
+        // and by then the font and the icons this method draws with are gone.
+        if (_released) return;
+
         Graphics g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
@@ -1303,9 +1308,24 @@ public class MainForm : Form
     // ---------------------------------------------------------------
     // Cleanup
     // ---------------------------------------------------------------
-    protected override void OnFormClosing(FormClosingEventArgs e)
+
+    /// <summary>
+    /// Releases everything this form owns: the event hooks, the cached icons, the font, the
+    /// tooltip, the two menus, the tray icon and the AppBar registration.
+    /// </summary>
+    /// <remarks>
+    /// Called from two places, and <see cref="_released"/> makes the second call do nothing.
+    /// <see cref="OnFormClosing"/> calls it so the desktop gets its space back as soon as the
+    /// bar is closed, and <see cref="Dispose(bool)"/> calls it so nothing is left registered
+    /// when the form is disposed without having been closed.
+    /// </remarks>
+    private void ReleaseResources()
     {
+        if (_released) return;
+        _released = true;
+
         _timer.Stop();
+        _timer.Dispose();
 
         foreach (IntPtr hook in _hooks)
             NativeMethods.UnhookWinEvent(hook);
@@ -1315,7 +1335,13 @@ public class MainForm : Form
             cached.Icon?.Dispose();
         _iconCache.Clear();
 
+        // Each tab holds an icon the cache has just released, so the tabs go with it.
+        _tabs.Clear();
+
         _toolTip.Dispose();
+
+        _font?.Dispose();
+        _font = null;
 
         _appMenu?.Dispose();
         _tabMenu?.Dispose();
@@ -1337,6 +1363,26 @@ public class MainForm : Form
         }
 
         UnregisterAppBar();
+    }
+
+    /// <summary>
+    /// Releases the resources once the close is settled. The base call comes first because a
+    /// handler of the <c>FormClosing</c> event may cancel the close, and a bar that goes on
+    /// running still needs its font, its icons and its hooks.
+    /// </summary>
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
         base.OnFormClosing(e);
+        if (!e.Cancel) ReleaseResources();
+    }
+
+    /// <summary>
+    /// Releases the resources before the base implementation destroys the window handle.
+    /// Removing the AppBar registration needs a handle that still exists.
+    /// </summary>
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) ReleaseResources();
+        base.Dispose(disposing);
     }
 }
