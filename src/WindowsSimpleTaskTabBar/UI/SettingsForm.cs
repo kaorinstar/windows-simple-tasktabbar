@@ -17,6 +17,12 @@ namespace WindowsSimpleTaskTabBar.UI;
 /// </remarks>
 internal sealed class SettingsForm : Form
 {
+    /// <summary>
+    /// The first entry of the colour list. It stands for no colour chosen, which leaves the group
+    /// to be given one.
+    /// </summary>
+    private const string AutomaticAccent = "Automatic";
+
     private readonly AppSettings _settings;
     private readonly Action _onChanged;
     private readonly Func<List<string>> _runningApplications;
@@ -255,14 +261,26 @@ internal sealed class SettingsForm : Form
         };
         _groupName.Leave += (_, __) => OnGroupNameChanged();
 
+        // Owner drawn, so each entry carries the colour it stands for beside its name. A colour is
+        // what the user is choosing, and no wording of it is as clear as the colour itself.
         _groupAccent = new ComboBox
         {
             DropDownStyle = ComboBoxStyle.DropDownList,
-            Width = TextRenderer.MeasureText("Automatic", Font).Width + row * 3,
+            DrawMode = DrawMode.OwnerDrawFixed,
+            ItemHeight = row + 2,
             Margin = new Padding(0, 2, 4, 4),
         };
-        _groupAccent.Items.Add("Automatic");
-        for (int i = 1; i <= AppSettings.AccentCount; i++) _groupAccent.Items.Add("Colour " + i);
+        _groupAccent.Items.Add(AutomaticAccent);
+        for (int i = 0; i < AppSettings.AccentCount; i++)
+            _groupAccent.Items.Add(AccentPalette.Name(i));
+
+        int widest = 0;
+        foreach (object item in _groupAccent.Items)
+            widest = Math.Max(widest, TextRenderer.MeasureText(item.ToString(), Font).Width);
+
+        // The name, the swatch in front of it, and the drop-down arrow after it.
+        _groupAccent.Width = widest + row * 4;
+        _groupAccent.DrawItem += OnDrawAccent;
         _groupAccent.SelectedIndexChanged += (_, __) => OnAccentChanged();
 
         var editRow = new FlowLayoutPanel
@@ -572,5 +590,49 @@ internal sealed class SettingsForm : Form
 
         group.Accent = accent;
         Apply(_groups.SelectedIndex);
+    }
+
+    /// <summary>
+    /// Draws one entry of the colour list: a square of the colour, then its name.
+    /// </summary>
+    /// <remarks>
+    /// The light shade of each accent, because this dialog is drawn in the standard Windows
+    /// controls, which stay light whatever the theme is. The bar itself uses the dark shade of
+    /// the same hue when the theme is dark, and one name covers both.
+    ///
+    /// The first entry is Automatic, which stands for no colour and so is drawn without a square.
+    /// The space is still left in front of its name, so the names line up.
+    /// </remarks>
+    private void OnDrawAccent(object sender, DrawItemEventArgs e)
+    {
+        e.DrawBackground();
+        if (e.Index < 0 || e.Index >= _groupAccent.Items.Count) return;
+
+        Font font = e.Font ?? this.Font;
+        int size = Math.Max(6, Math.Min(e.Bounds.Height - 4, font.Height));
+        var swatch = new Rectangle(
+            e.Bounds.Left + 3, e.Bounds.Top + ((e.Bounds.Height - size) / 2), size, size);
+
+        if (e.Index > 0)
+        {
+            using (var brush = new SolidBrush(AccentPalette.Colour(e.Index - 1, light: true)))
+                e.Graphics.FillRectangle(brush, swatch);
+
+            // An outline, so a pale accent is still a square rather than a gap in the row.
+            using var pen = new Pen(SystemColors.ControlDark);
+            e.Graphics.DrawRectangle(pen, swatch);
+        }
+
+        // DrawItem is raised with the ordinary colours even when the box is disabled, which it is
+        // until a group is selected, so the grey has to be chosen here.
+        Color text = _groupAccent.Enabled ? e.ForeColor : SystemColors.GrayText;
+        var name = new Rectangle(
+            swatch.Right + 4, e.Bounds.Top,
+            Math.Max(0, e.Bounds.Right - swatch.Right - 6), e.Bounds.Height);
+
+        TextRenderer.DrawText(e.Graphics, _groupAccent.Items[e.Index].ToString(), font, name, text,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+
+        e.DrawFocusRectangle();
     }
 }

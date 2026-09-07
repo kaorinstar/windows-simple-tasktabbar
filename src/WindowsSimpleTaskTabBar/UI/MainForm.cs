@@ -141,8 +141,9 @@ public class MainForm : Form
     // Colors, chosen to match the current Windows theme
     private Color _cBack, _cTab, _cTabActive, _cTabHover, _cText, _cTextActive, _cLine;
 
-    // The accents a tab group can be marked with, one set per theme. Core works in numbers so
-    // that it stays free of System.Drawing; the numbers are turned into colours here.
+    // The accents a tab group can be marked with, in the shade of the current theme. Core works
+    // in numbers so that it stays free of System.Drawing; AccentPalette turns them into colours,
+    // and this holds the set in use so painting a tab is a lookup.
     private readonly Color[] _accents = new Color[AppSettings.AccentCount];
 
     public MainForm()
@@ -906,32 +907,10 @@ public class MainForm : Form
             _cLine = Color.FromArgb(24, 25, 28);
         }
 
-        SetAccents(light);
+        // Here rather than once at startup, so the accents follow a change of the Windows light
+        // and dark setting along with everything else the bar draws.
+        AccentPalette.Fill(_accents, light);
         BackColor = _cBack;
-    }
-
-    /// <summary>
-    /// The eight accents a group can be marked with, in the shade that reads against the tabs of
-    /// the current theme.
-    /// </summary>
-    /// <remarks>
-    /// The order matters as little as the names: a group's accent is picked from its own name,
-    /// so what these have to be is eight colours a person can tell apart at three pixels tall,
-    /// including on the lighter fill of the active tab.
-    ///
-    /// Called from ApplyTheme, so the accents follow a change of the Windows light and dark
-    /// setting along with everything else the bar draws.
-    /// </remarks>
-    private void SetAccents(bool light)
-    {
-        int[] rgb = light
-            ? new[] { 0x1A73E8, 0xD93025, 0xF29900, 0x188038,
-                      0xD01884, 0x8430CE, 0x007B83, 0x5F6368 }
-            : new[] { 0x8AB4F8, 0xF28B82, 0xFDD663, 0x81C995,
-                      0xFF8BCB, 0xC58AF9, 0x78D9EC, 0xBDC1C6 };
-
-        for (int i = 0; i < _accents.Length; i++)
-            _accents[i] = Color.FromArgb(255, Color.FromArgb(rgb[i]));
     }
 
     /// <summary>The colour a marked tab's accent is drawn in.</summary>

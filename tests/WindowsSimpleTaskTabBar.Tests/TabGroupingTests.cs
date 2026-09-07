@@ -415,4 +415,91 @@ public class TabGroupingTests
 
         Assert.InRange(TabGrouping.AccentFor("Browsers", rules, Palette), 0, Palette - 1);
     }
+
+    [Fact]
+    public void TwoGroupsLeftAutomaticDoNotShareAnAccent()
+    {
+        // Both names give accent 4 on their own. Left at that, the two groups were marked in the
+        // same colour, which is what this rule exists to prevent.
+        Assert.Equal(TabGrouping.AccentFor("Browsers", null, Palette),
+                     TabGrouping.AccentFor("Dev", null, Palette));
+
+        var rules = new List<AppGroup> { Group("Browsers", "chrome.exe"), Group("Dev", "code.exe") };
+
+        Assert.NotEqual(TabGrouping.AccentFor("Browsers", rules, Palette),
+                        TabGrouping.AccentFor("Dev", rules, Palette));
+    }
+
+    [Fact]
+    public void TheFirstGroupListedKeepsTheAccentItsNameGives()
+    {
+        // The one that has to move is the second, so the first is where it was on its own.
+        var rules = new List<AppGroup> { Group("Browsers", "chrome.exe"), Group("Dev", "code.exe") };
+
+        Assert.Equal(TabGrouping.AccentFor("Browsers", null, Palette),
+                     TabGrouping.AccentFor("Browsers", rules, Palette));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AnAutomaticGroupAvoidsAnAccentChosenByHand(bool chosenFirst)
+    {
+        // The chosen one is 4, which is also what "Dev" gives on its own. The automatic group
+        // moves off it whichever of the two is listed first.
+        var chosen = new AppGroup
+        {
+            Name = "Browsers",
+            Accent = 4,
+            Executables = new List<string> { "chrome.exe" },
+        };
+        AppGroup automatic = Group("Dev", "code.exe");
+
+        var rules = chosenFirst
+            ? new List<AppGroup> { chosen, automatic }
+            : new List<AppGroup> { automatic, chosen };
+
+        Assert.Equal(4, TabGrouping.AccentFor("Browsers", rules, Palette));
+        Assert.NotEqual(4, TabGrouping.AccentFor("Dev", rules, Palette));
+    }
+
+    [Fact]
+    public void EveryAccentIsUsedOnceBeforeAnyIsUsedTwice()
+    {
+        var rules = new List<AppGroup>();
+        for (int i = 1; i <= Palette; i++) rules.Add(Group("Group " + i, "app" + i + ".exe"));
+
+        var seen = new HashSet<int>();
+        foreach (AppGroup rule in rules)
+        {
+            int accent = TabGrouping.AccentFor(rule.Name, rules, Palette);
+
+            Assert.InRange(accent, 0, Palette - 1);
+            Assert.True(seen.Add(accent), "Accent " + accent + " was given out twice.");
+        }
+    }
+
+    [Fact]
+    public void MoreGroupsThanAccentsStillLeavesEveryOneMarked()
+    {
+        // Past eight groups a repeat cannot be avoided. What must not happen is a group left
+        // without an accent at all.
+        var rules = new List<AppGroup>();
+        for (int i = 1; i <= Palette * 2; i++) rules.Add(Group("Group " + i, "app" + i + ".exe"));
+
+        foreach (AppGroup rule in rules)
+            Assert.InRange(TabGrouping.AccentFor(rule.Name, rules, Palette), 0, Palette - 1);
+    }
+
+    [Fact]
+    public void AnApplicationOutsideEveryGroupKeepsTheAccentItsNameGives()
+    {
+        // Only the groups the user defined take part. An application grouped on its own is not
+        // one of them: which of those exist depends on what is open, so an accent that avoided
+        // them would change as windows were opened and closed.
+        var rules = new List<AppGroup> { Group("Browsers", "chrome.exe") };
+
+        Assert.Equal(TabGrouping.AccentFor("notepad.exe", null, Palette),
+                     TabGrouping.AccentFor("notepad.exe", rules, Palette));
+    }
 }

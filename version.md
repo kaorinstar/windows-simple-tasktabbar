@@ -11,6 +11,16 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
+## Unreleased
+
+- Two tab groups left on the automatic colour are no longer marked in the same one. There are
+  eight colours, and each group used to take the one its name gave it without looking at what the
+  other groups held, so with three groups there was about one chance in three of a repeat. A
+  colour chosen by hand is now reserved first, and a group left automatic moves to the next free
+  colour when the one its name gives is taken. Past eight groups a repeat cannot be avoided.
+- The colour list in the settings names each colour and shows a square of it, in place of
+  "Colour 1" to "Colour 8".
+
 ## v0.3.0
 
 - Tabs can be grouped by the application that owns them, from a new setting. Windows of one

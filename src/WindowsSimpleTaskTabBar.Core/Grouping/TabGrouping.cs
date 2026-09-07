@@ -224,23 +224,86 @@ public static class TabGrouping
     /// The accent number of a group: the one its rule names, or one derived from the group's own
     /// name when the rule leaves it automatic.
     /// </summary>
+    /// <remarks>
+    /// A name on its own cannot avoid a collision. Two groups with different names agree modulo
+    /// eight often enough to be met rather than to be unlucky: with three groups the chance is
+    /// about one in three, and past eight groups a repeat is certain. So the accents the user
+    /// chose by hand are taken first, and then the groups left automatic are walked in the order
+    /// they sit in the settings, each keeping the accent its name gives when that one is still
+    /// free and taking the next free one when it is not.
+    ///
+    /// The order the settings hold them in is the one thing available that does not change by
+    /// itself, which is what makes the answer the same on every run. Adding a group can still
+    /// move the accent of a group listed after it. Choosing the accent by hand is the way to hold
+    /// one still.
+    ///
+    /// Only the groups the user defined take part. A group that is one application - a
+    /// <paramref name="groupId"/> no rule names - keeps the accent its name gives, so it can
+    /// still meet a defined group on the same colour. Making those take part would mean ordering
+    /// them by which windows happen to be open, and a colour would then change as windows were
+    /// opened and closed.
+    /// </remarks>
     public static int AccentFor(string groupId, IList<AppGroup> rules, int paletteSize)
     {
         if (paletteSize <= 0) return -1;
+        if (rules == null || string.IsNullOrEmpty(groupId)) return Hashed(groupId, paletteSize);
 
-        if (rules != null && !string.IsNullOrEmpty(groupId))
+        var taken = new bool[paletteSize];
+        bool defined = false;
+
+        // Chosen accents are settled before any name is hashed, so an automatic group avoids one
+        // the user asked for whichever order the two are listed in.
+        foreach (AppGroup rule in rules)
         {
-            foreach (AppGroup rule in rules)
-            {
-                if (rule == null) continue;
-                if (!string.Equals(rule.Name, groupId, StringComparison.OrdinalIgnoreCase)) continue;
+            if (rule == null || string.IsNullOrEmpty(rule.Name)) continue;
 
-                if (rule.Accent >= 0 && rule.Accent < paletteSize) return rule.Accent;
-                break;
-            }
+            if (string.Equals(rule.Name, groupId, StringComparison.OrdinalIgnoreCase)) defined = true;
+            if (rule.Accent >= 0 && rule.Accent < paletteSize) taken[rule.Accent] = true;
         }
 
-        return (int)(Hash(groupId) % (uint)paletteSize);
+        if (!defined) return Hashed(groupId, paletteSize);
+
+        foreach (AppGroup rule in rules)
+        {
+            if (rule == null || string.IsNullOrEmpty(rule.Name)) continue;
+
+            bool wanted = string.Equals(rule.Name, groupId, StringComparison.OrdinalIgnoreCase);
+
+            if (rule.Accent >= 0 && rule.Accent < paletteSize)
+            {
+                if (wanted) return rule.Accent;
+                continue;
+            }
+
+            int accent = FirstFree(Hashed(rule.Name, paletteSize), taken);
+            if (accent >= 0) taken[accent] = true;
+            else accent = Hashed(rule.Name, paletteSize);   // every accent is spoken for
+
+            if (wanted) return accent;
+        }
+
+        return Hashed(groupId, paletteSize);
+    }
+
+    /// <summary>The accent a name gives on its own, before any collision is considered.</summary>
+    private static int Hashed(string name, int paletteSize)
+    {
+        return (int)(Hash(name) % (uint)paletteSize);
+    }
+
+    /// <summary>
+    /// The first accent not yet taken, starting at <paramref name="start"/> and wrapping round,
+    /// or -1 when every one of them is taken.
+    /// </summary>
+    private static int FirstFree(int start, bool[] taken)
+    {
+        for (int step = 0; step < taken.Length; step++)
+        {
+            int accent = (start + step) % taken.Length;
+            if (!taken[accent]) return accent;
+        }
+
+        return -1;
     }
 
     /// <summary>

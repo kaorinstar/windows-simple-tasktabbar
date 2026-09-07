@@ -228,6 +228,33 @@ A group of one window is not marked. The accent says "these belong together", wh
 has nothing to say to, and marking every tab of a row where no two windows share an application
 would colour the whole bar and tell the user nothing.
 
+### Which accent a group is given
+
+`TabGrouping.AccentFor` answers with a number from 0 to 7, which `AccentPalette` turns into the
+colour of the current theme. A group whose accent the user chose keeps that one. The rest are
+derived, and the derivation has two parts.
+
+The first is a hash of the group's name, FNV-1a over its lower-cased characters, taken modulo the
+palette size. It is written out rather than taken from `string.GetHashCode`, which is randomized
+per process on .NET Core and later: an application would be a different colour every time the bar
+started, and a different colour again on the other target framework.
+
+The second part is there because a hash cannot avoid a collision. Eight accents are few enough
+that two different names agreeing is met rather than unlucky - about one chance in three with
+three groups, and certain past eight - and two groups in the same colour is exactly what the
+accent is meant to rule out. So the accents chosen by hand are reserved first, and then the groups
+left automatic are walked in the order the settings hold them, each keeping the accent its name
+gives when that one is still free and taking the next free one when it is not.
+
+The settings order is used because it is the one order available that does not change by itself,
+which is what keeps the answer the same on every run. The cost is that adding a group can move the
+accent of a group listed after it; choosing an accent by hand is how a user holds one still.
+
+Only the groups the user defined take part. A group that is one application keeps the accent its
+name gives, and can still meet a defined group on the same colour. Bringing those in would mean
+putting them in some order, and the only orders available depend on which windows are open, so a
+colour would change as windows were opened and closed.
+
 ### Reading the process behind a window
 
 `WindowService.GetExecutablePath` opens the process with `PROCESS_QUERY_LIMITED_INFORMATION` and
