@@ -190,9 +190,8 @@ version number rather than reconstructing the list from the commit log afterward
 `Unreleased`, so forgetting to rename it fails the workflow instead of publishing an empty
 release.
 
-Each entry in `version.md` quotes the size of that release's executable. Take it from the "Show
-the version and size the package carries" step of a manual run of `release.yml` on the commit
-being released, rather than copying the entry above it: the figure sat at 23 KB while the
+Each entry in `version.md` quotes the size of that release's executable. Measure it from the
+published file rather than copying the entry above it: the figure sat at 23 KB while the
 application grew to more than twice that, and it reached a published release that way. The
 READMEs say only "under 100 KB" and point at `version.md`, so there is one number to keep right
 rather than five.
