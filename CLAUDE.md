@@ -159,6 +159,14 @@ not scheduled. What sits under neither tracking issue is listed on its own: #62 
 support, #21 the installer and the portable package, #35 the translated interface, #26 whether to
 publish the repository.
 
+**Do not write the list out again, here or in the roadmap sections of `README.md` and
+`README.ja.md`.** It stood in all three files at once, beside the issues that already tracked it,
+and had drifted from them by the time it was replaced with this pointer (#23): one item had been
+absorbed into another issue and another had no issue at all. Planned work becomes an issue, and
+finishing it then means closing that issue rather than editing three files. Keep the same rule for
+the known limitations below: the entry stays, and it links to its issue instead of describing the
+plan.
+
 ## Known limitations
 
 - A window owned by an elevated application cannot be fully controlled, because of Windows
@@ -244,6 +252,13 @@ that makes the change**, in both files. Preparing a release is then renaming tha
 version number rather than reconstructing the list from the commit log afterwards. No tag matches
 `Unreleased`, so forgetting to rename it fails the workflow instead of publishing an empty
 release.
+
+**The same pull request sets the `<Version>` in `Directory.Build.props` to the number being
+released.** Nothing fails when this one is missed, which is the difficulty with it: the release
+itself takes its number from the tag and is correct either way, and only local builds, branch
+builds and manual runs of `release.yml` carry the stale value into the file properties of the
+executable. That is how it sat at `0.1.0` until after v0.3.0 had been published (#64). Rename the
+heading and set the version together.
 
 Each entry in `version.md` quotes the size of that release's executable. Take it from the "Show
 the size of the net48 build" step of `build.yml`, which prints it on every run, rather than
