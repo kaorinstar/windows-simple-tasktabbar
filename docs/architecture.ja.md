@@ -27,16 +27,20 @@ windows-simple-tasktabbar/
 │   └── architecture.ja.md         この文書
 ├── src/
 │   ├── WindowsSimpleTaskTabBar.Core/           画面に依存しない処理
+│   │   ├── Grouping/
+│   │   │   └── TabGrouping.cs     どのタブがどのグループかと、行の並び順
 │   │   ├── Layout/
 │   │   │   ├── BarMetrics.cs      バーの高さとDPIから決まる描画寸法
 │   │   │   └── TabStrip.cs        タブ幅・あふれ・スクロールの計算
 │   │   └── Settings/
+│   │       ├── AppGroup.cs        利用者が作った1つのグループ
 │   │       └── AppSettings.cs     設定項目と既定値
 │   └── WindowsSimpleTaskTabBar/                アプリ本体
 │       ├── Program.cs             起動処理
 │       ├── Interop/
 │       │   └── NativeMethods.cs   Windows API の呼び出し定義
 │       ├── Services/
+│       │   ├── ProcessInfoCache.cs  ウィンドウごとの実行ファイルの記憶
 │       │   ├── SettingsStore.cs   設定ファイルの読み書き
 │       │   └── WindowService.cs   ウィンドウの列挙・前面化・終了
 │       └── UI/
@@ -46,6 +50,7 @@ windows-simple-tasktabbar/
     └── WindowsSimpleTaskTabBar.Tests/          単体テスト
         ├── AppSettingsTests.cs
         ├── BarMetricsTests.cs
+        ├── TabGroupingTests.cs
         └── TabStripTests.cs
 ```
 
@@ -97,6 +102,7 @@ DLL参照にすると配布ファイルが2つになり、「実行ファイル1
 Program.cs
    ↓
 UI/MainForm.cs  ──→  Core/Layout/（計算）
+   │             ──→  Core/Grouping/（どのタブがどのグループか）
    ↓
 Services/WindowService.cs（ウィンドウ操作）
    ↓
@@ -105,6 +111,62 @@ Interop/NativeMethods.cs（Windows API）
 
 上の層から下の層だけを呼びます。逆向きの呼び出しはしません。
 `NativeMethods` の呼び出しは `Interop` に閉じ込め、他の場所には書かない方針です。
+
+## アプリ単位で行をまとめる仕組み
+
+`Core/Grouping/TabGrouping.cs` は、画面にもWindows APIにも依存しない2つの判断を担います。
+どのタブがどのグループに属するかと、行をどの順で描くかです。バーはタブごとのグループ名を渡し、
+並び順を受け取ります。この規則は単体テストで確かめられます。
+
+`Arrange` は、すでに並べ替えたあとの行を渡されたら、そのまま返さなければなりません。
+`RefreshTabs` は毎秒4回動くため、2回目で動いてしまうものは3回目でも動き、行が落ち着かなく
+なるからです。グループは最初のウィンドウの位置に置き、グループ内の順序は元のまま保つことで、
+これが成り立ちます。
+
+並べ替えるのは `_tabs` ではなく `_order` です。`_order` は次の更新をまたいで残る表示順であり、
+ドラッグは同じ添字で両方のリストを動かします。片方だけを並べ替えると、2つの内容が食い違います。
+そのため、グループ化を無効に戻しても、タブはグループ化後の位置に残ります。開いた順はどこにも
+記録していないためです。
+
+**タブはグループの中でのみドラッグできます。** グループ分けは次の更新で計算し直すので、境界を
+越えた移動は250ミリ秒以内に取り消されます。利用者がたった今行った操作を勝手に元へ戻す動きは、
+そもそも動かせない動きより分かりにくくなります。`ClampToGroup` が落とし先をグループの範囲に
+丸めます。アプリをまたいでまとめたい場合は、設定画面でグループを作ります。
+
+**レイアウトの計算には一切手を入れていません。** `TabStrip.Measure` はすべてのタブに同じ幅と
+同じ間隔を与え、`DropIndex`、`ScrollToShow`、当たり判定はいずれも同じ刻みを前提にしています。
+グループの境目だけ間隔を広げると、これらをまとめて書き換えることになり、「描かれている位置」と
+「落ちる位置」が一致するという前提も崩れます。そこでグループは、タブ上端の色帯で示します。
+同じグループのタブの間では色帯を隙間ごしにつなげ、グループ全体が1本の帯に見えるようにします。
+グループの境目には、その同じ隙間の中に区切り線を引きます。もっと広い間隔が必要になったときは、
+測り方をもう1つ用意し、刻みを読むすべての場所をそちらへ移す必要があります。それは別の変更です。
+
+ウィンドウが1つだけのグループには色を付けません。色帯は「これらは同じまとまりです」と伝える
+ものであり、1つしかないタブには伝えることがありません。同じアプリが2つ以上ない行のすべてに
+色を付ければ、バー全体が色付きになるだけで、何も伝わりません。
+
+## ウィンドウの実行ファイルを調べる方法
+
+`WindowService.GetExecutablePath` は `PROCESS_QUERY_LIMITED_INFORMATION` でプロセスを開き、
+`QueryFullProcessImageNameW` で問い合わせます。`Process.MainModule.FileName` のほうが短く
+書けますが、こちらは `PROCESS_VM_READ` を必要とします。この権限は、管理者権限のプロセスや
+ビット数の異なるプロセスに対して拒否され、しかも結果ではなく例外が返ります。限定的な権限は
+どちらの場合も許可されるため、前面化できない管理者権限のウィンドウでも、正しいグループに
+入ります。
+
+電卓・設定・フォトなどのパッケージアプリは、`ApplicationFrameHost.exe` が持つ
+`ApplicationFrameWindow` の中に描かれます。そのまま問い合わせるとすべて同じ実行ファイルを
+返し、1つのグループにまとまってしまうため、枠の子ウィンドウを調べます。
+
+`ProcessInfoCache` が結果を記憶します。失敗した結果も記憶します。`RefreshTabs` は毎秒4回動く
+ので、問い合わせを許可されないウィンドウに毎回聞き直すことになるからです。有効期限はありません。
+ウィンドウの持ち主のプロセスは途中で変わらないためです。エントリは、アイコンのキャッシュと同じ
+「今あるウィンドウの一覧」を使って捨てます。そのため、Windows が同じハンドルを再利用しても、
+古い内容が返ることはありません。
+
+グループ分けの判定にはフルパスではなくファイル名を使います。人がアプリを見分けるのはファイル名
+だからです。同じプログラムを別のフォルダーに2つ入れても、見ている人にとっては1つのアプリです。
+その代わり、どちらも `app.exe` という名前の無関係な2つのプログラムは、1つとして扱われます。
 
 ## 資源の持ち主と、漏れの見つけ方
 
@@ -118,6 +180,7 @@ Interop/NativeMethods.cs（Windows API）
 | `ExtractIconExW` で得たアイコンハンドル | `MainForm` | `ReleaseResources` の `DestroyIcon` |
 | `SetWinEventHook` のフック | `MainForm` の `_hooks` | `ReleaseResources` の `UnhookWinEvent` |
 | AppBar の登録 | `MainForm` | `ReleaseResources` の `UnregisterAppBar` |
+| `OpenProcess` で得たプロセスハンドル | `WindowService.GetExecutablePath` | 同じメソッドの `finally` の `CloseHandle` |
 | 描画中の `Pen`、`SolidBrush`、`GraphicsPath` | 囲っている `using` | `using` を抜けるとき |
 | `SettingsForm` の各コントロール | 追加先の `Controls` | フォーム自身の `Dispose` |
 

@@ -103,11 +103,10 @@ restriction.
 
 In rough priority order:
 
-1. Grouping by application when there are many tabs
-2. Multi-monitor support (currently primary monitor only)
-3. Window preview on hover
-4. Pinned applications
-5. Built-in start-with-Windows option
+1. Multi-monitor support (currently primary monitor only)
+2. Window preview on hover
+3. Pinned applications
+4. Built-in start-with-Windows option
 
 ## Known limitations
 
@@ -115,6 +114,10 @@ In rough priority order:
   application elevated works but means running elevated permanently.
 - Full-screen applications cover the bar. This is normal AppBar behaviour.
 - The order a user drags tabs into is not saved, so it is lost when the application exits.
+  Turning grouping off also leaves the tabs where grouping put them: the order they opened in is
+  not recorded anywhere.
+- Groups cannot be reordered, and two applications whose executables share a file name are
+  treated as one application.
 - A tab never shrinks below its icon and the first four characters of its title. Past that the
   row scrolls, so on a narrow screen only part of the row is visible at a time.
 
