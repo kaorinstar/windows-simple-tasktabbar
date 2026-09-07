@@ -142,8 +142,8 @@ public class MainForm : Form
     // Colors, chosen to match the current Windows theme
     private Color _cBack, _cTab, _cTabActive, _cTabHover, _cText, _cTextActive, _cLine;
 
-    // The accents a tab group can be marked with, one set per theme. Core works in numbers so
-    // that it stays free of System.Drawing; the numbers are turned into colours here.
+    // The accents a tab group can be marked with, in the shade of the palette in use. Held as
+    // colours rather than as BarPalette's numbers so that painting a tab is a lookup.
     private readonly Color[] _accents = new Color[AppSettings.AccentCount];
 
     public MainForm()
@@ -714,14 +714,13 @@ public class MainForm : Form
         if (_groupIds.Count != _tabs.Count) return;
 
         bool[] marks = TabGrouping.Marks(_groupIds);
+        int[] accents = TabGrouping.AccentsFor(_groupIds, _settings.Groups, AppSettings.AccentCount);
 
         for (int i = 0; i < _tabs.Count; i++)
         {
             _tabs[i].GroupId = _groupIds[i];
             _tabs[i].Marked = marks[i];
-            _tabs[i].Accent = marks[i]
-                ? TabGrouping.AccentFor(_groupIds[i], _settings.Groups, AppSettings.AccentCount)
-                : -1;
+            _tabs[i].Accent = accents[i];
         }
     }
 
@@ -919,6 +918,7 @@ public class MainForm : Form
     {
         return Color.FromArgb(255, Color.FromArgb(rgb));
     }
+
 
     /// <summary>The colour a marked tab's accent is drawn in.</summary>
     private Color GroupAccent(TabItem tab)

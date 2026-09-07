@@ -18,7 +18,8 @@ public class AppGroup
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// The accent to mark the group with, or -1 to have one picked from the name.
+    /// The accent to mark the group with, or -1 to have one picked from the name and from the
+    /// accents the other groups already hold. See <c>TabGrouping.AccentFor</c>.
     /// </summary>
     public int Accent { get; set; } = -1;
 

@@ -47,6 +47,7 @@ windows-simple-tasktabbar/
 │       │   ├── SettingsStore.cs            Reading and writing the settings file
 │       │   └── WindowService.cs            Enumerate, activate, close windows
 │       └── UI/
+│           ├── AccentPalette.cs            What each accent is called, for the settings
 │           ├── MainForm.cs                 AppBar registration, painting, input
 │           └── SettingsForm.cs             The settings dialog
 └── tests/
@@ -230,6 +231,48 @@ of the step moved onto it, which is a change of its own.
 A group of one window is not marked. The accent says "these belong together", which a single tab
 has nothing to say to, and marking every tab of a row where no two windows share an application
 would colour the whole bar and tell the user nothing.
+
+### Which accent a group is given
+
+`TabGrouping.AccentFor` answers with a number from 0 to 7, which is an index into
+`BarPalette.Accents` and so into the shade of the palette in use. A group whose accent the user
+chose keeps that one. The rest are derived, and the derivation has two parts.
+
+The first is a hash of the group's name, FNV-1a over its lower-cased characters, taken modulo the
+palette size. It is written out rather than taken from `string.GetHashCode`, which is randomized
+per process on .NET Core and later: an application would be a different colour every time the bar
+started, and a different colour again on the other target framework.
+
+The second part is there because a hash cannot avoid a collision. Eight accents are few enough
+that two different names agreeing is met rather than unlucky - about one chance in three with
+three groups, and certain past eight - and two groups in the same colour is exactly what the
+accent is meant to rule out. So the accents chosen by hand are reserved first, and then the groups
+left automatic are walked in the order the settings hold them, each keeping the accent its name
+gives when that one is still free and taking the next free one when it is not.
+
+The settings order is used because it is the one order available that does not change by itself,
+which is what keeps the answer the same on every run. The cost is that adding a group can move the
+accent of a group listed after it; choosing an accent by hand is how a user holds one still.
+
+Only the groups the user defined take part in that. A group that is one application is not in the
+settings at all, so there is nothing there to hold it apart from anything else, and a row of half
+a dozen applications repeats an accent often.
+
+`TabGrouping.AccentsFor` covers what is left, on the row rather than in the settings. Where a
+repeat does harm is between neighbours: the band is carried across the gap inside a group, so two
+groups side by side in one colour read as a single group, which is the one thing the band is there
+to say. Two groups in the same colour with something between them are only two groups in the same
+colour. So the row is walked from the front, and where a group's accent matches the group before
+it, one of the two moves on. The one that moves is the one whose accent was derived; an accent the
+user chose stays where they put it and its neighbour gives way, and when both were chosen both are
+left alone. A group of one window is not marked, and an unmarked group breaks the band, so the
+group after it has nothing to differ from.
+
+This is the row's own order, so a group can change colour when it is dragged to a new neighbour or
+when a window opens beside it. That is what the guarantee costs, and it is paid on the two groups
+the user is looking at rather than across the whole bar. Ordering every group by the row instead,
+and holding all of them apart that way, would spread the same instability over every colour on the
+bar.
 
 ### Reading the process behind a window
 
