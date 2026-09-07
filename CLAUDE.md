@@ -111,8 +111,13 @@ In rough priority order:
 
 ## Known limitations
 
-- Elevated applications cannot be controlled, because of Windows integrity levels. Running this
-  application elevated works but means running elevated permanently.
+- A window owned by an elevated application cannot be fully controlled, because of Windows
+  integrity levels. `SetForegroundWindow` still tends to succeed, since `Activate` is called with
+  the bar already in the foreground, so switching to a window that is on screen works. The
+  `ShowWindow(SW_RESTORE)` that `Activate` issues first is refused, so a minimized window stays
+  minimized, and closing is refused too. Neither returns an error a user would see. Task Manager
+  is the example most people meet, because it elevates itself on an administrator account.
+  Running this application elevated removes the limit but means running elevated permanently.
 - Full-screen applications cover the bar. This is normal AppBar behaviour.
 - The order a user drags tabs into is not saved, so it is lost when the application exits.
 - A tab never shrinks below its icon and the first four characters of its title. Past that the
