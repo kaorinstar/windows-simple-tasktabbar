@@ -150,12 +150,14 @@ restriction.
 
 ## Not yet implemented
 
-In rough priority order:
+The list of planned work lives in the issue tracker, not here, so that there is one copy of it to
+keep current. Take priorities from there.
 
-1. Multi-monitor support (currently primary monitor only)
-2. Window preview on hover
-3. Pinned applications
-4. Built-in start-with-Windows option
+Two tracking issues hold most of it, each with its sub-issues in priority order: #1 for the tab
+strip and #2 for the settings. #17, a bar on the left or right edge, is marked low priority and is
+not scheduled. What sits under neither tracking issue is listed on its own: #62 multi-monitor
+support, #21 the installer and the portable package, #35 the translated interface, #26 whether to
+publish the repository.
 
 ## Known limitations
 
@@ -166,6 +168,8 @@ In rough priority order:
   minimized, and closing is refused too. Neither returns an error a user would see. Task Manager
   is the example most people meet, because it elevates itself on an administrator account.
   Running this application elevated removes the limit but means running elevated permanently.
+- Only the primary monitor carries a bar, and it lists every window in the session, wherever it
+  is (#62).
 - Full-screen applications cover the bar. This is normal AppBar behaviour.
 - The order a user drags tabs into is not saved, so it is lost when the application exits.
   Turning grouping off also leaves the tabs where grouping put them: the order they opened in is
