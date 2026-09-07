@@ -128,14 +128,19 @@ public class AppSettingsTests
     }
 
     [Fact]
-    public void AGroupWithNoApplicationsLeftIsDropped()
+    public void AGroupWithNoApplicationsYetIsKept()
     {
+        // This is what the user is looking at in the moment after creating one. A group that
+        // disappeared between being made and being filled would be hard to make sense of.
         var settings = new AppSettings
         {
             Groups = new List<AppGroup> { Group("Work", "code.exe"), Group("Empty") },
         };
 
-        Assert.Single(settings.Normalized().Groups);
+        List<AppGroup> groups = settings.Normalized().Groups;
+
+        Assert.Equal(2, groups.Count);
+        Assert.Empty(groups[1].Executables);
     }
 
     [Fact]
@@ -144,6 +149,33 @@ public class AppSettingsTests
         var settings = new AppSettings { Groups = new List<AppGroup> { Group("  ", "chrome.exe") } };
 
         Assert.Equal("chrome", Assert.Single(settings.Normalized().Groups).Name);
+    }
+
+    [Fact]
+    public void AGroupWithNeitherANameNorAnApplicationStillGetsAName()
+    {
+        var settings = new AppSettings { Groups = new List<AppGroup> { Group("") } };
+
+        Assert.Equal("Group", Assert.Single(settings.Normalized().Groups).Name);
+    }
+
+    [Fact]
+    public void NormalizingInPlaceChangesTheSameObject()
+    {
+        // The bar, the settings dialog and the store all share one settings object. Normalizing
+        // only on the way out would leave the bar drawing something the file does not hold.
+        var settings = new AppSettings
+        {
+            Schema = 0,
+            BarHeight = (BarHeightMode)99,
+            Groups = new List<AppGroup> { Group("Work", @"C:\Tools\CODE.EXE") },
+        };
+
+        settings.Normalize();
+
+        Assert.Equal(AppSettings.CurrentSchema, settings.Schema);
+        Assert.Equal(BarHeightMode.Standard, settings.BarHeight);
+        Assert.Equal(new[] { "code.exe" }, Assert.Single(settings.Groups).Executables);
     }
 
     [Fact]

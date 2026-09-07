@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing.Drawing2D;
 using Microsoft.Win32;
+using WindowsSimpleTaskTabBar.Core.Grouping;
 using WindowsSimpleTaskTabBar.Core.Layout;
 using WindowsSimpleTaskTabBar.Core.Settings;
 using WindowsSimpleTaskTabBar.Interop;
@@ -19,6 +20,13 @@ public class MainForm : Form
         public Rectangle Bounds;
         public Rectangle CloseBounds;
         public bool Active;
+
+        // Which group the tab belongs to, when grouping is on. GroupId is empty when it is off
+        // and when the owning executable could not be read; Marked is false for a group of one,
+        // where an accent would have nothing to say.
+        public string GroupId = string.Empty;
+        public int Accent = -1;
+        public bool Marked;
     }
 
     // A window icon, with the time it was fetched. See IconMaxAgeMs.
@@ -46,6 +54,11 @@ public class MainForm : Form
     private readonly List<TabItem> _tabs = new();
     private readonly List<IntPtr> _order = new();          // keeps the display order stable
     private readonly Dictionary<IntPtr, CachedIcon> _iconCache = new();
+    private readonly ProcessInfoCache _processInfo = new();
+
+    // The group of each tab in _tabs, reused rather than rebuilt: it is read on every mouse
+    // move while a tab is being dragged.
+    private readonly List<string> _groupIds = new();
 
     private readonly System.Windows.Forms.Timer _timer = new();
     private NativeMethods.WinEventDelegate _winEventProc;   // kept in a field so it is not collected
@@ -119,6 +132,10 @@ public class MainForm : Form
 
     // Colors, chosen to match the current Windows theme
     private Color _cBack, _cTab, _cTabActive, _cTabHover, _cText, _cTextActive, _cLine;
+
+    // The accents a tab group can be marked with, one set per theme. Core works in numbers so
+    // that it stays free of System.Drawing; the numbers are turned into colours here.
+    private readonly Color[] _accents = new Color[AppSettings.AccentCount];
 
     public MainForm()
     {
@@ -350,7 +367,7 @@ public class MainForm : Form
             return;
         }
 
-        using var form = new SettingsForm(_settings, ApplySettings);
+        using var form = new SettingsForm(_settings, ApplySettings, RunningApplications);
         _settingsForm = form;
         try
         {
@@ -368,10 +385,18 @@ public class MainForm : Form
     /// </summary>
     private void ApplySettings()
     {
+        // In place, so the bar reads the same values the file will hold. A name the settings
+        // dialog could not keep, or an application claimed by two groups, is settled here rather
+        // than only on the way out.
+        _settings.Normalize();
+
         RebuildMetrics();
         UpdateAppBarPosition();   // the reserved area changes, so other windows resize with it
-        LayoutTabs();
-        Invalidate();
+
+        // Grouping is applied while the row is rebuilt, so a change to it shows on the next
+        // refresh rather than on this call. The dialog says changes apply straight away, so the
+        // refresh is asked for here instead of waiting up to two seconds for the safety net.
+        RefreshTabs();
 
         SettingsStore.Save(_settings);
     }
@@ -538,8 +563,12 @@ public class MainForm : Form
             }
         }
 
+        _processInfo.Forget(known);
+
         // Before the tabs are rebuilt, so no tab holds an icon that is about to be replaced.
         RefreshStalestIcon();
+
+        ArrangeByApplication();
 
         _tabs.Clear();
         foreach (IntPtr h in _order)
@@ -562,6 +591,8 @@ public class MainForm : Form
                 Active = (h == foreground),
             });
         }
+
+        MarkGroups();
 
         // A window closed mid-drag takes the drag with it: there is nothing left to move.
         if (_dragging && !_order.Contains(_dragHwnd)) EndDrag();
@@ -609,6 +640,83 @@ public class MainForm : Form
         entry.Icon = WindowService.GetWindowIcon(stalest);
         entry.FetchedAt = Environment.TickCount;
         previous?.Dispose();
+    }
+
+    // ---------------------------------------------------------------
+    // Grouping the row by application
+    // ---------------------------------------------------------------
+
+    /// <summary>
+    /// Brings the windows of one application together in <see cref="_order"/>.
+    /// </summary>
+    /// <remarks>
+    /// It is _order that is arranged, not _tabs. _order is the display order that survives the
+    /// next refresh, and dragging writes the same move to both lists by index; arranging one of
+    /// them alone would let the two disagree.
+    ///
+    /// Nothing happens while grouping is off, down to not reading a single process, so the row
+    /// behaves exactly as it did before this setting existed.
+    /// </remarks>
+    private void ArrangeByApplication()
+    {
+        _groupIds.Clear();
+        if (!_settings.GroupByApplication || _order.Count == 0) return;
+
+        foreach (IntPtr h in _order)
+        {
+            _groupIds.Add(TabGrouping.GroupIdFor(_processInfo.Name(h), _settings.Groups));
+        }
+
+        List<int> arranged = TabGrouping.Arrange(_groupIds);
+
+        var handles = new List<IntPtr>(arranged.Count);
+        var ids = new List<string>(arranged.Count);
+        foreach (int index in arranged)
+        {
+            handles.Add(_order[index]);
+            ids.Add(_groupIds[index]);
+        }
+
+        _order.Clear();
+        _order.AddRange(handles);
+
+        _groupIds.Clear();
+        _groupIds.AddRange(ids);
+    }
+
+    /// <summary>
+    /// Copies the group of each tab onto it, once the row has been rebuilt in arranged order.
+    /// </summary>
+    private void MarkGroups()
+    {
+        if (_groupIds.Count != _tabs.Count) return;
+
+        bool[] marks = TabGrouping.Marks(_groupIds);
+
+        for (int i = 0; i < _tabs.Count; i++)
+        {
+            _tabs[i].GroupId = _groupIds[i];
+            _tabs[i].Marked = marks[i];
+            _tabs[i].Accent = marks[i]
+                ? TabGrouping.AccentFor(_groupIds[i], _settings.Groups, AppSettings.AccentCount)
+                : -1;
+        }
+    }
+
+    /// <summary>The executables that have a window open right now, for the settings dialog.</summary>
+    private List<string> RunningApplications()
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var result = new List<string>();
+
+        foreach (IntPtr h in _order)
+        {
+            string name = _processInfo.Name(h);
+            if (name.Length > 0 && seen.Add(name)) result.Add(name);
+        }
+
+        result.Sort(StringComparer.OrdinalIgnoreCase);
+        return result;
     }
 
     private void LayoutTabs()
@@ -781,7 +889,39 @@ public class MainForm : Form
             _cTextActive = Color.FromArgb(245, 246, 248);
             _cLine = Color.FromArgb(24, 25, 28);
         }
+
+        SetAccents(light);
         BackColor = _cBack;
+    }
+
+    /// <summary>
+    /// The eight accents a group can be marked with, in the shade that reads against the tabs of
+    /// the current theme.
+    /// </summary>
+    /// <remarks>
+    /// The order matters as little as the names: a group's accent is picked from its own name,
+    /// so what these have to be is eight colours a person can tell apart at three pixels tall,
+    /// including on the lighter fill of the active tab.
+    /// </remarks>
+    private void SetAccents(bool light)
+    {
+        int[] rgb = light
+            ? new[] { 0x1A73E8, 0xD93025, 0xF29900, 0x188038,
+                      0xD01884, 0x8430CE, 0x007B83, 0x5F6368 }
+            : new[] { 0x8AB4F8, 0xF28B82, 0xFDD663, 0x81C995,
+                      0xFF8BCB, 0xC58AF9, 0x78D9EC, 0xBDC1C6 };
+
+        for (int i = 0; i < _accents.Length; i++)
+            _accents[i] = Color.FromArgb(255, Color.FromArgb(rgb[i]));
+    }
+
+    /// <summary>The colour a marked tab's accent is drawn in.</summary>
+    private Color GroupAccent(TabItem tab)
+    {
+        int accent = tab.Accent;
+        if (accent < 0 || accent >= _accents.Length) return _cLine;
+
+        return _accents[accent];
     }
 
     private static bool IsLightTheme()
@@ -837,6 +977,10 @@ public class MainForm : Form
             if (IsTabVisible(_tabs[i])) DrawTab(g, _tabs[i], i);
         }
 
+        // After the tabs, so a band drawn across a gap sits on the bar rather than under the
+        // neighbour it joins.
+        DrawGroupSeparators(g);
+
         // The dragged tab goes last, so it passes over its neighbours rather than under them.
         if (dragIndex >= 0 && IsTabVisible(_tabs[dragIndex]))
             DrawTab(g, _tabs[dragIndex], dragIndex);
@@ -849,8 +993,12 @@ public class MainForm : Form
     {
         Color fill = tab.Active ? _cTabActive : (index == _hoverIndex ? _cTabHover : _cTab);
         using (GraphicsPath path = RoundedTop(tab.Bounds, _metrics.CornerRadius))
-        using (var brush = new SolidBrush(fill))
-            g.FillPath(brush, path);
+        {
+            using (var brush = new SolidBrush(fill))
+                g.FillPath(brush, path);
+
+            if (tab.Marked) DrawGroupBand(g, path, tab);
+        }
 
         int padding = _metrics.Padding;
         int iconSize = _metrics.IconSize;
@@ -891,6 +1039,74 @@ public class MainForm : Form
             int inset = _metrics.CloseButtonSize / 4;
             g.DrawLine(pen, c.Left + inset, c.Top + inset, c.Right - inset, c.Bottom - inset);
             g.DrawLine(pen, c.Right - inset, c.Top + inset, c.Left + inset, c.Bottom - inset);
+        }
+    }
+
+    /// <summary>
+    /// The accent along a grouped tab's top edge, clipped to the tab's own outline so it follows
+    /// the rounded corners rather than squaring them off.
+    /// </summary>
+    /// <remarks>
+    /// Save and Restore rather than ResetClip: OnPaint has clipped the row to _contentRect, and
+    /// resetting would drop that as well and let a tab draw over the scroll arrows.
+    ///
+    /// SetClip takes the path itself. Reading the Clip property, or intersecting a Region built
+    /// from the path, would each hand back a Region this method then has to release.
+    /// </remarks>
+    private void DrawGroupBand(Graphics g, GraphicsPath path, TabItem tab)
+    {
+        GraphicsState state = g.Save();
+        g.SetClip(path, CombineMode.Intersect);
+
+        using (var brush = new SolidBrush(GroupAccent(tab)))
+            g.FillRectangle(brush, tab.Bounds.Left, tab.Bounds.Top,
+                            tab.Bounds.Width, _metrics.GroupBandHeight);
+
+        g.Restore(state);
+    }
+
+    /// <summary>
+    /// Carries a group's accent across the gap between two of its tabs, so the group reads as one
+    /// band, and draws a rule where one group ends and the next begins.
+    /// </summary>
+    /// <remarks>
+    /// Nothing here changes where a tab sits. The gap is the one the layout already leaves
+    /// between every pair of tabs, so the position a tab is drawn at and the position it would be
+    /// dropped at still agree, and TabStrip keeps its one width for every tab.
+    ///
+    /// Not while a tab is being dragged: the dragged tab is drawn away from its slot, so a band
+    /// joining it to its neighbours would point at the wrong place.
+    /// </remarks>
+    private void DrawGroupSeparators(Graphics g)
+    {
+        if (!_settings.GroupByApplication || _dragging) return;
+
+        for (int i = 0; i < _tabs.Count - 1; i++)
+        {
+            TabItem left = _tabs[i];
+            TabItem right = _tabs[i + 1];
+
+            if (!IsTabVisible(left) && !IsTabVisible(right)) continue;
+
+            int x = left.Bounds.Right;
+            int width = right.Bounds.Left - x;
+            if (width <= 0) continue;
+
+            bool sameGroup = left.Marked && right.Marked
+                             && string.Equals(left.GroupId, right.GroupId,
+                                              StringComparison.OrdinalIgnoreCase);
+
+            if (sameGroup)
+            {
+                using var brush = new SolidBrush(GroupAccent(left));
+                g.FillRectangle(brush, x, left.Bounds.Top, width, _metrics.GroupBandHeight);
+            }
+            else if (left.Marked || right.Marked)
+            {
+                using var pen = new Pen(_cLine, _metrics.GroupDividerWidth);
+                int centre = x + width / 2;
+                g.DrawLine(pen, centre, left.Bounds.Top, centre, left.Bounds.Bottom);
+            }
         }
     }
 
@@ -1203,6 +1419,11 @@ public class MainForm : Form
         int offset = DraggedTabLeft(_strip.TabWidth) - _contentRect.Left + _scroll;
         int target = TabStrip.DropIndex(offset, _strip.TabWidth, _metrics.TabGap, _tabs.Count);
 
+        // A tab cannot be dragged out of its group: grouping is worked out again on the next
+        // refresh, which would undo the move within 250 ms. See TabGrouping.ClampToGroup.
+        if (_settings.GroupByApplication && _groupIds.Count == _tabs.Count)
+            target = TabGrouping.ClampToGroup(target, index, _groupIds);
+
         if (target != index)
         {
             // Both lists carry the same order: _tabs is what is drawn now, _order is what
@@ -1355,6 +1576,11 @@ public class MainForm : Form
 
         // Each tab holds an icon the cache has just released, so the tabs go with it.
         _tabs.Clear();
+
+        // Strings only, so there is nothing here to release. Cleared for the same reason the
+        // tabs are: what it describes is gone.
+        _processInfo.Clear();
+        _groupIds.Clear();
 
         _toolTip.Dispose();
 

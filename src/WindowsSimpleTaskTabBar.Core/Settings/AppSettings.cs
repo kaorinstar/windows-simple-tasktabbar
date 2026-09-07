@@ -78,14 +78,33 @@ public class AppSettings
         };
     }
 
+    /// <summary>
+    /// Brings this instance's own values into range, rather than returning a copy.
+    /// </summary>
+    /// <remarks>
+    /// The settings object is shared: the bar reads it, the settings dialog edits it, and the
+    /// store writes it. Normalizing only on the way out would leave the bar drawing a name or a
+    /// grouping that the next start would not read back. Every property is listed here beside
+    /// <see cref="Normalized"/>, so the two cannot fall out of step.
+    /// </remarks>
+    public void Normalize()
+    {
+        AppSettings tidy = Normalized();
+
+        Schema = tidy.Schema;
+        BarHeight = tidy.BarHeight;
+        GroupByApplication = tidy.GroupByApplication;
+        Groups = tidy.Groups;
+    }
+
     private static bool IsKnown(BarHeightMode mode)
     {
         return mode == BarHeightMode.Standard || mode == BarHeightMode.Compact;
     }
 
     /// <summary>
-    /// The groups with every value brought into range: no duplicate name, no executable in two
-    /// groups, no empty group.
+    /// The groups with every value brought into range: every one named, no two sharing a name,
+    /// and no executable in more than one of them.
     /// </summary>
     /// <remarks>
     /// <paramref name="groups"/> can be null even though the property has an initializer.
@@ -126,11 +145,10 @@ public class AppSettings
                 executables.Add(key);
             }
 
-            // A group with nothing in it cannot show on the bar, and a stale one would sit in
-            // the settings dialog forever.
-            if (executables.Count == 0) continue;
-
-            string name = UniqueName(group.Name, executables[0], takenNames);
+            // A group with nothing in it is kept. It shows nothing on the bar, but it is what
+            // the user is looking at just after creating one, and a group that disappeared
+            // between being made and being filled would be hard to make sense of.
+            string name = UniqueName(group.Name, executables, takenNames);
             takenNames.Add(name);
 
             result.Add(new AppGroup
@@ -148,14 +166,17 @@ public class AppSettings
     /// A name for a group that no other group has: the one it was given, or the first
     /// executable without its extension, with a number added if that is taken too.
     /// </summary>
-    private static string UniqueName(string name, string firstExecutable, HashSet<string> taken)
+    private static string UniqueName(string name, List<string> executables, HashSet<string> taken)
     {
         string candidate = (name ?? string.Empty).Trim();
-        if (candidate.Length == 0)
+        if (candidate.Length == 0 && executables.Count > 0)
         {
-            int dot = firstExecutable.LastIndexOf('.');
-            candidate = dot > 0 ? firstExecutable.Substring(0, dot) : firstExecutable;
+            string first = executables[0];
+            int dot = first.LastIndexOf('.');
+            candidate = dot > 0 ? first.Substring(0, dot) : first;
         }
+
+        if (candidate.Length == 0) candidate = "Group";
 
         if (!taken.Contains(candidate)) return candidate;
 
