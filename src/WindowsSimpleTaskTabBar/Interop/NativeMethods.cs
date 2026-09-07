@@ -121,8 +121,8 @@ internal static class NativeMethods
     /// <summary>
     /// The smallest right that answers "which executable is this". Unlike PROCESS_VM_READ,
     /// which <c>Process.MainModule</c> needs, it is granted against an elevated process from a
-    /// process that is not elevated, so an elevated window still lands in the right group even
-    /// though this application cannot activate it.
+    /// process that is not elevated, so a window owned by an elevated application still lands in
+    /// the right group even though this application cannot fully control it.
     /// </summary>
     public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 

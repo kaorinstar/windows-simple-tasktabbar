@@ -201,8 +201,8 @@ would colour the whole bar and tell the user nothing.
 asks `QueryFullProcessImageNameW`. `Process.MainModule.FileName` would be shorter, but it needs
 `PROCESS_VM_READ`, which is refused for an elevated process and for one of a different bitness,
 and it answers with an exception rather than a result. The limited right is granted in both
-cases, so an elevated window still lands in the right group even though the bar cannot activate
-it.
+cases, so a window owned by an elevated application still lands in the right group even though the
+bar cannot fully control it.
 
 A packaged application - Calculator, Settings, Photos - is drawn in an `ApplicationFrameWindow`
 owned by `ApplicationFrameHost.exe`. Asked directly, every one of them answers with the same

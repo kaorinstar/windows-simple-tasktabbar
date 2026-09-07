@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing.Drawing2D;
+using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using WindowsSimpleTaskTabBar.Core.Grouping;
 using WindowsSimpleTaskTabBar.Core.Layout;
@@ -493,6 +494,14 @@ public class MainForm : Form
             }
             UpdateAppBarPosition();
         }
+        else if (m.Msg == 0x001A /* WM_SETTINGCHANGE */ && !_released && IsColourSetChange(m.LParam))
+        {
+            // Windows switches the light and dark setting under the user, on a schedule for some
+            // people, and the bar would otherwise keep the colours it read at start-up and sit
+            // visibly wrong against the taskbar beside it.
+            ApplyTheme();
+            Invalidate();
+        }
 
         base.WndProc(ref m);
     }
@@ -902,6 +911,9 @@ public class MainForm : Form
     /// The order matters as little as the names: a group's accent is picked from its own name,
     /// so what these have to be is eight colours a person can tell apart at three pixels tall,
     /// including on the lighter fill of the active tab.
+    ///
+    /// Called from ApplyTheme, so the accents follow a change of the Windows light and dark
+    /// setting along with everything else the bar draws.
     /// </remarks>
     private void SetAccents(bool light)
     {
@@ -922,6 +934,22 @@ public class MainForm : Form
         if (accent < 0 || accent >= _accents.Length) return _cLine;
 
         return _accents[accent];
+    }
+
+    /// <summary>
+    /// True when a WM_SETTINGCHANGE names the section Windows rewrites when the light and dark
+    /// setting changes.
+    /// </summary>
+    /// <remarks>
+    /// Windows sends WM_SETTINGCHANGE for many unrelated reasons, so the section name is the
+    /// filter: without it the bar would repaint on changes that have nothing to do with colour.
+    /// lParam points at the name for some of those messages and is null for others, which is not
+    /// an error.
+    /// </remarks>
+    private static bool IsColourSetChange(IntPtr lParam)
+    {
+        if (lParam == IntPtr.Zero) return false;
+        return Marshal.PtrToStringUni(lParam) == "ImmersiveColorSet";
     }
 
     private static bool IsLightTheme()

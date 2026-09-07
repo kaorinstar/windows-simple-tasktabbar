@@ -151,7 +151,7 @@ Interop/NativeMethods.cs（Windows API）
 `QueryFullProcessImageNameW` で問い合わせます。`Process.MainModule.FileName` のほうが短く
 書けますが、こちらは `PROCESS_VM_READ` を必要とします。この権限は、管理者権限のプロセスや
 ビット数の異なるプロセスに対して拒否され、しかも結果ではなく例外が返ります。限定的な権限は
-どちらの場合も許可されるため、前面化できない管理者権限のウィンドウでも、正しいグループに
+どちらの場合も許可されるため、完全には操作できない管理者権限のウィンドウでも、正しいグループに
 入ります。
 
 電卓・設定・フォトなどのパッケージアプリは、`ApplicationFrameHost.exe` が持つ

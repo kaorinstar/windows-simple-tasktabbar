@@ -35,6 +35,8 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
   turn it on.
 - The tab list updates automatically when windows open, close, change title, or gain focus.
   A two-second timer runs as a safety net.
+- **Switch Windows between light and dark** — the bar follows the colour setting and repaints as
+  soon as it changes, including the automatic switch some people schedule.
 
 ## Download
 
@@ -120,9 +122,10 @@ Releases are tagged `vMAJOR.MINOR.PATCH`, as [semantic versioning](https://semve
 `v0.1.0`, with no leading zeros. Below `1.0.0` the minor number rises when something is added or
 changed, and the patch number when something is only fixed.
 
-1. Add a section for the new version at the top of `version.md`, and the same section in
-   `version.ja.md`. Write what changed for someone using the application, not which pull requests
-   were merged.
+1. Rename the `## Unreleased` heading at the top of `version.md` to the new version, and do the
+   same in `version.ja.md`. Entries are written under that heading as each change lands, so the
+   list should already be there; add anything missing, and write it as what changed for someone
+   using the application rather than which pull requests were merged.
 2. Commit both files to `main`.
 3. Tag that commit and push the tag:
 
@@ -156,9 +159,13 @@ success rate. The bar is thin, so the visual effect is negligible.
 
 ## Known limitations
 
-- **Elevated applications cannot be controlled.** Windows integrity levels prevent a normal
-  process from activating or closing a window owned by an elevated process. Running this
-  application elevated works, but then it runs elevated permanently.
+- **A window owned by an elevated application cannot be fully controlled.** Windows integrity
+  levels stop a normal process from acting on one. Switching to a window that is already on
+  screen usually works, because the bar is in the foreground by the time it asks; restoring one
+  from minimized does not, and neither does closing it, and Windows reports no error either way.
+  Task Manager is the example most people meet, because it elevates itself on an administrator
+  account. Running this application elevated removes the limit, but then it runs elevated
+  permanently.
 - **Primary monitor only.** Multi-monitor support is not implemented.
 - **Full-screen applications cover the bar.** This is normal AppBar behaviour.
 - **The order is not remembered between runs.** Tabs come back in the order Windows lists the
