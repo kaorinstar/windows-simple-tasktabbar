@@ -11,7 +11,7 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
-## Unreleased
+## v0.4.0
 
 - The colours can now be chosen in the settings: follow Windows, always light, or always dark.
   Following Windows stays the default, so nothing changes until you pick one of the other two.
@@ -31,6 +31,7 @@ in [README.md](README.md).
   "Colour 1" to "Colour 8".
 - The list of applications in the settings no longer jumps back to the top each time a box is
   ticked. It stays where it was scrolled to.
+- The executable is 83,456 bytes, against 77,312 in v0.3.0.
 
 ## v0.3.0
 
