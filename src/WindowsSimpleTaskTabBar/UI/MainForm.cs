@@ -96,6 +96,7 @@ public class MainForm : Form
     // TabStrip.MovedFarEnough say what each of those is for.
     private bool _draggingGroup;             // whether this drag has carried a group yet
     private int _lastGroupMoveX;             // pointer x when it last did
+    private int _lastGroupMoveSlots;         // how far the row shifted when it last did
 
     /// <summary>How often the row scrolls while a tab is dragged against either end.</summary>
     private const int DragScrollIntervalMs = 120;
@@ -1462,11 +1463,13 @@ public class MainForm : Form
             TabGrouping.DragMove move =
                 TabGrouping.PlanDrag(target, index, _groupIds, _draggingGroup);
 
-            // A group that has just moved holds still until the pointer has gone a tab's width,
-            // or the row flickers between two arrangements under a resting hand. A tab moving
-            // inside its own group is not held back: it already has the room it needs.
-            bool held = move.Count > 1 && _draggingGroup
-                        && !TabStrip.MovedFarEnough(_dragX, _lastGroupMoveX, _strip.TabWidth);
+            // Anything that crosses a group waits for the pointer to travel as far as the row
+            // shifted last time. Without it the row flickers, and a tab that has just jumped a
+            // group jumps straight back on the next mouse move. A move inside a group is not
+            // held back: it already has the room it needs.
+            bool held = move.CrossesGroups && _draggingGroup
+                        && !TabStrip.MovedFarEnough(_dragX, _lastGroupMoveX, _strip.TabWidth,
+                                                    _lastGroupMoveSlots);
 
             if (!held && !move.IsNothing)
             {
@@ -1477,10 +1480,11 @@ public class MainForm : Form
                 TabStrip.MoveRange(_tabs, move.Start, move.Count, move.To);
                 TabStrip.MoveRange(_groupIds, move.Start, move.Count, move.To);
 
-                if (move.Count > 1)
+                if (move.CrossesGroups)
                 {
                     _draggingGroup = true;
                     _lastGroupMoveX = _dragX;
+                    _lastGroupMoveSlots = move.Distance;
                 }
             }
         }

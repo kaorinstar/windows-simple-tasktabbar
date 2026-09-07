@@ -147,6 +147,17 @@ public static class TabGrouping
         public int Count { get; set; }
         public int To { get; set; }
 
+        /// <summary>
+        /// Whether this carries the block past a group rather than moving it inside its own.
+        /// </summary>
+        public bool CrossesGroups { get; set; }
+
+        /// <summary>
+        /// How far the row shifts, in slots. One is a swap with the neighbour; more than that is
+        /// a jump over a whole group, and the tabs it passes move that far in one step.
+        /// </summary>
+        public int Distance => Count <= 0 ? 0 : (To > Start ? To - Start : Start - To);
+
         /// <summary>Whether this would leave the row as it is.</summary>
         public bool IsNothing => Count <= 0 || Start == To;
     }
@@ -197,13 +208,16 @@ public static class TabGrouping
         {
             // The block lands in front of the group the pointer is over. That group sits to the
             // left of the block, so taking the block out does not move it.
-            return new DragMove(start, count, StartOfRun(arrangedGroupIds, target));
+            return new DragMove(start, count, StartOfRun(arrangedGroupIds, target))
+            {
+                CrossesGroups = true,
+            };
         }
 
         // The block lands behind the group the pointer is over. That group sits to the right of
         // the block, so taking the block out brings it count places nearer the front.
         int passedEnd = EndOfRun(arrangedGroupIds, StartOfRun(arrangedGroupIds, target));
-        return new DragMove(start, count, passedEnd - count + 1);
+        return new DragMove(start, count, passedEnd - count + 1) { CrossesGroups = true };
     }
 
     /// <summary>

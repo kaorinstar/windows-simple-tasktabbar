@@ -307,6 +307,47 @@ public class TabGroupingTests
     }
 
     [Fact]
+    public void AMoveInsideAGroupDoesNotCrossGroups()
+    {
+        string[] row = { "a.exe", "a.exe", "a.exe", "b.exe" };
+
+        Assert.False(TabGrouping.PlanDrag(2, 0, row, false).CrossesGroups);
+    }
+
+    [Fact]
+    public void AMovePastAnotherGroupCrossesGroups()
+    {
+        string[] row = { "a.exe", "a.exe", "b.exe", "b.exe" };
+
+        Assert.True(TabGrouping.PlanDrag(3, 0, row, false).CrossesGroups);
+        Assert.True(TabGrouping.PlanDrag(0, 3, row, false).CrossesGroups);
+    }
+
+    [Fact]
+    public void OneTabPassingAGroupOfTwoShiftsTheRowByTwo()
+    {
+        // This is what made a single tab flicker over a group: it does not step past one tab, it
+        // jumps the whole group, and from its new place it is asked to jump straight back. How
+        // far the row shifts is what the bar has to leave room for, not how many tabs moved.
+        string[] row = { "x.exe", "b.exe", "b.exe" };
+
+        TabGrouping.DragMove move = TabGrouping.PlanDrag(1, 0, row, false);
+
+        Assert.Equal(1, move.Count);
+        Assert.Equal(2, move.Distance);
+        Assert.True(move.CrossesGroups);
+    }
+
+    [Fact]
+    public void SwappingWithTheNeighbourShiftsTheRowByOne()
+    {
+        // The ordinary case, which needs no room made for it.
+        string[] row = { "x.exe", "b.exe" };
+
+        Assert.Equal(1, TabGrouping.PlanDrag(1, 0, row, false).Distance);
+    }
+
+    [Fact]
     public void ArrangingAfterAGroupMoveChangesNothing()
     {
         // The move has to survive the next refresh, 250 ms later. Arrange orders groups by where

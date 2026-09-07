@@ -198,14 +198,22 @@ took hold of - dragging a group somewhere quietly rearranged its contents. `Plan
 whether the drag is already carrying a group and answers with nothing rather than a move inside
 one. Reordering inside a group is what a drag that never leaves it is for.
 
-**A group that has just moved holds still until the pointer has gone a tab's width**, which
-`TabStrip.MovedFarEnough` decides. This is not a nicety. `DropIndex` reads the pointer alone, so
-the two arrangements - this group before that one, or after it - are separated by a single pixel
-of pointer travel, and a hand that is merely resting crosses it again and again; the other group
-was seen flickering left and right across two tab widths. One tab dragged past another never had
-the problem, because the tab itself takes the slot under the pointer and that leaves half a tab
-of travel before the move would come undone. A block leaves no such room, so the room is made.
-A tab dragged inside its own group is not held back, having the room already.
+**Anything that crosses a group waits for the pointer to travel as far as the row shifted last
+time**, which `TabStrip.MovedFarEnough` decides. This is not a nicety, and it took two attempts.
+
+`DropIndex` reads the pointer alone, so the two arrangements - this group before that one, or
+after it - are separated by a single pixel of pointer travel. Worse than a shaking hand: a tab
+that has just jumped a group is, from its new place, being asked to jump back, and it does so on
+every mouse move without the pointer going anywhere at all. That was seen as a single tab
+flickering left and right over a group.
+
+The measure is how far the row shifted, not how many tabs moved. A single tab passing a group of
+two shifts the row by two just as a group of two does, and the first attempt at this - which
+asked for room only when more than one tab moved, and only ever a single tab's width - left both
+of those cases short. Undoing a jump of two tabs now asks for two tabs of travel back, the same
+distance that made it. A shift of one slot is the ordinary swap with a neighbour, which needs no
+help: the tab itself takes the slot under the pointer, leaving half a tab of room. A tab dragged
+inside its own group is not held back either, having the room already.
 
 **The layout is not changed at all.** `TabStrip.Measure` gives every tab one width and one gap,
 and `DropIndex`, `ScrollToShow` and the hit testing all read that same step; a wider gap at a

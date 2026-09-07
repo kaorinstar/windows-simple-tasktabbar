@@ -117,29 +117,32 @@ public static class TabStrip
     /// range positions and a move to where the item already is do nothing.
     /// </summary>
     /// <summary>
-    /// Whether the pointer has travelled far enough since a whole group was last moved for
-    /// another group move to be allowed.
+    /// Whether the pointer has travelled far enough since the row last shifted for it to shift
+    /// again.
     /// </summary>
     /// <remarks>
-    /// Without this a group swap flickers. <see cref="DropIndex"/> reads the pointer alone, so
-    /// the row's two arrangements - this group before that one, or after it - are separated by a
-    /// single pixel of pointer travel, and a hand that is merely resting crosses it repeatedly.
-    /// One tab dragged past another does not have the problem: the tab itself takes the slot
-    /// under the pointer, which leaves half a tab of travel before the move would come undone.
-    /// A block that moves several tabs at once leaves no such room, so the room is made here.
+    /// Without this, dragging past a group flickers. <see cref="DropIndex"/> reads the pointer
+    /// alone, so the row's two arrangements - this group before that one, or after it - are
+    /// separated by a single pixel of pointer travel. Worse than a shaking hand: a tab that has
+    /// just jumped a group is, from its new place, being asked to jump back, and it does so on
+    /// every mouse move without the pointer going anywhere at all.
     ///
-    /// A tab's width is the measure because that is the distance between the slots a swap
-    /// happens at. Passing a wider group means crossing at least that far anyway, so nothing a
-    /// person means to do is held back.
+    /// <paramref name="slots"/> is how far the row shifted last time, not how far it is about to.
+    /// The room has to match the jump that was made: undoing a jump of two tabs asks for two tabs
+    /// of travel back, the same distance that made it. A shift of one slot is the ordinary swap
+    /// with a neighbour, which needs no help - the tab itself takes the slot under the pointer,
+    /// leaving half a tab of room - and one tab's width is what that asks for, which is less than
+    /// the distance to the next slot. So ordinary reordering is not held back at all.
     /// </remarks>
-    public static bool MovedFarEnough(int pointerX, int lastMoveX, int tabWidth)
+    public static bool MovedFarEnough(int pointerX, int lastMoveX, int tabWidth, int slots)
     {
         if (tabWidth < 1) tabWidth = 1;
+        if (slots < 1) slots = 1;
 
         int travelled = pointerX - lastMoveX;
         if (travelled < 0) travelled = -travelled;
 
-        return travelled >= tabWidth;
+        return travelled >= tabWidth * slots;
     }
 
     public static void Move<T>(IList<T> items, int from, int to)

@@ -258,31 +258,42 @@ public class TabStripTests
     [Fact]
     public void APointerThatHasNotMovedIsNotFarEnough()
     {
-        // The whole point: a resting hand must not swap two groups back and forth.
-        Assert.False(TabStrip.MovedFarEnough(500, 500, 98));
-        Assert.False(TabStrip.MovedFarEnough(503, 500, 98));
+        // The whole point: nothing may shift again while the pointer sits still.
+        Assert.False(TabStrip.MovedFarEnough(500, 500, 98, 1));
+        Assert.False(TabStrip.MovedFarEnough(503, 500, 98, 1));
     }
 
     [Fact]
-    public void APointerThatHasMovedATabWidthIsFarEnough()
+    public void ASingleSlotAsksForOneTabWidth()
     {
-        Assert.True(TabStrip.MovedFarEnough(598, 500, 98));
-        Assert.True(TabStrip.MovedFarEnough(700, 500, 98));
+        // The ordinary swap with a neighbour. A slot is a tab and a gap, so this is always
+        // reached by the time the next slot is: reordering is not held back.
+        Assert.True(TabStrip.MovedFarEnough(598, 500, 98, 1));
+        Assert.False(TabStrip.MovedFarEnough(597, 500, 98, 1));
+    }
+
+    [Fact]
+    public void AWiderJumpAsksForMoreMovementBack()
+    {
+        // A jump over a group of two shifts the row by two, so undoing it asks for the two tabs
+        // of travel that made it. One tab is no longer enough.
+        Assert.False(TabStrip.MovedFarEnough(598, 500, 98, 2));
+        Assert.True(TabStrip.MovedFarEnough(696, 500, 98, 2));
     }
 
     [Fact]
     public void TheDistanceCountsInEitherDirection()
     {
-        Assert.True(TabStrip.MovedFarEnough(402, 500, 98));
-        Assert.False(TabStrip.MovedFarEnough(497, 500, 98));
+        Assert.True(TabStrip.MovedFarEnough(402, 500, 98, 1));
+        Assert.False(TabStrip.MovedFarEnough(497, 500, 98, 1));
     }
 
     [Fact]
-    public void ATabWidthOfNothingStillAsksForSomeMovement()
+    public void NothingToMeasureAgainstStillAsksForSomeMovement()
     {
-        // An empty row has no tab width to measure against, and letting every move through
-        // would be the flicker back again.
-        Assert.False(TabStrip.MovedFarEnough(500, 500, 0));
-        Assert.True(TabStrip.MovedFarEnough(501, 500, 0));
+        // An empty row has no tab width, and a move of no slots is not a reason to let every
+        // shift through: that would be the flicker back again.
+        Assert.False(TabStrip.MovedFarEnough(500, 500, 0, 0));
+        Assert.True(TabStrip.MovedFarEnough(501, 500, 0, 0));
     }
 }
