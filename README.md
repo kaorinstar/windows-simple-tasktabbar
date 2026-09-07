@@ -40,6 +40,10 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
   dark. Following Windows is the default, and the bar repaints as soon as that setting changes,
   including the automatic switch some people schedule. Light and dark stay as you set them.
 
+- **Choose the language** — an option in the settings: follow Windows, English or Japanese.
+  Following Windows is the default. A display language with no translation yet shows English.
+  The font follows the language, so Japanese is drawn in Yu Gothic UI and English in Segoe UI.
+
 ## Download
 
 One file is attached to each [release](https://github.com/kaorinstar/windows-simple-tasktabbar/releases):
@@ -177,6 +181,8 @@ success rate. The bar is thin, so the visual effect is negligible.
 - **Two different applications with the same executable name share a group.** Applications are
   matched on the file name, because that is what people recognise, so two unrelated programs
   both installed as `app.exe` are treated as one.
+- **The interface is in English and Japanese only.** Ten more languages are planned
+  ([#35](https://github.com/kaorinstar/windows-simple-tasktabbar/issues/35)), and any other display language shows English until then.
 - **A tab never shrinks below its icon and the first four characters of its title.** Past that
   the row scrolls, so on a narrow screen only part of the row is visible at a time. Nothing is
   hidden: every window is still reachable by scrolling.
@@ -194,6 +200,10 @@ Issues and pull requests are welcome. Please keep the following in mind:
 
 - Code, comments, and documentation are written in English. `README.ja.md` and
   `docs/architecture.ja.md` are Japanese translations kept in sync with the English originals.
+- Interface text is not written where it is drawn. Every string has a name in
+  `src/WindowsSimpleTaskTabBar.Core/Localization/StringId.cs` and a line in each table in
+  `UiStrings.cs`. A translation that reads wrongly to a native speaker is worth an issue or a
+  pull request, and a new language costs one table there and one row in `Languages.cs`.
 - The build must pass with `-warnaserror`.
 - The `net48` target must keep working. Shipping a single executable that needs no runtime
   install is a core requirement of this project.

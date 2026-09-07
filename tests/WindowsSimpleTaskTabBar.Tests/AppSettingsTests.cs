@@ -1,3 +1,4 @@
+using WindowsSimpleTaskTabBar.Core.Localization;
 using WindowsSimpleTaskTabBar.Core.Settings;
 using Xunit;
 
@@ -68,6 +69,51 @@ public class AppSettingsTests
         var settings = new AppSettings { Schema = 0 };
 
         Assert.Equal(AppSettings.CurrentSchema, settings.Normalized().Schema);
+    }
+
+    // ---------------------------------------------------------------
+    // Language
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public void DefaultsToTakingTheLanguageFromWindows()
+    {
+        Assert.Equal(Languages.Automatic, new AppSettings().Language);
+    }
+
+    [Fact]
+    public void NormalizingKeepsALanguageThatIsOffered()
+    {
+        var settings = new AppSettings { Language = "ja" };
+
+        Assert.Equal("ja", settings.Normalized().Language);
+    }
+
+    [Fact]
+    public void NormalizingWritesALanguageTheWayTheApplicationSpellsIt()
+    {
+        var settings = new AppSettings { Language = "JA" };
+
+        Assert.Equal("ja", settings.Normalized().Language);
+    }
+
+    [Fact]
+    public void ALanguageThatIsNotOfferedFallsBackToWindows()
+    {
+        // A settings file can be edited by hand or written by a version that had more languages.
+        var settings = new AppSettings { Language = "kl" };
+
+        Assert.Equal(Languages.Automatic, settings.Normalized().Language);
+    }
+
+    [Fact]
+    public void ASettingsFileWithNoLanguageInItFallsBackToWindows()
+    {
+        // DataContractJsonSerializer does not run the constructor, so a file written before this
+        // setting existed leaves the property null rather than empty.
+        var settings = new AppSettings { Language = null };
+
+        Assert.Equal(Languages.Automatic, settings.Normalized().Language);
     }
 
     // ---------------------------------------------------------------

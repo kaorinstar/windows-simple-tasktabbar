@@ -19,7 +19,12 @@ decision.
 - `README.ja.md` and `docs/architecture.ja.md` are Japanese translations. When you change
   `README.md` or `docs/architecture.md`, update the Japanese file in the same commit so the two
   stay in sync.
-- User-facing strings in the application are English. There is no localization framework yet.
+- **User-facing strings are never written where they are drawn.** Each one has a name in
+  `src/WindowsSimpleTaskTabBar.Core/Localization/StringId.cs` and a line in every table in
+  `UiStrings.cs`. English is the source language and the fallback. A name left out of a table
+  fails the tests, so a string added to one table is added to all of them in the same commit.
+- The interface is written in English and Japanese so far. The remaining ten languages of #35
+  each cost one table in `UiStrings.cs` and one row in `Languages.All`. Keep that property.
 
 ## Build and test
 

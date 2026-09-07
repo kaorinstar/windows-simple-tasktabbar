@@ -32,6 +32,12 @@ windows-simple-tasktabbar/
 │   │   ├── Layout/
 │   │   │   ├── BarMetrics.cs      バーの高さとDPIから決まる描画寸法
 │   │   │   └── TabStrip.cs        タブ幅・あふれ・スクロールの計算
+│   │   ├── Localization/
+│   │   │   ├── LanguageInfo.cs    1つの言語の名前と表示に使う書体
+│   │   │   ├── Languages.cs       選べる言語と、どれを使うかの判定
+│   │   │   ├── StringId.cs        画面に出す文字それぞれの名前
+│   │   │   ├── UiStrings.cs       各言語での文言の一覧
+│   │   │   └── UiText.cs          1つの言語の文言を読み出す窓口
 │   │   ├── Settings/
 │   │   │   ├── AppGroup.cs        利用者が作った1つのグループ
 │   │   │   └── AppSettings.cs     設定項目と既定値
@@ -46,14 +52,16 @@ windows-simple-tasktabbar/
 │       │   ├── SettingsStore.cs   設定ファイルの読み書き
 │       │   └── WindowService.cs   ウィンドウの列挙・前面化・終了
 │       └── UI/
-│           ├── AccentPalette.cs   設定画面に出す色の名前
+│           ├── AccentPalette.cs   設定画面に出す色見本
 │           ├── MainForm.cs        画面本体（AppBar登録・描画・操作）
-│           └── SettingsForm.cs    設定画面
+│           ├── SettingsForm.cs    設定画面
+│           └── UiFonts.cs         言語に応じた書体の作成と代替
 └── tests/
     └── WindowsSimpleTaskTabBar.Tests/          単体テスト
         ├── AppSettingsTests.cs
         ├── BarMetricsTests.cs
         ├── BarPaletteTests.cs
+        ├── LocalizationTests.cs
         ├── TabGroupingTests.cs
         └── TabStripTests.cs
 ```
@@ -107,6 +115,7 @@ Program.cs
    ↓
 UI/MainForm.cs  ──→  Core/Layout/（計算）
    │             ──→  Core/Grouping/（どのタブがどのグループか）
+   │             ──→  Core/Localization/（画面に出す文言）
    ↓
 Services/WindowService.cs（ウィンドウ操作）
    ↓
@@ -115,6 +124,37 @@ Interop/NativeMethods.cs（Windows API）
 
 上の層から下の層だけを呼びます。逆向きの呼び出しはしません。
 `NativeMethods` の呼び出しは `Interop` に閉じ込め、他の場所には書かない方針です。
+
+## 画面の文言の持ち方
+
+画面に出す文字は、表示する場所には書きません。1つずつ `Core/Localization/StringId.cs` で
+名前を付け、`Core/Localization/UiStrings.cs` の言語ごとの表に文言を並べます。`UiText` は、
+その表から1つの言語を読み出す窓口です。英語が原文で、他の言語はその翻訳です。
+
+**`.resx` とサテライトアセンブリではなく、ただの表にしています。** サテライトアセンブリは
+言語ごとにフォルダーとDLLが増えます。このアプリは実行ファイル1つで配布するため、表は
+他の Core の処理と同じように実行ファイルへ組み込みます。どのOSでもテストできる利点も
+あります。単体テストで2点を保証しています。すべての表がすべての名前に答えること、
+どの表にも余分な名前がないことです。
+
+**言語を1つ増やす作業は、表を1つと行を1つ追加するだけです。** 表は `UiStrings` に、行は
+`Languages.All` に追加します。設定画面はその一覧をそのまま表示し、各言語をその言語自身の
+名前で並べます。他の場所を直す必要はありません。`Languages.Canonical` には、これから
+追加する中国語やポルトガル語の判定も先に書いてあります。表を追加した時点で、Windows の
+表示言語から正しい表へつながります。
+
+**書体は言語に合わせて選びます。** 中国語・日本語・韓国語は文字コードを共有しているため、
+1つの書体ではまかなえません。日本語用の書体で中国語を表示すると、日本語の字形で出ます。
+中国語の利用者には、文字が出ないのではなく、誤った字形に見えます。各言語の書体は
+`Languages.All` に書き、`UI/UiFonts.cs` が、その書体が入っていない環境では Windows が
+ダイアログに使う書体へ切り替えます。
+
+**言語の変更は、他の設定と同じくその場で反映します。** バーはメニューと書体を作り直し、
+設定画面は最初に画面を組み立てたのと同じ処理で自分を組み立て直します。どの部品にどの文言が
+入るかという一覧を二重に持たないためです。2か所だけは、変更の処理が終わるのを待ちます。
+設定画面の作り直しは、変更のきっかけになった選択欄自身を破棄するため `BeginInvoke` で
+遅らせます。バーが差し替えた古いメニューは、終了時まで保持します。設定画面を開いたメニューは、
+Windows Forms 側がまだ保持しているためです。
 
 ## アプリ単位で行をまとめる仕組み
 
