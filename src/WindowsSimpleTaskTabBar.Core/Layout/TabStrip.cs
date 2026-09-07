@@ -116,6 +116,35 @@ public static class TabStrip
     /// Moves one item to another position, keeping the others in their relative order. Out of
     /// range positions and a move to where the item already is do nothing.
     /// </summary>
+    /// <summary>
+    /// Whether the pointer has travelled far enough since the row last shifted for it to shift
+    /// again.
+    /// </summary>
+    /// <remarks>
+    /// Without this, dragging past a group flickers. <see cref="DropIndex"/> reads the pointer
+    /// alone, so the row's two arrangements - this group before that one, or after it - are
+    /// separated by a single pixel of pointer travel. Worse than a shaking hand: a tab that has
+    /// just jumped a group is, from its new place, being asked to jump back, and it does so on
+    /// every mouse move without the pointer going anywhere at all.
+    ///
+    /// <paramref name="slots"/> is how far the row shifted last time, not how far it is about to.
+    /// The room has to match the jump that was made: undoing a jump of two tabs asks for two tabs
+    /// of travel back, the same distance that made it. A shift of one slot is the ordinary swap
+    /// with a neighbour, which needs no help - the tab itself takes the slot under the pointer,
+    /// leaving half a tab of room - and one tab's width is what that asks for, which is less than
+    /// the distance to the next slot. So ordinary reordering is not held back at all.
+    /// </remarks>
+    public static bool MovedFarEnough(int pointerX, int lastMoveX, int tabWidth, int slots)
+    {
+        if (tabWidth < 1) tabWidth = 1;
+        if (slots < 1) slots = 1;
+
+        int travelled = pointerX - lastMoveX;
+        if (travelled < 0) travelled = -travelled;
+
+        return travelled >= tabWidth * slots;
+    }
+
     public static void Move<T>(IList<T> items, int from, int to)
     {
         if (items == null) return;
@@ -126,6 +155,32 @@ public static class TabStrip
         T item = items[from];
         items.RemoveAt(from);
         items.Insert(to, item);
+    }
+
+    /// <summary>
+    /// Takes <paramref name="count"/> neighbouring items from <paramref name="start"/> and puts
+    /// them back with the first of them at <paramref name="to"/>, keeping their order.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="to"/> is an index into the list with the range already taken out, which
+    /// is the only reading that lets a range be moved to either side without two rules. Moving
+    /// one item is the same as <see cref="Move"/>.
+    /// </remarks>
+    public static void MoveRange<T>(IList<T> items, int start, int count, int to)
+    {
+        if (items == null) return;
+        if (count <= 0) return;
+        if (start < 0 || start + count > items.Count) return;
+
+        int remaining = items.Count - count;
+        if (to < 0 || to > remaining) return;
+        if (to == start) return;
+
+        var moved = new List<T>(count);
+        for (int i = 0; i < count; i++) moved.Add(items[start + i]);
+
+        for (int i = 0; i < count; i++) items.RemoveAt(start);
+        for (int i = 0; i < count; i++) items.Insert(to + i, moved[i]);
     }
 
     /// <summary>

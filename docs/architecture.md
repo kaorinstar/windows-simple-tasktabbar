@@ -28,16 +28,20 @@ windows-simple-tasktabbar/
 │   └── architecture.ja.md         Japanese translation
 ├── src/
 │   ├── WindowsSimpleTaskTabBar.Core/       Logic with no UI dependency
+│   │   ├── Grouping/
+│   │   │   └── TabGrouping.cs              Which group a tab is in, and the row's order
 │   │   ├── Layout/
 │   │   │   ├── BarMetrics.cs               Drawing sizes, from bar height and DPI
 │   │   │   └── TabStrip.cs                 Tab width, overflow, scroll arithmetic
 │   │   └── Settings/
+│   │       ├── AppGroup.cs                 One group the user defined by hand
 │   │       └── AppSettings.cs              The settings and their defaults
 │   └── WindowsSimpleTaskTabBar/            The application
 │       ├── Program.cs                      Entry point
 │       ├── Interop/
 │       │   └── NativeMethods.cs            Windows API declarations
 │       ├── Services/
+│       │   ├── ProcessInfoCache.cs         The executable behind each window, remembered
 │       │   ├── SettingsStore.cs            Reading and writing the settings file
 │       │   └── WindowService.cs            Enumerate, activate, close windows
 │       └── UI/
@@ -47,6 +51,7 @@ windows-simple-tasktabbar/
     └── WindowsSimpleTaskTabBar.Tests/      Unit tests
         ├── AppSettingsTests.cs
         ├── BarMetricsTests.cs
+        ├── TabGroupingTests.cs
         └── TabStripTests.cs
 ```
 
@@ -99,6 +104,7 @@ Differences between the two are handled with `#if NETFRAMEWORK` in `Program.cs`.
 Program.cs
    ↓
 UI/MainForm.cs  ──→  Core/Layout/                (calculations)
+   │             ──→  Core/Grouping/              (which tab is in which group)
    ↓
 Services/WindowService.cs                       (window operations)
    ↓
@@ -153,6 +159,99 @@ handle rather than an index, so a refresh while it is open cannot move it to ano
 commands that close one side of the row look the tab's position up when they run, for the same
 reason.
 
+### Grouping the row by application
+
+`Core/Grouping/TabGrouping.cs` answers two questions that need neither the UI nor the Windows
+API: which group a tab belongs to, and what order the row is drawn in. The bar hands it one
+group name per tab and gets back the order, so the rule is unit tested rather than inferred from
+what the bar looks like.
+
+`Arrange` has to give an arranged row back unchanged. `RefreshTabs` runs four times a second, so
+anything that moved a tab on the second pass would move it again on the third and the row would
+never come to rest. A group takes the place of its first window and the windows inside it keep
+the order they arrived in, which is what makes that true.
+
+It is `_order` that gets arranged, not `_tabs`. `_order` is the display order that survives the
+next refresh, and dragging writes the same move to both lists by index, so arranging one alone
+would let the two disagree. Turning grouping off therefore leaves the tabs where grouping put
+them: the order they opened in is not recorded anywhere.
+
+**A drag moves one tab inside its group, and the whole group once it passes beyond it.**
+`TabGrouping.PlanDrag` decides which, and `TabStrip.MoveRange` applies it to the three lists that
+have to agree: `_order`, `_tabs` and the group ids the next drag step reads.
+
+A single tab cannot leave its group, because grouping is worked out again on the next refresh and
+there is nowhere to record that it had left: within 250 ms it would be back, and a bar that undoes
+what the user just did is worse than one that would not let them do it. A whole group has no such
+problem, and the reason is the rule `Arrange` already follows. Arrange orders groups by where each
+one's first window sits, so a group whose tabs move together as a block is already the order
+Arrange would give back. The move is idempotent, and it stands. `ArrangeAfterAGroupMoveChangesNothing`
+in the tests is what holds that: if it ever fails, a dragged group springs back to where it was.
+
+A window that is the only one of its application, or one whose executable could not be read, is a
+block of one, so it travels alone.
+
+**A drag that has moved a group keeps moving that group and nothing else.** A group move leaves
+the pointer over the group it has just carried across, and reading that as a move inside the group
+would pull the held tab to whichever slot the pointer had reached, reordering tabs the user never
+took hold of - dragging a group somewhere quietly rearranged its contents. `PlanDrag` is told
+whether the drag is already carrying a group and answers with nothing rather than a move inside
+one. Reordering inside a group is what a drag that never leaves it is for.
+
+**Anything that crosses a group waits for the pointer to travel as far as the row shifted last
+time**, which `TabStrip.MovedFarEnough` decides. This is not a nicety, and it took two attempts.
+
+`DropIndex` reads the pointer alone, so the two arrangements - this group before that one, or
+after it - are separated by a single pixel of pointer travel. Worse than a shaking hand: a tab
+that has just jumped a group is, from its new place, being asked to jump back, and it does so on
+every mouse move without the pointer going anywhere at all. That was seen as a single tab
+flickering left and right over a group.
+
+The measure is how far the row shifted, not how many tabs moved. A single tab passing a group of
+two shifts the row by two just as a group of two does, and the first attempt at this - which
+asked for room only when more than one tab moved, and only ever a single tab's width - left both
+of those cases short. Undoing a jump of two tabs now asks for two tabs of travel back, the same
+distance that made it. A shift of one slot is the ordinary swap with a neighbour, which needs no
+help: the tab itself takes the slot under the pointer, leaving half a tab of room. A tab dragged
+inside its own group is not held back either, having the room already.
+
+**The layout is not changed at all.** `TabStrip.Measure` gives every tab one width and one gap,
+and `DropIndex`, `ScrollToShow` and the hit testing all read that same step; a wider gap at a
+group boundary would mean changing all of them together, and the position a tab is drawn at
+could no longer be assumed to be the position it would be dropped at. So a group is marked with
+an accent along the top edge of its tabs, carried across the gap between two tabs of one group
+so the group reads as a single band, and the rule between two groups is drawn inside that same
+gap. If a wider separation is ever wanted, it needs a second measuring function and every reader
+of the step moved onto it, which is a change of its own.
+
+A group of one window is not marked. The accent says "these belong together", which a single tab
+has nothing to say to, and marking every tab of a row where no two windows share an application
+would colour the whole bar and tell the user nothing.
+
+### Reading the process behind a window
+
+`WindowService.GetExecutablePath` opens the process with `PROCESS_QUERY_LIMITED_INFORMATION` and
+asks `QueryFullProcessImageNameW`. `Process.MainModule.FileName` would be shorter, but it needs
+`PROCESS_VM_READ`, which is refused for an elevated process and for one of a different bitness,
+and it answers with an exception rather than a result. The limited right is granted in both
+cases, so a window owned by an elevated application still lands in the right group even though the
+bar cannot fully control it.
+
+A packaged application - Calculator, Settings, Photos - is drawn in an `ApplicationFrameWindow`
+owned by `ApplicationFrameHost.exe`. Asked directly, every one of them answers with the same
+executable and they would all be shown as one group, so the frame's children are asked instead.
+
+`ProcessInfoCache` remembers the answers, including the failures: `RefreshTabs` runs four times a
+second, and a window this application may not query would otherwise be asked again on every
+pass. Nothing expires, because a window cannot change the process that owns it. Entries are
+dropped from the same live set the icon cache is pruned against, so a handle Windows later reuses
+is looked up again rather than answered from the old entry.
+
+Grouping is matched on the executable's file name rather than its full path, because that is how
+people recognise an application; two copies of one program installed in different folders are
+the same application to the person looking at the bar. The cost is that two unrelated programs
+both called `app.exe` are treated as one.
+
 ### Who owns what, and how a leak is caught
 
 The bar is open for as long as the user is logged in, so anything it fails to release stays lost
@@ -165,6 +264,7 @@ for the whole session. Ownership is therefore written down rather than assumed.
 | The tray icon handle from `ExtractIconExW` | `MainForm` | `DestroyIcon` in `ReleaseResources` |
 | Event hooks from `SetWinEventHook` | `_hooks` in `MainForm` | `UnhookWinEvent` in `ReleaseResources` |
 | The AppBar registration | `MainForm` | `UnregisterAppBar` in `ReleaseResources` |
+| The process handle from `OpenProcess` | `WindowService.GetExecutablePath` | `CloseHandle` in that method's `finally` |
 | `Pen`, `SolidBrush`, `GraphicsPath` while painting | the `using` statement around them | end of the statement |
 | Controls in `SettingsForm` | the `Controls` collection they are added to | the form's own `Dispose` |
 

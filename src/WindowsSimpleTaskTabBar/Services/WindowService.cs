@@ -85,6 +85,81 @@ internal static class WindowService
     }
 
     /// <summary>
+    /// The window class a packaged application is shown in. The frame belongs to
+    /// ApplicationFrameHost, so the application itself has to be looked for among its children.
+    /// </summary>
+    private const string PackagedAppFrameClass = "ApplicationFrameWindow";
+
+    /// <summary>
+    /// Full path of the executable that owns a window, or an empty string when it cannot be
+    /// read.
+    /// </summary>
+    /// <remarks>
+    /// <c>PROCESS_QUERY_LIMITED_INFORMATION</c> rather than what <c>Process.MainModule</c>
+    /// needs: that asks for PROCESS_VM_READ, which is refused for an elevated process and for a
+    /// process of a different bitness, and answers with an exception rather than a result.
+    ///
+    /// The process handle is closed in a finally rather than held by a SafeHandle. It does not
+    /// outlive this method, and a SafeHandle subclass would be one more type for the disposal
+    /// analyzers to have an opinion about. See the ownership table in docs/architecture.md.
+    /// </remarks>
+    public static string GetExecutablePath(IntPtr hwnd)
+    {
+        uint pid = OwningProcessId(hwnd);
+        if (pid == 0) return string.Empty;
+
+        IntPtr process = NativeMethods.OpenProcess(
+            NativeMethods.PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+        if (process == IntPtr.Zero) return string.Empty;
+
+        try
+        {
+            // Larger than MAX_PATH on purpose. A path longer than the buffer is not truncated:
+            // the call fails, and the window would silently lose its group.
+            var sb = new StringBuilder(1024);
+            uint size = (uint)sb.Capacity;
+            return NativeMethods.QueryFullProcessImageNameW(process, 0, sb, ref size)
+                ? sb.ToString()
+                : string.Empty;
+        }
+        finally
+        {
+            NativeMethods.CloseHandle(process);
+        }
+    }
+
+    /// <summary>
+    /// The process a window's tab should be grouped under.
+    /// </summary>
+    /// <remarks>
+    /// A packaged application - Calculator, Settings, Photos - is drawn in a frame owned by
+    /// ApplicationFrameHost.exe rather than by the application. Asked directly, every one of
+    /// them would answer with the same executable and land in one group. The application owns a
+    /// child of the frame, so the first child belonging to a different process is asked instead.
+    /// </remarks>
+    private static uint OwningProcessId(IntPtr hwnd)
+    {
+        NativeMethods.GetWindowThreadProcessId(hwnd, out uint pid);
+        if (pid == 0) return 0;
+
+        if (!string.Equals(GetClassName(hwnd), PackagedAppFrameClass, StringComparison.Ordinal))
+            return pid;
+
+        uint frame = pid;
+        uint inner = 0;
+        NativeMethods.EnumChildWindows(hwnd, (child, _) =>
+        {
+            NativeMethods.GetWindowThreadProcessId(child, out uint childPid);
+            if (childPid == 0 || childPid == frame) return true;
+
+            inner = childPid;
+            return false;
+        }, IntPtr.Zero);
+
+        return inner != 0 ? inner : pid;
+    }
+
+    /// <summary>
     /// Brings the given window to the foreground as reliably as possible.
     /// Windows restricts foreground changes, so three strategies are tried in order.
     /// </summary>

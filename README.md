@@ -21,12 +21,19 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
 - **Click the active tab** — minimizes it, the same as the Windows taskbar.
 - **Click the ×, or middle-click a tab** — closes that window.
 - **Drag a tab sideways** — moves it to another position. The others step aside as it passes
-  them, Esc abandons the move, and dragging against either end scrolls the row.
+  them, Esc abandons the move, and dragging against either end scrolls the row. With grouping
+  on, a tab moves within its own group, and dragging it past a neighbouring group carries the
+  whole group with it. A window that is the only one of its application travels on its own.
 - **Right-click a tab** — opens a menu with Close, Close other tabs, Close tabs to the left,
   Close tabs to the right and Minimize.
 - **Right-click the space around the tabs** — opens a menu with Settings, Refresh and Exit.
 - **Scroll the wheel over the bar, or click the arrows at either end** — moves the row when
   there are more tabs than fit. The row also follows the window you switch to.
+- **Group tabs by application** — an option in the settings. Windows of one application sit
+  together and share a colour along the top edge of their tabs, with a rule between one group
+  and the next. A new window joins its application rather than the end of the row. Applications
+  can be combined into one named group of your own, with a colour you pick. It is off until you
+  turn it on.
 - The tab list updates automatically when windows open, close, change title, or gain focus.
   A two-second timer runs as a safety net.
 - **Switch Windows between light and dark** — the bar follows the colour setting and repaints as
@@ -163,18 +170,21 @@ success rate. The bar is thin, so the visual effect is negligible.
 - **Primary monitor only.** Multi-monitor support is not implemented.
 - **Full-screen applications cover the bar.** This is normal AppBar behaviour.
 - **The order is not remembered between runs.** Tabs come back in the order Windows lists the
-  windows in.
+  windows in. Turning grouping off leaves the tabs where grouping put them rather than restoring
+  the order they opened in, which is not recorded anywhere.
+- **Two different applications with the same executable name share a group.** Applications are
+  matched on the file name, because that is what people recognise, so two unrelated programs
+  both installed as `app.exe` are treated as one.
 - **A tab never shrinks below its icon and the first four characters of its title.** Past that
   the row scrolls, so on a narrow screen only part of the row is visible at a time. Nothing is
   hidden: every window is still reachable by scrolling.
 
 ## Roadmap
 
-1. Grouping by application when there are many tabs
-2. Multi-monitor support
-3. Window preview on hover
-4. Pinned applications
-5. Built-in start-with-Windows option
+1. Multi-monitor support
+2. Window preview on hover
+3. Pinned applications
+4. Built-in start-with-Windows option
 
 ## Contributing
 

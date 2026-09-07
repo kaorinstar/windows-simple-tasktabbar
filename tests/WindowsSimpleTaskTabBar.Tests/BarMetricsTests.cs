@@ -67,6 +67,23 @@ public class BarMetricsTests
     }
 
     [Theory]
+    [InlineData(34, 1.0f)]
+    [InlineData(24, 1.0f)]
+    [InlineData(24, 2.0f)]
+    public void AGroupIsStillMarkedOnACompactBar(int height, float scale)
+    {
+        BarMetrics m = BarMetrics.For(height, scale);
+
+        // Thick enough to see, thin enough to leave the icon and the title alone.
+        Assert.True(m.GroupBandHeight >= 2);
+        Assert.True(m.GroupBandHeight < m.IconSize);
+        Assert.True(m.GroupDividerWidth >= 1);
+
+        // The rule between two groups has to fit in the space the layout already leaves.
+        Assert.True(m.GroupDividerWidth <= m.TabGap);
+    }
+
+    [Theory]
     [InlineData(1.0f)]
     [InlineData(1.25f)]
     [InlineData(1.5f)]

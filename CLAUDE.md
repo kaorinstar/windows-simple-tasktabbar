@@ -43,6 +43,55 @@ Layout and activation behaviour cannot be confirmed by building alone. After cha
 state clearly what a human needs to check by running the application. "It builds" is not the
 same as "it works".
 
+## Asking the user to do something
+
+This application only runs on Windows, and the environment an assistant works in usually cannot
+run it. Anything that needs a real machine is handed to the user, so writing that hand-off is
+part of the work rather than an afterthought.
+
+Give them this, in this order, and nothing else:
+
+1. **What to do**, numbered in the order it is performed.
+2. **The exact URL** for anything on GitHub. Never "from the Actions tab" or "in the settings":
+   paste the link.
+3. **Commands that can be pasted as they are**, with the branch name and the paths already
+   filled in. Not a template with a placeholder left in it.
+4. **What to look at**, phrased so the answer is yes or no.
+5. **What to send back** when the answer is no.
+
+Leave out the design, the reasoning, and anything already reported. If the reasoning matters it
+belongs in the pull request, not in the instruction. A person who has to scroll past an
+explanation to find the command has been given a worse instruction, not a fuller one.
+
+### Handing over a build to test
+
+Two routes. Give whichever fits, with the branch name already substituted, and do not make the
+reader choose between them without saying which one you mean.
+
+**From GitHub, when there is no .NET SDK on the Windows machine**
+
+1. Open https://github.com/kaorinstar/windows-simple-tasktabbar/actions/workflows/release.yml
+2. **Run workflow** → Branch: the branch to test → **Run workflow**. There are no other inputs.
+3. When the run finishes, open it and download the artifact named `WindowsSimpleTaskTabBar`
+   from the Artifacts section at the bottom of the page.
+4. Unzip it. `WindowsSimpleTaskTabBar.exe` is the net48 build, which is the one that ships.
+
+A manual run publishes nothing. It stamps the version from `Directory.Build.props` and creates
+no release; only pushing a `v*` tag does that.
+
+**On a Windows machine with the .NET 8 SDK**
+
+```
+git fetch origin <branch>
+git checkout <branch>
+dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48 -o artifacts
+```
+
+The executable is `artifacts\WindowsSimpleTaskTabBar.exe`.
+
+**`build.yml` is not a route to a build.** It compiles and tests and then packages nothing, so
+there is no artifact on it to download. Do not send anyone to a `build.yml` run for a file.
+
 ## Design rules
 
 Full details are in `docs/architecture.md`. The three rules that matter most:
@@ -103,11 +152,10 @@ restriction.
 
 In rough priority order:
 
-1. Grouping by application when there are many tabs
-2. Multi-monitor support (currently primary monitor only)
-3. Window preview on hover
-4. Pinned applications
-5. Built-in start-with-Windows option
+1. Multi-monitor support (currently primary monitor only)
+2. Window preview on hover
+3. Pinned applications
+4. Built-in start-with-Windows option
 
 ## Known limitations
 
@@ -120,6 +168,9 @@ In rough priority order:
   Running this application elevated removes the limit but means running elevated permanently.
 - Full-screen applications cover the bar. This is normal AppBar behaviour.
 - The order a user drags tabs into is not saved, so it is lost when the application exits.
+  Turning grouping off also leaves the tabs where grouping put them: the order they opened in is
+  not recorded anywhere.
+- Two applications whose executables share a file name are treated as one application.
 - A tab never shrinks below its icon and the first four characters of its title. Past that the
   row scrolls, so on a narrow screen only part of the row is visible at a time.
 

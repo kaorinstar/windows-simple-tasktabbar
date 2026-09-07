@@ -69,6 +69,12 @@ public sealed class BarMetrics
     /// <summary>Space between the ends of the bar and the first and last tabs.</summary>
     public int OuterMargin { get; private set; }
 
+    /// <summary>Thickness of the accent a grouped tab carries along its top edge.</summary>
+    public int GroupBandHeight { get; private set; }
+
+    /// <summary>Thickness of the rule drawn where one group ends and the next begins.</summary>
+    public int GroupDividerWidth { get; private set; }
+
     /// <param name="barHeightLogical">Bar height in logical pixels, before DPI scaling.</param>
     /// <param name="scale">DPI scale, where 1.0 is 96 DPI.</param>
     public static BarMetrics For(int barHeightLogical, float scale)
@@ -90,11 +96,13 @@ public sealed class BarMetrics
             CloseButtonSize = FromHeight(barHeightLogical, scale, 16, 12),
             CloseButtonMinTabWidth = FromHeight(barHeightLogical, scale, 90, 40),
             ScrollButtonWidth = FromHeight(barHeightLogical, scale, 24, 16),
+            GroupBandHeight = FromHeight(barHeightLogical, scale, 3, 2),
 
             // Sizes that do not follow the height: they are about the row, not the bar's thickness.
             TabGap = Scaled(2, scale, 1),
             TabMaxWidth = Scaled(220, scale, 1),
             OuterMargin = Scaled(4, scale, 1),
+            GroupDividerWidth = Scaled(1, scale, 1),
         };
 
         // Room for the icon, the padding either side, and the text with its ellipsis. The text is
