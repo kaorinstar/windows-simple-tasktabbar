@@ -110,6 +110,35 @@ internal static class NativeMethods
     [DllImport("user32.dll", SetLastError = true)]
     public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool EnumChildWindows(IntPtr hWndParent, EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+    // ---------------------------------------------------------------
+    // The process behind a window
+    // ---------------------------------------------------------------
+
+    /// <summary>
+    /// The smallest right that answers "which executable is this". Unlike PROCESS_VM_READ,
+    /// which <c>Process.MainModule</c> needs, it is granted against an elevated process from a
+    /// process that is not elevated, so an elevated window still lands in the right group even
+    /// though this application cannot activate it.
+    /// </summary>
+    public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern IntPtr OpenProcess(uint dwDesiredAccess,
+        [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, uint dwProcessId);
+
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool QueryFullProcessImageNameW(IntPtr hProcess, uint dwFlags,
+        StringBuilder lpExeName, ref uint lpdwSize);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool CloseHandle(IntPtr hObject);
+
     // ---------------------------------------------------------------
     // Window operations: activate, minimize, close
     // ---------------------------------------------------------------

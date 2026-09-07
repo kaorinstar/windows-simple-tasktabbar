@@ -1,3 +1,5 @@
+using WindowsSimpleTaskTabBar.Core.Grouping;
+
 namespace WindowsSimpleTaskTabBar.Core.Settings;
 
 /// <summary>
@@ -26,11 +28,33 @@ public class AppSettings
     /// The schema this instance was written with. Present from the first release so that a later
     /// version can tell an old file apart from a new one instead of guessing.
     /// </summary>
-    public const int CurrentSchema = 1;
+    public const int CurrentSchema = 2;
+
+    /// <summary>How many accents a group can be marked with.</summary>
+    public const int AccentCount = 8;
+
+    /// <summary>The most groups the user may define, and the most executables one may hold.</summary>
+    private const int MaxGroups = 64;
+    private const int MaxExecutablesPerGroup = 256;
 
     public int Schema { get; set; } = CurrentSchema;
 
     public BarHeightMode BarHeight { get; set; } = BarHeightMode.Standard;
+
+    /// <summary>
+    /// Whether windows of one application are brought together in the row and marked as a group.
+    /// </summary>
+    /// <remarks>
+    /// Off by default. Turning it on reorders the tabs the user is looking at, which is not
+    /// something to do to somebody who has only updated the application.
+    /// </remarks>
+    public bool GroupByApplication { get; set; }
+
+    /// <summary>
+    /// The groups the user has defined by hand, which override the automatic one group per
+    /// application.
+    /// </summary>
+    public List<AppGroup> Groups { get; set; } = new List<AppGroup>();
 
     /// <summary>Bar height in logical pixels, before any DPI scaling.</summary>
     public static int HeightInPixels(BarHeightMode mode)
@@ -49,11 +73,96 @@ public class AppSettings
         {
             Schema = CurrentSchema,
             BarHeight = IsKnown(BarHeight) ? BarHeight : BarHeightMode.Standard,
+            GroupByApplication = GroupByApplication,
+            Groups = NormalizedGroups(Groups),
         };
     }
 
     private static bool IsKnown(BarHeightMode mode)
     {
         return mode == BarHeightMode.Standard || mode == BarHeightMode.Compact;
+    }
+
+    /// <summary>
+    /// The groups with every value brought into range: no duplicate name, no executable in two
+    /// groups, no empty group.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="groups"/> can be null even though the property has an initializer.
+    /// <c>DataContractJsonSerializer</c> does not run the constructor, so a settings file
+    /// written before this setting existed leaves the property unset rather than empty. Every
+    /// path into the application goes through here, so nothing downstream has to test for it.
+    ///
+    /// A group's name identifies it, so two groups may not share one: <c>GroupIdFor</c> would
+    /// answer the same name for two sets of applications and draw them as one group.
+    /// </remarks>
+    private static List<AppGroup> NormalizedGroups(List<AppGroup> groups)
+    {
+        var result = new List<AppGroup>();
+        if (groups == null) return result;
+
+        var takenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var takenExecutables = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (AppGroup group in groups)
+        {
+            if (group == null) continue;
+            if (result.Count >= MaxGroups) break;
+
+            var executables = new List<string>();
+            foreach (string executable in group.Executables ?? new List<string>())
+            {
+                if (executables.Count >= MaxExecutablesPerGroup) break;
+
+                // The same normalization the bar applies to what it reads from a window, so the
+                // two are comparable however the name was typed into the settings file.
+                string key = TabGrouping.KeyFor(executable);
+                if (key.Length == 0) continue;
+
+                // First group named wins. Without this one executable could sit in two groups,
+                // and which one it landed in would depend on the order they happened to be read.
+                if (!takenExecutables.Add(key)) continue;
+
+                executables.Add(key);
+            }
+
+            // A group with nothing in it cannot show on the bar, and a stale one would sit in
+            // the settings dialog forever.
+            if (executables.Count == 0) continue;
+
+            string name = UniqueName(group.Name, executables[0], takenNames);
+            takenNames.Add(name);
+
+            result.Add(new AppGroup
+            {
+                Name = name,
+                Accent = group.Accent >= 0 && group.Accent < AccentCount ? group.Accent : -1,
+                Executables = executables,
+            });
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// A name for a group that no other group has: the one it was given, or the first
+    /// executable without its extension, with a number added if that is taken too.
+    /// </summary>
+    private static string UniqueName(string name, string firstExecutable, HashSet<string> taken)
+    {
+        string candidate = (name ?? string.Empty).Trim();
+        if (candidate.Length == 0)
+        {
+            int dot = firstExecutable.LastIndexOf('.');
+            candidate = dot > 0 ? firstExecutable.Substring(0, dot) : firstExecutable;
+        }
+
+        if (!taken.Contains(candidate)) return candidate;
+
+        for (int n = 2; ; n++)
+        {
+            string numbered = candidate + " (" + n + ")";
+            if (!taken.Contains(numbered)) return numbered;
+        }
     }
 }
