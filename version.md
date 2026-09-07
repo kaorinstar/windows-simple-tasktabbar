@@ -11,7 +11,7 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
-## Unreleased
+## v0.2.0
 
 - Closing the bar now releases everything it holds, whichever way it is closed. The tray icon
   disappears at once and nothing is left behind in the notification area.

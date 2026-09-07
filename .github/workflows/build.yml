@@ -62,6 +62,16 @@ jobs:
       - name: Run unit tests
         run: dotnet test -c Release --no-build --verbosity normal
 
+      # version.md quotes the size of each release's executable, and that figure has to come from
+      # somewhere other than the entry above it. Printing it on every run puts it in the log of
+      # the pull request that prepares a release, with nothing to measure by hand. The publish in
+      # release.yml copies this same file.
+      - name: Show the size of the net48 build
+        shell: pwsh
+        run: |
+          $file = Get-Item src/WindowsSimpleTaskTabBar/bin/Release/net48/WindowsSimpleTaskTabBar.exe
+          Write-Host "$($file.Name): $($file.Length) bytes"
+
   # A failure here leaves no record otherwise: GitHub emails whoever triggered the run and that is
   # all. Pushes only — a failing pull request already shows the failure on itself. The permission
   # is granted to this job alone, so the build above keeps its read-only token.
