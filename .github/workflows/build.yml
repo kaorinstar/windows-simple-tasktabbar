@@ -61,3 +61,17 @@ jobs:
 
       - name: Run unit tests
         run: dotnet test -c Release --no-build --verbosity normal
+
+  # A failure here leaves no record otherwise: GitHub emails whoever triggered the run and that is
+  # all. Pushes only — a failing pull request already shows the failure on itself. The permission
+  # is granted to this job alone, so the build above keeps its read-only token.
+  report:
+    needs: build
+    if: always() && github.event_name == 'push'
+    uses: ./.github/workflows/report-build-status.yml
+    with:
+      outcome: ${{ needs.build.result }}
+    permissions:
+      # contents: read so the call can read the reusable workflow file beside this one.
+      contents: read
+      issues: write

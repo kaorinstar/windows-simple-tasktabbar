@@ -20,7 +20,8 @@ windows-simple-tasktabbar/
 ├── .github/
 │   └── workflows/
 │       ├── build.yml              push とプルリクエストでのビルドとテスト
-│       └── release.yml            ビルド・テスト・配布物の作成とリリース
+│       ├── release.yml            ビルド・テスト・配布物の作成とリリース
+│       └── report-build-status.yml  push のビルド失敗時に課題を作成
 ├── docs/
 │   ├── architecture.md            英語版
 │   └── architecture.ja.md         この文書

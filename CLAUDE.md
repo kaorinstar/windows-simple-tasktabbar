@@ -120,7 +120,7 @@ In rough priority order:
 
 ## Continuous integration
 
-Two workflows run on Windows, so that a verification run never needs write access to the
+Two workflows build on Windows, so that a verification run never needs write access to the
 repository.
 
 - `.github/workflows/build.yml` builds and tests for every push to `main` and every pull
@@ -128,6 +128,14 @@ repository.
 - `.github/workflows/release.yml` builds, tests and packages. Pushing a tag such as `v0.1.0`
   publishes a release with the net48 package attached. Starting it by hand produces the same
   package as a build artifact and creates no release. Only this workflow gets `contents: write`.
+
+A third file, `.github/workflows/report-build-status.yml`, is called by both once their build job
+finishes, and only for pushes. On a failure it opens an issue labelled `ci-failure`, or comments on
+the one already open rather than opening a second; on the next success it comments on that issue
+too. It never closes it: a green build shows the symptom is gone, not that the cause was
+understood. Pull requests are excluded on purpose, since a failing pull request already shows the
+failure on itself. `issues: write` is granted to the calling job alone, so the build keeps its
+read-only token. Nothing is built there, so it runs on Linux.
 
 Both files carry the same build and test steps. Change them together. The one deliberate
 difference is the version: a release build takes it from the tag, while a verification build keeps
