@@ -492,6 +492,92 @@ public class TabGroupingTests
     }
 
     [Fact]
+    public void TwoGroupsSideBySideDoNotShareAnAccent()
+    {
+        // Both applications give accent 4 on their own, and neither is in the settings, so
+        // nothing but the row itself can hold them apart. Side by side in one colour they would
+        // read as a single group, which is what the band is there to deny.
+        Assert.Equal(TabGrouping.AccentFor("notepad.exe", null, Palette),
+                     TabGrouping.AccentFor("explorer.exe", null, Palette));
+
+        var row = new[] { "notepad.exe", "notepad.exe", "explorer.exe", "explorer.exe" };
+
+        int[] accents = TabGrouping.AccentsFor(row, null, Palette);
+
+        Assert.Equal(accents[0], accents[1]);
+        Assert.Equal(accents[2], accents[3]);
+        Assert.NotEqual(accents[0], accents[2]);
+    }
+
+    [Fact]
+    public void AGroupOfOneWindowIsLeftWithoutAnAccent()
+    {
+        var row = new[] { "code.exe", "explorer.exe", "explorer.exe" };
+
+        int[] accents = TabGrouping.AccentsFor(row, null, Palette);
+
+        Assert.Equal(-1, accents[0]);
+        Assert.InRange(accents[1], 0, Palette - 1);
+    }
+
+    [Fact]
+    public void AGroupOfOneBetweenTwoGroupsLetsThemKeepTheSameAccent()
+    {
+        // The single tab breaks the band, so the two around it are two groups in one colour
+        // rather than one group. Nothing has to move.
+        var row = new[]
+        {
+            "notepad.exe", "notepad.exe", "code.exe", "explorer.exe", "explorer.exe",
+        };
+
+        int[] accents = TabGrouping.AccentsFor(row, null, Palette);
+
+        Assert.Equal(-1, accents[2]);
+        Assert.Equal(accents[0], accents[3]);
+    }
+
+    [Fact]
+    public void AnAccentChosenByHandStaysAndItsNeighbourMoves()
+    {
+        // "Browsers" was given accent 4 by hand, which is also what "notepad.exe" gives itself.
+        var rules = new List<AppGroup>
+        {
+            new() { Name = "Browsers", Accent = 4, Executables = new List<string> { "chrome.exe" } },
+        };
+        var row = new[] { "notepad.exe", "notepad.exe", "Browsers", "Browsers" };
+
+        int[] accents = TabGrouping.AccentsFor(row, rules, Palette);
+
+        Assert.Equal(4, accents[2]);
+        Assert.NotEqual(4, accents[0]);
+        Assert.Equal(accents[0], accents[1]);
+    }
+
+    [Fact]
+    public void NoTwoGroupsNextToEachOtherShareAnAccent()
+    {
+        var row = new List<string>();
+        foreach (string name in new[]
+                 {
+                     "notepad.exe", "explorer.exe", "code.exe", "chrome.exe",
+                     "excel.exe", "outlook.exe", "teams.exe", "slack.exe",
+                 })
+        {
+            row.Add(name);
+            row.Add(name);   // two windows each, so every group is marked
+        }
+
+        int[] accents = TabGrouping.AccentsFor(row, null, Palette);
+
+        for (int i = 1; i < accents.Length; i++)
+        {
+            if (string.Equals(row[i], row[i - 1], StringComparison.Ordinal)) continue;
+
+            Assert.NotEqual(accents[i - 1], accents[i]);
+        }
+    }
+
+    [Fact]
     public void AnApplicationOutsideEveryGroupKeepsTheAccentItsNameGives()
     {
         // Only the groups the user defined take part. An application grouped on its own is not

@@ -709,14 +709,13 @@ public class MainForm : Form
         if (_groupIds.Count != _tabs.Count) return;
 
         bool[] marks = TabGrouping.Marks(_groupIds);
+        int[] accents = TabGrouping.AccentsFor(_groupIds, _settings.Groups, AppSettings.AccentCount);
 
         for (int i = 0; i < _tabs.Count; i++)
         {
             _tabs[i].GroupId = _groupIds[i];
             _tabs[i].Marked = marks[i];
-            _tabs[i].Accent = marks[i]
-                ? TabGrouping.AccentFor(_groupIds[i], _settings.Groups, AppSettings.AccentCount)
-                : -1;
+            _tabs[i].Accent = accents[i];
         }
     }
 

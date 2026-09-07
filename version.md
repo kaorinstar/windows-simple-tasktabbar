@@ -18,8 +18,15 @@ in [README.md](README.md).
   other groups held, so with three groups there was about one chance in three of a repeat. A
   colour chosen by hand is now reserved first, and a group left automatic moves to the next free
   colour when the one its name gives is taken. Past eight groups a repeat cannot be avoided.
+- Two groups side by side on the bar are no longer marked in the same colour either. This covers
+  the groups that are one application, which are not in the settings and so could not be held
+  apart there: several folder windows beside several of something else came out in one colour and
+  read as a single group. A colour chosen by hand is kept, and the group beside it moves instead.
+  Two groups in the same colour with something between them are left as they are.
 - The colour list in the settings names each colour and shows a square of it, in place of
   "Colour 1" to "Colour 8".
+- The list of applications in the settings no longer jumps back to the top each time a box is
+  ticked. It stays where it was scrolled to.
 
 ## v0.3.0
 

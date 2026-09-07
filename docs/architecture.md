@@ -250,10 +250,25 @@ The settings order is used because it is the one order available that does not c
 which is what keeps the answer the same on every run. The cost is that adding a group can move the
 accent of a group listed after it; choosing an accent by hand is how a user holds one still.
 
-Only the groups the user defined take part. A group that is one application keeps the accent its
-name gives, and can still meet a defined group on the same colour. Bringing those in would mean
-putting them in some order, and the only orders available depend on which windows are open, so a
-colour would change as windows were opened and closed.
+Only the groups the user defined take part in that. A group that is one application is not in the
+settings at all, so there is nothing there to hold it apart from anything else, and a row of half
+a dozen applications repeats an accent often.
+
+`TabGrouping.AccentsFor` covers what is left, on the row rather than in the settings. Where a
+repeat does harm is between neighbours: the band is carried across the gap inside a group, so two
+groups side by side in one colour read as a single group, which is the one thing the band is there
+to say. Two groups in the same colour with something between them are only two groups in the same
+colour. So the row is walked from the front, and where a group's accent matches the group before
+it, one of the two moves on. The one that moves is the one whose accent was derived; an accent the
+user chose stays where they put it and its neighbour gives way, and when both were chosen both are
+left alone. A group of one window is not marked, and an unmarked group breaks the band, so the
+group after it has nothing to differ from.
+
+This is the row's own order, so a group can change colour when it is dragged to a new neighbour or
+when a window opens beside it. That is what the guarantee costs, and it is paid on the two groups
+the user is looking at rather than across the whole bar. Ordering every group by the row instead,
+and holding all of them apart that way, would spread the same instability over every colour on the
+bar.
 
 ### Reading the process behind a window
 

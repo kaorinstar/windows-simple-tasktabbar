@@ -424,10 +424,17 @@ internal sealed class SettingsForm : Form
     /// <remarks>
     /// An application named by a group but not running is still shown. Dropping it would leave
     /// the user unable to see, let alone undo, a choice they made when it was open.
+    ///
+    /// The list is emptied and filled again on every change, which sends it back to the top. The
+    /// first line the user can see is put back afterwards: a tick halfway down a long list is
+    /// followed by another one near it, and a list that jumped to the top each time would have to
+    /// be scrolled back before every tick.
     /// </remarks>
     private void ReloadApplications()
     {
         AppGroup selected = SelectedGroup();
+        int firstVisible = _applications.TopIndex;
+        int highlighted = _applications.SelectedIndex;
 
         var names = new List<string>(_runningApplications() ?? new List<string>());
         var seen = new HashSet<string>(names, StringComparer.OrdinalIgnoreCase);
@@ -462,6 +469,15 @@ internal sealed class SettingsForm : Form
             _groupAccent.SelectedIndex = selected == null || selected.Accent < 0
                 ? 0
                 : selected.Accent + 1;
+
+            // The list can be a line shorter or longer than it was, so both are clamped to what
+            // it now holds. Highlighting first, because that scrolls of its own accord and would
+            // otherwise undo the line put back below it.
+            if (highlighted >= 0 && highlighted < _applications.Items.Count)
+                _applications.SelectedIndex = highlighted;
+
+            if (firstVisible > 0 && _applications.Items.Count > 0)
+                _applications.TopIndex = Math.Min(firstVisible, _applications.Items.Count - 1);
         }
         finally
         {
