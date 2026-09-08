@@ -210,8 +210,9 @@ rather than listed here, so there is one list to keep up to date. Two issues col
 
 Issues and pull requests are welcome. Please keep the following in mind:
 
-- Code, comments, and documentation are written in English. `README.ja.md` and
-  `docs/architecture.ja.md` are Japanese translations kept in sync with the English originals.
+- Code, comments, and documentation are written in English. A file whose name ends `.ja.md` is
+  the Japanese translation of the file beside it, kept in sync with the English original in the
+  same commit.
 - Interface text is not written where it is drawn. Every string has a name in
   `src/WindowsSimpleTaskTabBar.Core/Localization/StringId.cs` and a line in each table in
   `UiStrings.cs`. A translation that reads wrongly to a native speaker is worth an issue or a
@@ -219,6 +220,12 @@ Issues and pull requests are welcome. Please keep the following in mind:
 - The build must pass with `-warnaserror`.
 - The `net48` target must keep working. Shipping a single executable that needs no runtime
   install is a core requirement of this project.
+
+## Security
+
+A vulnerability goes to the private form linked from [SECURITY.md](SECURITY.md), not to an issue.
+That file also writes out what the application reaches — no network connection at all, one
+settings file, one registry value read — so a report can be judged against it.
 
 ## License
 

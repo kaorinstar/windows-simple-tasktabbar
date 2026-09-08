@@ -16,9 +16,9 @@ decision.
 
 - **All code, comments, identifiers, commit messages, and documentation are written in
   English.** This project is published publicly.
-- `README.ja.md` and `docs/architecture.ja.md` are Japanese translations. When you change
-  `README.md` or `docs/architecture.md`, update the Japanese file in the same commit so the two
-  stay in sync.
+- A file whose name ends `.ja.md` is the Japanese translation of the file beside it:
+  `README.ja.md`, `docs/architecture.ja.md`, `version.ja.md` and `SECURITY.ja.md`. When you change
+  the English file, update its translation in the same commit so the two stay in sync.
 - **User-facing strings are never written where they are drawn.** Each one has a name in
   `src/WindowsSimpleTaskTabBar.Core/Localization/StringId.cs` and a line in every table in
   `UiStrings.cs`. English is the source language and the fallback. A name left out of a table
@@ -273,8 +273,9 @@ heading and set the version together.
 Each entry in `version.md` quotes the size of that release's executable. Take it from the "Show
 the size of the net48 build" step of `build.yml`, which prints it on every run, rather than
 copying the entry above it: the figure sat at 23 KB while the application grew to more than twice
-that, and it reached a published release that way. The READMEs say only "under 100 KB" and point
-at `version.md`, so there is one number to keep right rather than five.
+that, and it reached a published release that way. The READMEs say only "under 150 KB" and point
+at `version.md`, so there is one number to keep right rather than five. Raise that bound when a
+release passes it, as v0.5.0 did, rather than quoting the size itself in two more files.
 
 That step is the one thing `build.yml` does that `release.yml` does not. It is there because the
 number is needed while a release is being prepared, which happens in a pull request, and pull
