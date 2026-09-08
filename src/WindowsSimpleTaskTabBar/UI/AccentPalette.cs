@@ -4,32 +4,16 @@ using WindowsSimpleTaskTabBar.Core.Theme;
 namespace WindowsSimpleTaskTabBar.UI;
 
 /// <summary>
-/// What each accent is called, and the square of colour shown beside the name, for the one place
-/// a user has to choose between them.
+/// The square of colour shown beside each accent's name, for the one place a user has to choose
+/// between them.
 /// </summary>
 /// <remarks>
 /// The colours themselves belong to <see cref="BarPalette"/>, which holds one copy for the bar
-/// and for this. Only the names are here: they are interface text, which Core has none of.
+/// and for this. What each accent is called is interface text and stands with the rest of it, in
+/// <c>Core.Localization.UiStrings</c>.
 /// </remarks>
 internal static class AccentPalette
 {
-    /// <summary>
-    /// What each accent is called, in the same order as <see cref="BarPalette.Accents"/>.
-    /// </summary>
-    /// <remarks>
-    /// The name of the colour rather than its number. "Colour 5" says nothing about what the user
-    /// is about to see on the bar, and a group they had already coloured could only be recognised
-    /// by counting down the list.
-    ///
-    /// The name describes the light shade; the dark one is the same hue lightened to read against
-    /// a dark tab, so a single name covers both.
-    /// </remarks>
-    private static readonly string[] AccentNames =
-    {
-        "Blue", "Red", "Yellow", "Green",
-        "Pink", "Purple", "Teal", "Grey",
-    };
-
     /// <summary>
     /// The light palette, for the squares in the settings dialog.
     /// </summary>
@@ -42,12 +26,6 @@ internal static class AccentPalette
     /// drop-down.
     /// </remarks>
     private static readonly BarPalette Swatches = BarPalette.For(ColourMode.Light, true);
-
-    /// <summary>What an accent is called, or an empty string when the number is not one.</summary>
-    public static string Name(int accent)
-    {
-        return accent >= 0 && accent < AccentNames.Length ? AccentNames[accent] : string.Empty;
-    }
 
     /// <summary>The square of colour drawn beside an accent's name.</summary>
     public static Color Swatch(int accent)

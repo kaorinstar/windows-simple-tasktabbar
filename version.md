@@ -11,6 +11,23 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
+## Unreleased
+
+- The interface can now be shown in Japanese. The language follows Windows, so a Japanese
+  Windows shows Japanese without anything being set. It can also be chosen by hand in the
+  settings, as English or Japanese, and the choice is kept between runs. A display language with
+  no translation yet shows English.
+- The font now follows the language. Japanese is drawn in Yu Gothic UI, as everything was
+  before, and every other language in Segoe UI, which is the font Windows itself uses. Chinese,
+  Japanese and Korean share code points, so one font cannot serve all three, and the languages
+  still to come need this in place. A language whose font is missing from Windows falls back to
+  the font Windows draws its own dialogs in.
+- Changing the language applies at once: the bar, its two menus and the settings dialog are all
+  redrawn without a restart.
+- The heading of each group of settings is now visible. Bar height, Colours and Tab groups each
+  had one, and the contents of the group were being drawn over it, leaving the heading blank and
+  a gap at the foot of the group instead.
+
 ## v0.4.0
 
 - The colours can now be chosen in the settings: follow Windows, always light, or always dark.
