@@ -4,7 +4,14 @@ The newest version is at the top. Each entry says what changed for someone using
 application, rather than which pull requests were merged.
 
 A release takes its notes from the section whose heading matches its tag. Entries are written as
-each change lands, under `## v0.5.0
+each change lands, under `## Unreleased`, and that heading is renamed to the version number when
+the release is prepared. Nothing matches `Unreleased`, so a tag pushed while entries are still
+sitting there fails the release workflow rather than publishing an empty release. See "Releasing"
+in [README.md](README.md).
+
+`version.ja.md` is the Japanese translation of this file and is updated in the same commit.
+
+## v0.5.0
 
 - The interface is now available in twelve languages: English, Japanese, Simplified Chinese,
   Traditional Chinese, Russian, German, French, Spanish, Portuguese (Brazil), Korean, Polish and
