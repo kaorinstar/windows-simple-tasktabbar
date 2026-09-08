@@ -15,9 +15,9 @@ A report is most useful when it says what the problem is, what someone gains fro
 steps that reproduce it. The version of Windows and the version of the application both help; the
 application's version is in the file properties of `WindowsSimpleTaskTabBar.exe`.
 
-One person maintains this project, so a reply is not immediate. Expect one within seven days. If
-none has arrived by then the report has been missed rather than turned down, so comment on the
-advisory to raise it again.
+One person maintains this project, so a reply is not immediate. Expect one within seven business
+days. If none has arrived by then the report has been missed rather than turned down, so comment
+on the advisory to raise it again.
 
 ## Which versions are supported
 
