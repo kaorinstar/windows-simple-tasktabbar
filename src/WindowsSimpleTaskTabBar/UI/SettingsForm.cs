@@ -18,8 +18,14 @@ namespace WindowsSimpleTaskTabBar.UI;
 /// </remarks>
 internal sealed class SettingsForm : Form
 {
-    /// <summary>The name shown in the title bar. A product name, so it is not translated.</summary>
-    private const string ProductName = "WindowsSimpleTaskTabBar";
+    /// <summary>
+    /// The name shown in the title bar. A product name, so it is not translated.
+    /// </summary>
+    /// <remarks>
+    /// Not called ProductName: <see cref="Control.ProductName"/> already carries that name, and
+    /// hiding it fails the build.
+    /// </remarks>
+    private const string ApplicationName = "WindowsSimpleTaskTabBar";
 
     private readonly AppSettings _settings;
     private readonly Action _onChanged;
@@ -135,7 +141,7 @@ internal sealed class SettingsForm : Form
     /// </summary>
     private void Build()
     {
-        Text = _text.Format(StringId.SettingsTitle, ProductName);
+        Text = _text.Format(StringId.SettingsTitle, ApplicationName);
         ApplyFont();
         BuildControls();
         LoadFromSettings();
