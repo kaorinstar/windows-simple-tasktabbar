@@ -160,11 +160,11 @@ restriction.
 The list of planned work lives in the issue tracker, not here, so that there is one copy of it to
 keep current. Take priorities from there.
 
-Two tracking issues hold most of it, each with its sub-issues in priority order: #1 for the tab
-strip and #2 for the settings. #17, a bar on the left or right edge, is marked low priority and is
-not scheduled. What sits under neither tracking issue is listed on its own: #62 multi-monitor
-support, #21 the installer and the portable package, #35 the translated interface, #26 whether to
-publish the repository.
+Three tracking issues hold most of it, each with its sub-issues in priority order: #1 for the tab
+strip, #2 for the settings, and #90 for being findable outside this repository. #17, a bar on the
+left or right edge, is marked low priority and is not scheduled. What sits under none of the three
+is listed on its own: #62 multi-monitor support, #21 the installer and the portable package, #35
+the translated interface.
 
 **Do not write the list out again, here or in the roadmap sections of `README.md` and
 `README.ja.md`.** It stood in all three files at once, beside the issues that already tracked it,
