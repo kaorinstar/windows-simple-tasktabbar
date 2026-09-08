@@ -13,9 +13,10 @@
 # The weekly run is not made redundant by the two above it. GitHub updates the queries, so a run
 # over code that has not changed can still find something the run before it could not.
 #
-# Code scanning needs a public repository. While this one is private the analysis fails with
-# "Advanced Security must be enabled", which says nothing about the code, so merge this file
-# after the repository is made public rather than before.
+# Code scanning needs a public repository, so merge this file after the repository is made public
+# rather than before. The analysis itself runs either way - the first run on this branch read all
+# 26 C# files and produced its SARIF while the repository was still private - but publishing the
+# result to the Security tab is the part that needs the public repository.
 
 name: codeql
 
@@ -41,6 +42,11 @@ jobs:
       # Writing the findings to the Security tab is the one thing this job does beyond reading
       # the source.
       security-events: write
+      # The upload reads the run it belongs to, through the API that lists workflow runs. That
+      # read is public on a public repository and needs asking for on a private one, where
+      # leaving it out fails the upload with "Resource not accessible by integration" after a
+      # complete and successful analysis.
+      actions: read
 
     steps:
       - name: Check out the source
