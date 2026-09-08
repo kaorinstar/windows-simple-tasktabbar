@@ -23,8 +23,10 @@ decision.
   `src/WindowsSimpleTaskTabBar.Core/Localization/StringId.cs` and a line in every table in
   `UiStrings.cs`. English is the source language and the fallback. A name left out of a table
   fails the tests, so a string added to one table is added to all of them in the same commit.
-- The interface is written in English and Japanese so far. The remaining ten languages of #35
-  each cost one table in `UiStrings.cs` and one row in `Languages.All`. Keep that property.
+- The interface is written in the twelve languages of #35. A thirteenth costs one table in
+  `UiStrings.cs` and one row in `Languages.All`, and nothing else. Keep that property.
+- English and Japanese are the two that have been read by someone who knows them. Do not rewrite
+  another language's table on your own judgement; a correction comes from someone who reads it.
 
 ## Build and test
 

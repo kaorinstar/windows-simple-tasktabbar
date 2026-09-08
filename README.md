@@ -40,9 +40,12 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
   dark. Following Windows is the default, and the bar repaints as soon as that setting changes,
   including the automatic switch some people schedule. Light and dark stay as you set them.
 
-- **Choose the language** — an option in the settings: follow Windows, English or Japanese.
-  Following Windows is the default. A display language with no translation yet shows English.
-  The font follows the language, so Japanese is drawn in Yu Gothic UI and English in Segoe UI.
+- **Choose the language** — an option in the settings: follow Windows, or one of twelve
+  languages. English, Japanese, Simplified Chinese, Traditional Chinese, Russian, German, French,
+  Spanish, Portuguese (Brazil), Korean, Polish and Italian. Following Windows is the default, and
+  a display language that is none of the twelve shows English. The font follows the language, so
+  Chinese, Japanese and Korean each get their own rather than one another's letter shapes.
+  English and Japanese are the two the maintainer can check; corrections to the rest are welcome.
 
 ## Download
 
@@ -181,8 +184,6 @@ success rate. The bar is thin, so the visual effect is negligible.
 - **Two different applications with the same executable name share a group.** Applications are
   matched on the file name, because that is what people recognise, so two unrelated programs
   both installed as `app.exe` are treated as one.
-- **The interface is in English and Japanese only.** Ten more languages are planned
-  ([#35](https://github.com/kaorinstar/windows-simple-tasktabbar/issues/35)), and any other display language shows English until then.
 - **A tab never shrinks below its icon and the first four characters of its title.** Past that
   the row scrolls, so on a narrow screen only part of the row is visible at a time. Nothing is
   hidden: every window is still reachable by scrolling.

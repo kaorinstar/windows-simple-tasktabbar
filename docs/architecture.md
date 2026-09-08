@@ -187,9 +187,13 @@ table holds a name the others do not.
 
 **Adding a language costs one table and one row.** The table goes in `UiStrings`, the row in
 `Languages.All`. The settings dialog lists whatever stands in that list, under each language's
-own name, so nothing else is edited. `Languages.Canonical` already maps the cultures of the
-languages still to come, Chinese and Portuguese included, so a culture reaches the right table
-as soon as the table exists.
+own name, so nothing else is edited. `Languages.Canonical` says which row a Windows culture
+belongs to: Chinese and Portuguese cannot be answered by the two-letter code alone, and
+everything else is matched on it.
+
+**Only English and Japanese have been read by someone who knows them.** The parity test holds
+every table to the same set of names; nothing holds a translation to what it ought to say. A
+translation that reads wrongly to a native speaker is worth an issue or a pull request.
 
 **The font follows the language.** Chinese, Japanese and Korean share code points, so one font
 cannot serve all three: a Japanese font draws Chinese text with Japanese letter shapes, which a

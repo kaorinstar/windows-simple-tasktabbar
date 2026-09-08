@@ -4,26 +4,21 @@ The newest version is at the top. Each entry says what changed for someone using
 application, rather than which pull requests were merged.
 
 A release takes its notes from the section whose heading matches its tag. Entries are written as
-each change lands, under `## Unreleased`, and that heading is renamed to the version number when
-the release is prepared. Nothing matches `Unreleased`, so a tag pushed while entries are still
-sitting there fails the release workflow rather than publishing an empty release. See "Releasing"
-in [README.md](README.md).
+each change lands, under `## Unreleased
 
-`version.ja.md` is the Japanese translation of this file and is updated in the same commit.
-
-## Unreleased
-
-- The interface can now be shown in Japanese. The language follows Windows, so a Japanese
-  Windows shows Japanese without anything being set. It can also be chosen by hand in the
-  settings, as English or Japanese, and the choice is kept between runs. A display language with
-  no translation yet shows English.
-- The font now follows the language. Japanese is drawn in Yu Gothic UI, as everything was
-  before, and every other language in Segoe UI, which is the font Windows itself uses. Chinese,
-  Japanese and Korean share code points, so one font cannot serve all three, and the languages
-  still to come need this in place. A language whose font is missing from Windows falls back to
-  the font Windows draws its own dialogs in.
-- Changing the language applies at once: the bar, its two menus and the settings dialog are all
-  redrawn without a restart.
+- The interface is now available in twelve languages: English, Japanese, Simplified Chinese,
+  Traditional Chinese, Russian, German, French, Spanish, Portuguese (Brazil), Korean, Polish and
+  Italian. It follows Windows, so a machine set to one of the twelve shows it without anything
+  being set, and any other display language shows English. It can also be chosen by hand in the
+  settings, and the choice is kept between runs. Changing it applies at once: the bar, its two
+  menus and the settings dialog are all redrawn without a restart.
+- Only English and Japanese have been read by someone who knows them. Corrections to the other
+  ten languages are welcome as issues or pull requests.
+- The font follows the language. Chinese, Japanese and Korean share code points, so one font
+  cannot serve all three: each is drawn in a font of its own, and every other language in
+  Segoe UI, which is the font Windows itself uses. English therefore moves from Yu Gothic UI,
+  which the bar used for everything, to Segoe UI. A font that is missing from Windows falls back
+  to the one Windows draws its own dialogs in.
 - The heading of each group of settings is now visible. Bar height, Colours and Tab groups each
   had one, and the contents of the group were being drawn over it, leaving the heading blank and
   a gap at the foot of the group instead.

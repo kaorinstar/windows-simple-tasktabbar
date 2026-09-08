@@ -19,6 +19,19 @@ public class LocalizationTests
         Assert.NotNull(Languages.Find(Languages.English));
     }
 
+    [Fact]
+    public void TheTwelveLanguagesAreOffered()
+    {
+        // The list of issue #35, in the order it gives them. A language dropped by accident
+        // would otherwise only show up as a missing entry in the settings dialog.
+        string[] expected =
+        {
+            "en", "ja", "zh-CN", "zh-TW", "ru", "de", "fr", "es", "pt-BR", "ko", "pl", "it",
+        };
+
+        Assert.Equal(expected, Languages.All.Select(language => language.Code));
+    }
+
     [Theory]
     [MemberData(nameof(AllLanguages))]
     public void EveryLanguageOfferedHasATable(string code)
@@ -72,10 +85,14 @@ public class LocalizationTests
     }
 
     [Fact]
-    public void JapaneseIsDrawnWithAJapaneseFont()
+    public void EachOfChineseJapaneseAndKoreanIsDrawnWithItsOwnFont()
     {
-        // Chinese, Japanese and Korean share code points, so the font follows the language.
+        // These three share code points, so one font cannot serve all three: it would give the
+        // other two the letter shapes of its own language.
         Assert.Equal("Yu Gothic UI", Languages.FontFamilyFor("ja"));
+        Assert.Equal("Microsoft YaHei UI", Languages.FontFamilyFor("zh-CN"));
+        Assert.Equal("Microsoft JhengHei UI", Languages.FontFamilyFor("zh-TW"));
+        Assert.Equal("Malgun Gothic", Languages.FontFamilyFor("ko"));
     }
 
     [Fact]
@@ -136,13 +153,27 @@ public class LocalizationTests
         Assert.Equal("en", Languages.Resolve(Languages.Automatic, "en-GB"));
     }
 
+    [Theory]
+    [InlineData("de-DE", "de")]
+    [InlineData("de-AT", "de")]
+    [InlineData("zh-Hans", "zh-CN")]
+    [InlineData("zh-Hant", "zh-TW")]
+    [InlineData("zh-HK", "zh-TW")]
+    [InlineData("pt-PT", "pt-BR")]
+    [InlineData("ru-RU", "ru")]
+    [InlineData("ko-KR", "ko")]
+    public void ACultureReachesTheTableItBelongsTo(string culture, string expected)
+    {
+        Assert.Equal(expected, Languages.Resolve(Languages.Automatic, culture));
+    }
+
     [Fact]
     public void ACultureWithNoTableFallsBackToEnglish()
     {
-        // Twelve languages are planned; a culture whose table has not been written yet reads
+        // Twelve languages are offered; Windows has many more, and each of the rest reads
         // English rather than nothing.
-        Assert.Equal("en", Languages.Resolve(Languages.Automatic, "de-DE"));
-        Assert.Equal("en", Languages.Resolve(Languages.Automatic, "zh-Hans"));
+        Assert.Equal("en", Languages.Resolve(Languages.Automatic, "sv-SE"));
+        Assert.Equal("en", Languages.Resolve(Languages.Automatic, "th-TH"));
         Assert.Equal("en", Languages.Resolve(Languages.Automatic, "xx-YY"));
     }
 
@@ -151,6 +182,15 @@ public class LocalizationTests
     {
         // A settings file can name a language this version does not have.
         Assert.Equal("ja", Languages.Resolve("xx", "ja-JP"));
+    }
+
+    [Fact]
+    public void ALanguageWithARegionInItIsChosenByItsWholeCode()
+    {
+        // Two of the twelve are named with a region, and neither is reachable by its two-letter
+        // code alone: pt is Brazilian here, and zh has to say which script it means.
+        Assert.Equal("pt-BR", Languages.Resolve("pt-BR", "en-US"));
+        Assert.Equal("zh-TW", Languages.Resolve("zh-TW", "en-US"));
     }
 
     // -----------------------------------------------------------------
@@ -162,6 +202,8 @@ public class LocalizationTests
     {
         Assert.Equal("Exit", new UiText("en")[StringId.MenuExit]);
         Assert.Equal("終了", new UiText("ja")[StringId.MenuExit]);
+        Assert.Equal("Beenden", new UiText("de")[StringId.MenuExit]);
+        Assert.Equal("退出", new UiText("zh-CN")[StringId.MenuExit]);
     }
 
     [Fact]

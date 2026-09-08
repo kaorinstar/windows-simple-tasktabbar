@@ -6,10 +6,11 @@ namespace WindowsSimpleTaskTabBar.Core.Localization;
 /// <remarks>
 /// Adding a language costs one table in <see cref="UiStrings"/> and one row in
 /// <see cref="All"/>. Nothing else is edited: the settings dialog lists whatever stands here,
-/// and <see cref="Canonical"/> already maps the cultures of the languages still to come.
+/// and <see cref="Canonical"/> decides which row a Windows culture belongs to.
 ///
 /// English is the source language. Every other table is a translation of it, and English is
-/// what an unmatched culture falls back to.
+/// what an unmatched culture falls back to. Only English and Japanese have been checked by
+/// someone who reads them; corrections to the rest are welcome as issues or pull requests.
 /// </remarks>
 public static class Languages
 {
@@ -32,13 +33,28 @@ public static class Languages
     /// The languages that have a table, in the order the settings dialog lists them.
     /// </summary>
     /// <remarks>
-    /// English first, as the source language; the rest follow in the order they were translated.
-    /// Twelve languages are planned (issue #35); the two here are the ones written so far.
+    /// English first, as the source language, then the eleven of issue #35 in the order that
+    /// issue lists them.
+    ///
+    /// Chinese, Japanese and Korean name a font of their own. Those three share code points, so
+    /// one font cannot serve all three: a Japanese font draws Chinese with Japanese letter
+    /// shapes, which a Chinese reader sees as wrong rather than as a missing character. The rest
+    /// use the font Windows itself is written in.
     /// </remarks>
     private static readonly LanguageInfo[] Known =
     {
         new LanguageInfo(English, "English", DefaultFontFamily),
         new LanguageInfo("ja", "日本語", "Yu Gothic UI"),
+        new LanguageInfo("zh-CN", "简体中文", "Microsoft YaHei UI"),
+        new LanguageInfo("zh-TW", "繁體中文", "Microsoft JhengHei UI"),
+        new LanguageInfo("ru", "Русский", DefaultFontFamily),
+        new LanguageInfo("de", "Deutsch", DefaultFontFamily),
+        new LanguageInfo("fr", "Français", DefaultFontFamily),
+        new LanguageInfo("es", "Español", DefaultFontFamily),
+        new LanguageInfo("pt-BR", "Português (Brasil)", DefaultFontFamily),
+        new LanguageInfo("ko", "한국어", "Malgun Gothic"),
+        new LanguageInfo("pl", "Polski", DefaultFontFamily),
+        new LanguageInfo("it", "Italiano", DefaultFontFamily),
     };
 
     /// <summary>The languages that have a table.</summary>
@@ -80,10 +96,10 @@ public static class Languages
     ///
     /// - <c>zh-Hant</c>, <c>zh-TW</c>, <c>zh-HK</c> and <c>zh-MO</c> are Traditional Chinese;
     ///   every other Chinese culture, <c>zh-Hans</c> and <c>zh-SG</c> among them, is Simplified.
-    /// - Only the Brazilian table is planned for Portuguese, so <c>pt-PT</c> maps to it as well.
+    /// - Only the Brazilian table exists for Portuguese, so <c>pt-PT</c> maps to it as well.
     ///
-    /// The rules are written before those languages have tables so that adding one is a table
-    /// and a row, with nothing to remember here.
+    /// Everything else is matched on its two-letter code, so <c>de-AT</c> reads the German table
+    /// and a culture with no table of its own reads English.
     /// </remarks>
     public static string Canonical(string cultureName)
     {
