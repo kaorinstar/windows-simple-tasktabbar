@@ -8,6 +8,8 @@ Chrome-style tab.
 It does **not** merge windows into a single container. It only displays them and switches
 between them.
 
+![A row of tabs, one for each open window, sitting directly above the Windows taskbar](docs/images/bar.png)
+
 ## Why
 
 Windows restricts which processes may bring a window to the foreground. Because of that
@@ -46,6 +48,15 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
   a display language that is none of the twelve shows English. The font follows the language, so
   Chinese, Japanese and Korean each get their own rather than one another's letter shapes.
   English and Japanese are the two the maintainer can check; corrections to the rest are welcome.
+
+With grouping turned on, the windows of one application sit together and share a colour along
+the top edge of their tabs, with a rule between one group and the next.
+
+![Tabs grouped by application, each group marked with its own colour and separated by a rule](docs/images/grouping.png)
+
+The settings:
+
+![The settings window, with sections for language, bar height, colours and tab groups](docs/images/settings.png)
 
 ## Download
 
