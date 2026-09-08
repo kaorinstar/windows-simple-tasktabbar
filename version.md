@@ -24,6 +24,9 @@ in [README.md](README.md).
   the font Windows draws its own dialogs in.
 - Changing the language applies at once: the bar, its two menus and the settings dialog are all
   redrawn without a restart.
+- The heading of each group of settings is now visible. Bar height, Colours and Tab groups each
+  had one, and the contents of the group were being drawn over it, leaving the heading blank and
+  a gap at the foot of the group instead.
 
 ## v0.4.0
 

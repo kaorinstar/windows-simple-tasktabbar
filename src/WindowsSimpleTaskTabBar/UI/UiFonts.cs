@@ -18,12 +18,21 @@ internal static class UiFonts
     /// </summary>
     /// <remarks>
     /// Asking for a family that is not installed does not fail: GDI+ quietly substitutes another
-    /// face, and the text is then drawn in whatever it picked. The check comes first so that the
-    /// fallback is a font this application chose.
+    /// face, and the font then reports the name of whatever it picked. That is what the check
+    /// below reads, so the fallback is a font this application chose rather than one it was
+    /// handed.
+    ///
+    /// The family is not looked up through <c>FontFamily</c> first. A family created from a name
+    /// is a handle into a collection GDI+ keeps, and disposing it can leave a font made from the
+    /// same name pointing at freed memory, which shows up later as "parameter is not valid" from
+    /// something as ordinary as reading the font's height.
     /// </remarks>
     public static Font Create(string family, float size, GraphicsUnit unit)
     {
-        if (IsInstalled(family)) return new Font(family, size, unit);
+        var font = new Font(family, size, unit);
+        if (string.Equals(font.Name, family, StringComparison.OrdinalIgnoreCase)) return font;
+
+        font.Dispose();
 
         using Font dialog = SystemFonts.MessageBoxFont;
         return new Font(dialog.Name, size, unit);
@@ -37,25 +46,5 @@ internal static class UiFonts
     {
         using Font dialog = SystemFonts.MessageBoxFont;
         return Create(family, dialog.SizeInPoints, GraphicsUnit.Point);
-    }
-
-    /// <summary>Whether a font family is installed on this machine.</summary>
-    /// <remarks>
-    /// A stripped-down Windows installation can be missing any of the families named for a
-    /// language. Only the exception GDI+ raises for a family it cannot find is caught.
-    /// </remarks>
-    private static bool IsInstalled(string family)
-    {
-        if (string.IsNullOrEmpty(family)) return false;
-
-        try
-        {
-            using (new FontFamily(family)) { }
-            return true;
-        }
-        catch (ArgumentException)
-        {
-            return false;
-        }
     }
 }

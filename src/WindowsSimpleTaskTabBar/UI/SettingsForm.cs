@@ -153,13 +153,28 @@ internal sealed class SettingsForm : Form
     /// <remarks>
     /// The size comes from the font Windows draws its own dialogs in, so the text still follows
     /// the size the user set for Windows; only the family is chosen here.
+    ///
+    /// A font equal to the one already in use is dropped rather than swapped in. Two fonts are
+    /// equal to Windows Forms when their family, size and style match, and the <c>Font</c>
+    /// property keeps the object it already has in that case. Handing it a second one and then
+    /// disposing the first would leave the dialog drawing with a font that no longer exists,
+    /// which is what happens between Japanese and Automatic on a Japanese Windows: both are
+    /// Yu Gothic UI.
     /// </remarks>
     private void ApplyFont()
     {
+        Font wanted = UiFonts.ForDialog(_text.FontFamily);
+
+        if (_uiFont != null && wanted.Equals(_uiFont))
+        {
+            wanted.Dispose();
+            return;
+        }
+
         Font previous = _uiFont;
 
-        _uiFont = UiFonts.ForDialog(_text.FontFamily);
-        Font = _uiFont;
+        _uiFont = wanted;
+        Font = wanted;
 
         // After the new one is in place: the controls are measured against whatever Font holds.
         previous?.Dispose();
@@ -277,6 +292,17 @@ internal sealed class SettingsForm : Form
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Padding = new Padding(8, 4, 8, 8),
+
+            // Docked, so that it starts below the caption. A control added to a group box
+            // without this sits in the top left corner of the box, over the caption, and the
+            // room the box leaves for the caption shows up as a gap at the bottom instead.
+            //
+            // A docked panel is given the box's display rectangle, which is a few pixels
+            // smaller than the size the box asked for on its behalf. WrapContents is off so
+            // that those few pixels come off the padding at the edge rather than sending the
+            // last control into a second column.
+            Dock = DockStyle.Fill,
+            WrapContents = false,
         };
         choices.Controls.Add(_language);
 
@@ -317,6 +343,17 @@ internal sealed class SettingsForm : Form
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Padding = new Padding(8, 4, 8, 8),
+
+            // Docked, so that it starts below the caption. A control added to a group box
+            // without this sits in the top left corner of the box, over the caption, and the
+            // room the box leaves for the caption shows up as a gap at the bottom instead.
+            //
+            // A docked panel is given the box's display rectangle, which is a few pixels
+            // smaller than the size the box asked for on its behalf. WrapContents is off so
+            // that those few pixels come off the padding at the edge rather than sending the
+            // last control into a second column.
+            Dock = DockStyle.Fill,
+            WrapContents = false,
         };
         choices.Controls.Add(_standard);
         choices.Controls.Add(_compact);
@@ -376,6 +413,17 @@ internal sealed class SettingsForm : Form
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Padding = new Padding(8, 4, 8, 8),
+
+            // Docked, so that it starts below the caption. A control added to a group box
+            // without this sits in the top left corner of the box, over the caption, and the
+            // room the box leaves for the caption shows up as a gap at the bottom instead.
+            //
+            // A docked panel is given the box's display rectangle, which is a few pixels
+            // smaller than the size the box asked for on its behalf. WrapContents is off so
+            // that those few pixels come off the padding at the edge rather than sending the
+            // last control into a second column.
+            Dock = DockStyle.Fill,
+            WrapContents = false,
         };
         choices.Controls.Add(_followWindows);
         choices.Controls.Add(_light);
@@ -539,6 +587,8 @@ internal sealed class SettingsForm : Form
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Padding = new Padding(8, 4, 8, 8),
+            Dock = DockStyle.Fill,    // below the caption; see BuildLanguageGroup
+            WrapContents = false,
         };
         content.Controls.Add(_groupByApplication);
         content.Controls.Add(explanation);
