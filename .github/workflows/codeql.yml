@@ -1,0 +1,56 @@
+# Static analysis of this project's own code.
+#
+# It covers what the vulnerability check in build.yml does not. That one reads the list of known
+# vulnerabilities in other people's packages and says nothing about the code written here. CodeQL
+# reads this code. It is free on public repositories alone, which is why the file arrives with the
+# repository being published (#26).
+#
+# The analysis runs without a build. CodeQL supports that for C#, and the alternative would put a
+# third copy of the restore and build steps in this repository, beside the two in build.yml and
+# release.yml that already have to be changed together. Nothing is compiled here, so this one does
+# not need Windows.
+#
+# The weekly run is not made redundant by the two above it. GitHub updates the queries, so a run
+# over code that has not changed can still find something the run before it could not.
+#
+# Code scanning needs a public repository. While this one is private the analysis fails with
+# "Advanced Security must be enabled", which says nothing about the code, so merge this file
+# after the repository is made public rather than before.
+
+name: codeql
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Mondays, 03:17 UTC. Not on the hour: everything scheduled there queues behind everything
+    # else scheduled there.
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyse:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Writing the findings to the Security tab is the one thing this job does beyond reading
+      # the source.
+      security-events: write
+
+    steps:
+      - name: Check out the source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+
+      - name: Initialise CodeQL
+        uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938   # v4.37.9
+        with:
+          languages: csharp
+          build-mode: none
+
+      - name: Analyse
+        uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938   # v4.37.9
