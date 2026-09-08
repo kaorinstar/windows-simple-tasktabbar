@@ -4,7 +4,7 @@ The newest version is at the top. Each entry says what changed for someone using
 application, rather than which pull requests were merged.
 
 A release takes its notes from the section whose heading matches its tag. Entries are written as
-each change lands, under `## Unreleased
+each change lands, under `## v0.5.0
 
 - The interface is now available in twelve languages: English, Japanese, Simplified Chinese,
   Traditional Chinese, Russian, German, French, Spanish, Portuguese (Brazil), Korean, Polish and
@@ -22,6 +22,8 @@ each change lands, under `## Unreleased
 - The heading of each group of settings is now visible. Bar height, Colours and Tab groups each
   had one, and the contents of the group were being drawn over it, leaving the heading blank and
   a gap at the foot of the group instead.
+- The executable is 111,104 bytes, against 83,456 in v0.4.0. The twelve string tables account
+  for most of the difference.
 
 ## v0.4.0
 
