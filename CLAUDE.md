@@ -255,7 +255,10 @@ and uses it as the release notes, so the entry has to be committed **before** th
 malformed tag, a missing section or an empty one fails the workflow before anything is built.
 
 **Every change that a user would notice adds its entry to `## Unreleased` in the same pull request
-that makes the change**, in both files. Preparing a release is then renaming that heading to the
+that makes the change**, in both files. Both files also name `## Unreleased` in the paragraph
+that explains them, so rename the heading itself rather than the first match in the file: doing
+the latter left v0.5.0 with its notes swallowed by that paragraph and no heading for the tag to
+match. Preparing a release is then renaming that heading to the
 version number rather than reconstructing the list from the commit log afterwards. No tag matches
 `Unreleased`, so forgetting to rename it fails the workflow instead of publishing an empty
 release.
