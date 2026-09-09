@@ -197,16 +197,15 @@ One instance of the window is kept for the life of the bar rather than one per p
 pointer crossing a row of tabs would otherwise create and destroy one for each. It is created on
 the first preview, so a bar left on the default setting never makes it at all.
 
-A minimized window is not left out, but there may be no picture of it. The compositor draws what
-is on screen, and a minimized window is not, so `DwmRegisterThumbnail` has nothing live to show.
-The picture of one that the taskbar shows comes from the shell, through something Windows does not
-expose to other applications: the documented way for a minimized window to have a thumbnail,
-`DWMWA_HAS_ICONIC_BITMAP` and `WM_DWMSENDICONICTHUMBNAIL`, is for the window's own owner to use,
-not for anyone watching it.
+A minimized window needs no special case. It was expected to be the one that did - the compositor
+draws what is on screen, and a minimized window is not - but Windows keeps enough of one that
+`DwmRegisterThumbnail` shows it like any other, which hand testing on Windows settled after the
+code had been written the other way round. Nothing anywhere asks whether the source is minimized.
 
-So the panel draws the window's icon in the picture area first and lets the compositor draw over
-it. A window being drawn covers the icon; one that is not leaves it showing. There is no test of
-whether the source is minimized anywhere in this, and no empty box either way.
+The panel draws the window's icon in the picture area first and lets the compositor draw over it,
+so a window it has no picture of still says which application it belongs to. That was written as
+the answer for minimized windows and is the fallback for whatever else turns out to have none - a
+window that has never been shown, for one. Either way there is no empty box.
 
 The icon is drawn at the size it actually is rather than filled to the area. A window usually
 answers `WM_GETICON` with 16 pixels, and stretched across a preview that is a blur; small and

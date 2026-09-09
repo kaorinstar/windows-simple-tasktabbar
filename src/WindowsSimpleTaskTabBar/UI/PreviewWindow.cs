@@ -138,9 +138,9 @@ internal sealed class PreviewWindow : Form
     /// Registering is what makes the size readable, so the two happen together. A registration
     /// that answers no size is released here rather than left for the caller to remember.
     ///
-    /// A minimized window is registered like any other. The compositor is not drawing one, so
-    /// there may be no picture to show, but the icon painted behind it is what the panel falls
-    /// back to and asking costs nothing.
+    /// A minimized window is registered like any other, and shows like any other: Windows keeps
+    /// enough of one that the compositor still draws it. That was not expected when this was
+    /// written - a minimized window is not on screen - and hand testing on Windows settled it.
     /// </remarks>
     /// <returns>False when there is nothing to show, in which case nothing is registered.</returns>
     public bool Register(IntPtr source, out int sourceWidth, out int sourceHeight)
@@ -232,8 +232,9 @@ internal sealed class PreviewWindow : Form
     /// <remarks>
     /// The picture itself is not drawn here. The compositor puts it over the area this leaves
     /// for it, after this method has run, which is what makes the icon in that area a fallback:
-    /// a window the compositor is drawing covers it, and one it is not - a minimized window -
-    /// leaves it showing.
+    /// a window the compositor has a picture of covers it, and one it has nothing for leaves it
+    /// showing. Minimized windows were what that was written for, and they turned out not to
+    /// need it; it stands for whatever else has no picture, a window never yet shown among them.
     /// </remarks>
     protected override void OnPaint(PaintEventArgs e)
     {

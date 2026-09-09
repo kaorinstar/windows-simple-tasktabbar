@@ -1451,10 +1451,9 @@ public class MainForm : Form
     /// The window a preview should be showing, or zero for none.
     /// </summary>
     /// <remarks>
-    /// A minimized window is not left out. The compositor is not drawing one, so there may be no
-    /// picture for it, but the panel draws the window's icon behind the picture and its title
-    /// below: something that says which window this is either way, which is what the taskbar
-    /// shows for a minimized window too.
+    /// A minimized window is not left out, and needs no special case: Windows keeps enough of one
+    /// that the compositor draws it like any other. The panel draws the window's icon behind the
+    /// picture regardless, which covers whatever it has no picture of.
     /// </remarks>
     private IntPtr PreviewTarget()
     {
