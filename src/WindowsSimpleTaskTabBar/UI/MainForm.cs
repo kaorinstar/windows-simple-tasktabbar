@@ -1,10 +1,12 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing.Drawing2D;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using WindowsSimpleTaskTabBar.Core.Grouping;
 using WindowsSimpleTaskTabBar.Core.Layout;
+using WindowsSimpleTaskTabBar.Core.Localization;
 using WindowsSimpleTaskTabBar.Core.Settings;
 using WindowsSimpleTaskTabBar.Core.Theme;
 using WindowsSimpleTaskTabBar.Core.Update;
@@ -112,6 +114,9 @@ public class MainForm : Form
     // the click landed, and that property would always show the same one.
     private ContextMenuStrip _appMenu;
     private ContextMenuStrip _tabMenu;
+
+    // Menus replaced by a change of language, kept until the bar closes. See RebuildMenus.
+    private readonly List<ContextMenuStrip> _retiredMenus = new();
     private IntPtr _menuTarget;              // the tab _tabMenu was opened on
 
     // The menu owns these three, and disposing it disposes them. CA2213 sees a disposable field
@@ -147,11 +152,15 @@ public class MainForm : Form
     private float _scale = 1.0f;
     private Font _font;
 
+    // The interface text, in the language the settings ask for. Everything the user reads on the
+    // bar and in its menus comes from here rather than from the line that draws it.
+    private UiText _text = new UiText(Languages.English);
+
     // Colors, chosen to match the current Windows theme
     private Color _cBack, _cTab, _cTabActive, _cTabHover, _cText, _cTextActive, _cLine;
 
-    // The accents a tab group can be marked with, one set per theme. Core works in numbers so
-    // that it stays free of System.Drawing; the numbers are turned into colours here.
+    // The accents a tab group can be marked with, in the shade of the palette in use. Held as
+    // colours rather than as BarPalette's numbers so that painting a tab is a lookup.
     private readonly Color[] _accents = new Color[AppSettings.AccentCount];
 
     public MainForm()
@@ -165,6 +174,7 @@ public class MainForm : Form
                  | ControlStyles.UserPaint | ControlStyles.ResizeRedraw, true);
 
         _settings = SettingsStore.Load();
+        _text = TextForSettings();
 
         ApplyTheme();
 
@@ -195,13 +205,13 @@ public class MainForm : Form
     private ContextMenuStrip BuildMenu()
     {
         var menu = new ContextMenuStrip();
-        menu.Items.Add("Settings...", null, (_, __) => ShowSettings());
+        menu.Items.Add(_text[StringId.MenuSettings], null, (_, __) => ShowSettings());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(UpdateMenuText, null, (_, __) => OnUpdateMenuClicked()).Name = UpdateItemName;
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Refresh", null, (_, __) => { _dirty = true; RefreshTabs(); });
+        menu.Items.Add(_text[StringId.MenuRefresh], null, (_, __) => { _dirty = true; RefreshTabs(); });
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Exit", null, (_, __) => Close());
+        menu.Items.Add(_text[StringId.MenuExit], null, (_, __) => Close());
 
         // What the update entry says depends on state that changes while the menu is closed, and
         // there are two menus built from here. Setting the text as each one opens keeps them in
@@ -228,16 +238,18 @@ public class MainForm : Form
     {
         var menu = new ContextMenuStrip();
 
-        menu.Items.Add("Close", null, (_, __) => { WindowService.Close(_menuTarget); _dirty = true; });
-        _closeOthersItem = menu.Items.Add("Close other tabs", null,
+        menu.Items.Add(_text[StringId.TabMenuClose], null,
+            (_, __) => { WindowService.Close(_menuTarget); _dirty = true; });
+        _closeOthersItem = menu.Items.Add(_text[StringId.TabMenuCloseOthers], null,
             (_, __) => CloseWindows(_menuTarget, Side.Both));
-        _closeLeftItem = menu.Items.Add("Close tabs to the left", null,
+        _closeLeftItem = menu.Items.Add(_text[StringId.TabMenuCloseLeft], null,
             (_, __) => CloseWindows(_menuTarget, Side.Left));
-        _closeRightItem = menu.Items.Add("Close tabs to the right", null,
+        _closeRightItem = menu.Items.Add(_text[StringId.TabMenuCloseRight], null,
             (_, __) => CloseWindows(_menuTarget, Side.Right));
 
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Minimize", null, (_, __) => { WindowService.Minimize(_menuTarget); _dirty = true; });
+        menu.Items.Add(_text[StringId.TabMenuMinimize], null,
+            (_, __) => { WindowService.Minimize(_menuTarget); _dirty = true; });
 
         return menu;
     }
@@ -376,15 +388,62 @@ public class MainForm : Form
     // ---------------------------------------------------------------
 
     /// <summary>
-    /// Recomputes every drawing size and rebuilds the font. Called whenever the bar height or
-    /// the DPI changes, so the two can never disagree.
+    /// Recomputes every drawing size and rebuilds the font. Called whenever the bar height, the
+    /// DPI or the language changes, so the sizes and the font can never disagree with them.
     /// </summary>
     private void RebuildMetrics()
     {
         _metrics = BarMetrics.For(AppSettings.HeightInPixels(_settings.BarHeight), _scale);
 
         _font?.Dispose();
-        _font = new Font("Yu Gothic UI", _metrics.FontPixels, GraphicsUnit.Pixel);
+        _font = UiFonts.Create(_text.FontFamily, _metrics.FontPixels, GraphicsUnit.Pixel);
+    }
+
+    /// <summary>The interface text in the language the settings ask for.</summary>
+    /// <remarks>
+    /// The setting is normally empty, which means the language Windows is set to. Anything the
+    /// application has no table for ends at English; <c>Languages.Resolve</c> holds the rules.
+    /// </remarks>
+    private UiText TextForSettings()
+    {
+        return new UiText(
+            Languages.Resolve(_settings.Language, CultureInfo.CurrentUICulture.Name));
+    }
+
+    /// <summary>
+    /// Builds both menus again, and the tray icon's, after the language has changed.
+    /// </summary>
+    /// <remarks>
+    /// A <see cref="ToolStripItem"/> could have its text replaced instead, but that would mean a
+    /// second list of which item holds which piece of text, beside the one in
+    /// <see cref="BuildMenu"/>. The menus are built in one place and thrown away whole.
+    ///
+    /// The menus this replaces are kept rather than disposed. The language is changed in the
+    /// settings dialog, which was opened from the Settings item of one of these menus, and
+    /// Windows Forms is still holding that menu further up the stack: disposing it here fails
+    /// once the dialog closes and the click finishes being handled. A menu is small and a
+    /// language is changed rarely, so they are held until <see cref="ReleaseResources"/> runs.
+    /// </remarks>
+    private void RebuildMenus()
+    {
+        Retire(_appMenu);
+        Retire(_tabMenu);
+
+        _appMenu = BuildMenu();
+        _tabMenu = BuildTabMenu();
+
+        if (_trayIcon != null)
+        {
+            // The NotifyIcon does not own its menu, so the one it held is retired here too.
+            Retire(_trayIcon.ContextMenuStrip);
+            _trayIcon.ContextMenuStrip = BuildMenu();
+        }
+    }
+
+    /// <summary>Keeps a menu that is no longer shown, to be disposed when the bar closes.</summary>
+    private void Retire(ContextMenuStrip menu)
+    {
+        if (menu != null) _retiredMenus.Add(menu);
     }
 
     /// <summary>
@@ -398,7 +457,7 @@ public class MainForm : Form
             return;
         }
 
-        using var form = new SettingsForm(_settings, ApplySettings, RunningApplications);
+        using var form = new SettingsForm(_settings, ApplySettings, RunningApplications, () => _text);
         _settingsForm = form;
         try
         {
@@ -420,6 +479,14 @@ public class MainForm : Form
         // dialog could not keep, or an application claimed by two groups, is settled here rather
         // than only on the way out.
         _settings.Normalize();
+
+        // Before the metrics, which build the font: the family comes from the language.
+        UiText text = TextForSettings();
+        if (text.Language != _text.Language)
+        {
+            _text = text;
+            RebuildMenus();
+        }
 
         ApplyTheme();             // the colour setting may have changed
         RebuildMetrics();
@@ -454,8 +521,8 @@ public class MainForm : Form
     /// <summary>One entry serves both jobs, so a five-item menu does not become seven.</summary>
     private string UpdateMenuText =>
         _updateAvailableTag.Length > 0
-            ? "Update available: " + _updateAvailableTag + "..."
-            : "Check for updates...";
+            ? _text.Format(StringId.MenuUpdateAvailable, _updateAvailableTag)
+            : _text[StringId.MenuCheckForUpdates];
 
     /// <summary>
     /// Starts the automatic check, once per run of the application.
@@ -523,7 +590,7 @@ public class MainForm : Form
             // the next start rather than wait another day.
             if (report)
             {
-                MessageBox.Show(this, "Could not reach GitHub to check for a new version.",
+                MessageBox.Show(this, _text[StringId.UpdateCheckFailed],
                     Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
 
@@ -543,7 +610,7 @@ public class MainForm : Form
             if (report)
             {
                 if (MessageBox.Show(this,
-                        result.LatestTag + " is available. Open the release page?",
+                        _text.Format(StringId.UpdateAvailableAsk, result.LatestTag),
                         Text, MessageBoxButtons.YesNo, MessageBoxIcon.Information)
                     == DialogResult.Yes)
                 {
@@ -558,7 +625,7 @@ public class MainForm : Form
         else if (report)
         {
             MessageBox.Show(this,
-                "This is the newest version (" + UpdateService.RunningVersion + ").",
+                _text.Format(StringId.UpdateUpToDate, UpdateService.RunningVersion),
                 Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
@@ -580,7 +647,7 @@ public class MainForm : Form
         if (_trayIcon == null) return;
 
         _trayIcon.ShowBalloonTip(10000, Text,
-            tag + " is available. Click here to open the release page.", ToolTipIcon.Info);
+            _text.Format(StringId.UpdateNotice, tag), ToolTipIcon.Info);
     }
 
     /// <summary>
@@ -927,14 +994,13 @@ public class MainForm : Form
         if (_groupIds.Count != _tabs.Count) return;
 
         bool[] marks = TabGrouping.Marks(_groupIds);
+        int[] accents = TabGrouping.AccentsFor(_groupIds, _settings.Groups, AppSettings.AccentCount);
 
         for (int i = 0; i < _tabs.Count; i++)
         {
             _tabs[i].GroupId = _groupIds[i];
             _tabs[i].Marked = marks[i];
-            _tabs[i].Accent = marks[i]
-                ? TabGrouping.AccentFor(_groupIds[i], _settings.Groups, AppSettings.AccentCount)
-                : -1;
+            _tabs[i].Accent = accents[i];
         }
     }
 
@@ -1133,6 +1199,7 @@ public class MainForm : Form
         return Color.FromArgb(255, Color.FromArgb(rgb));
     }
 
+
     /// <summary>The colour a marked tab's accent is drawn in.</summary>
     private Color GroupAccent(TabItem tab)
     {
@@ -1194,7 +1261,7 @@ public class MainForm : Form
             var emptyRect = new Rectangle(
                 _metrics.Padding, _metrics.TopOffset,
                 ClientSize.Width - _metrics.Padding * 2, ClientSize.Height - _metrics.TopOffset);
-            TextRenderer.DrawText(g, "No windows to show", _font, emptyRect, _cText,
+            TextRenderer.DrawText(g, _text[StringId.BarNoWindows], _font, emptyRect, _cText,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
             return;
         }
@@ -1852,6 +1919,10 @@ public class MainForm : Form
 
         _appMenu?.Dispose();
         _tabMenu?.Dispose();
+
+        foreach (ContextMenuStrip menu in _retiredMenus)
+            menu.Dispose();
+        _retiredMenus.Clear();
 
         // Hide before disposing. A tray icon that is only disposed can be left behind as a
         // dead entry in the notification area until the user hovers over it.

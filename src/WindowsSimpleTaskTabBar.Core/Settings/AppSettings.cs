@@ -1,4 +1,5 @@
 using WindowsSimpleTaskTabBar.Core.Grouping;
+using WindowsSimpleTaskTabBar.Core.Localization;
 using WindowsSimpleTaskTabBar.Core.Update;
 
 namespace WindowsSimpleTaskTabBar.Core.Settings;
@@ -44,7 +45,7 @@ public class AppSettings
     /// The schema this instance was written with. Present from the first release so that a later
     /// version can tell an old file apart from a new one instead of guessing.
     /// </summary>
-    public const int CurrentSchema = 4;
+    public const int CurrentSchema = 6;
 
     /// <summary>How many accents a group can be marked with.</summary>
     public const int AccentCount = 8;
@@ -74,6 +75,16 @@ public class AppSettings
     /// something to do to somebody who has only updated the application.
     /// </remarks>
     public bool GroupByApplication { get; set; }
+
+    /// <summary>
+    /// Which language the interface is drawn in, as a language code, or
+    /// <see cref="Languages.Automatic"/> to take it from Windows.
+    /// </summary>
+    /// <remarks>
+    /// Automatic by default, and a file written before this setting existed reads as automatic
+    /// too, so an update leaves the language where the user's Windows puts it.
+    /// </remarks>
+    public string Language { get; set; } = Languages.Automatic;
 
     /// <summary>
     /// The groups the user has defined by hand, which override the automatic one group per
@@ -130,6 +141,7 @@ public class AppSettings
             BarHeight = IsKnown(BarHeight) ? BarHeight : BarHeightMode.Standard,
             Colours = IsKnown(Colours) ? Colours : ColourMode.FollowWindows,
             GroupByApplication = GroupByApplication,
+            Language = Languages.Find(Language)?.Code ?? Languages.Automatic,
             Groups = NormalizedGroups(Groups),
             CheckForUpdates = CheckForUpdates ?? true,
             LastUpdateCheckUtc = NormalizedStamp(LastUpdateCheckUtc),
@@ -154,6 +166,7 @@ public class AppSettings
         BarHeight = tidy.BarHeight;
         Colours = tidy.Colours;
         GroupByApplication = tidy.GroupByApplication;
+        Language = tidy.Language;
         Groups = tidy.Groups;
         CheckForUpdates = tidy.CheckForUpdates;
         LastUpdateCheckUtc = tidy.LastUpdateCheckUtc;

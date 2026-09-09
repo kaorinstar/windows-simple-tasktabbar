@@ -224,23 +224,202 @@ public static class TabGrouping
     /// The accent number of a group: the one its rule names, or one derived from the group's own
     /// name when the rule leaves it automatic.
     /// </summary>
+    /// <remarks>
+    /// A name on its own cannot avoid a collision. Two groups with different names agree modulo
+    /// eight often enough to be met rather than to be unlucky: with three groups the chance is
+    /// about one in three, and past eight groups a repeat is certain. So the accents the user
+    /// chose by hand are taken first, and then the groups left automatic are walked in the order
+    /// they sit in the settings, each keeping the accent its name gives when that one is still
+    /// free and taking the next free one when it is not.
+    ///
+    /// The order the settings hold them in is the one thing available that does not change by
+    /// itself, which is what makes the answer the same on every run. Adding a group can still
+    /// move the accent of a group listed after it. Choosing the accent by hand is the way to hold
+    /// one still.
+    ///
+    /// Only the groups the user defined take part. A group that is one application - a
+    /// <paramref name="groupId"/> no rule names - keeps the accent its name gives, so it can
+    /// still meet a defined group on the same colour. Making those take part would mean ordering
+    /// them by which windows happen to be open, and a colour would then change as windows were
+    /// opened and closed.
+    /// </remarks>
     public static int AccentFor(string groupId, IList<AppGroup> rules, int paletteSize)
     {
         if (paletteSize <= 0) return -1;
+        if (rules == null || string.IsNullOrEmpty(groupId)) return Hashed(groupId, paletteSize);
 
-        if (rules != null && !string.IsNullOrEmpty(groupId))
+        var taken = new bool[paletteSize];
+        bool defined = false;
+
+        // Chosen accents are settled before any name is hashed, so an automatic group avoids one
+        // the user asked for whichever order the two are listed in.
+        foreach (AppGroup rule in rules)
         {
-            foreach (AppGroup rule in rules)
-            {
-                if (rule == null) continue;
-                if (!string.Equals(rule.Name, groupId, StringComparison.OrdinalIgnoreCase)) continue;
+            if (rule == null || string.IsNullOrEmpty(rule.Name)) continue;
 
-                if (rule.Accent >= 0 && rule.Accent < paletteSize) return rule.Accent;
-                break;
+            if (string.Equals(rule.Name, groupId, StringComparison.OrdinalIgnoreCase)) defined = true;
+            if (rule.Accent >= 0 && rule.Accent < paletteSize) taken[rule.Accent] = true;
+        }
+
+        if (!defined) return Hashed(groupId, paletteSize);
+
+        foreach (AppGroup rule in rules)
+        {
+            if (rule == null || string.IsNullOrEmpty(rule.Name)) continue;
+
+            bool wanted = string.Equals(rule.Name, groupId, StringComparison.OrdinalIgnoreCase);
+
+            if (rule.Accent >= 0 && rule.Accent < paletteSize)
+            {
+                if (wanted) return rule.Accent;
+                continue;
+            }
+
+            int accent = FirstFree(Hashed(rule.Name, paletteSize), taken);
+            if (accent >= 0) taken[accent] = true;
+            else accent = Hashed(rule.Name, paletteSize);   // every accent is spoken for
+
+            if (wanted) return accent;
+        }
+
+        return Hashed(groupId, paletteSize);
+    }
+
+    /// <summary>
+    /// The accent of every tab of an arranged row, and -1 for the tabs of a group left unmarked.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="AccentFor"/> keeps the groups the user defined apart from one another, which is
+    /// as far as a name can go. The groups that are one application are not in the settings at
+    /// all, so nothing there can hold them apart, and with eight accents a row of half a dozen
+    /// applications repeats one often.
+    ///
+    /// Where that repeat does harm is between neighbours. The band is carried across the gap
+    /// inside a group, so two groups side by side in one colour read as a single group, which is
+    /// the one thing the band is there to say. Two groups in the same colour with something
+    /// between them are only two groups in the same colour.
+    ///
+    /// So the row is walked from the front, and where a group's accent matches the group before
+    /// it, one of the two moves on. The one that moves is the one whose accent was derived: an
+    /// accent the user chose stays where they put it, and the group beside it gives way instead.
+    /// When both were chosen by hand, both are left as they are. A group of one window is not
+    /// marked and breaks the band, so the group after it has nothing to differ from.
+    ///
+    /// This is the row's own order, so a group can change colour when it is dragged to a new
+    /// neighbour or when a window opens beside it. That is the price of the guarantee, and it is
+    /// paid on the tabs the user is looking at rather than across the whole bar.
+    /// </remarks>
+    public static int[] AccentsFor(IList<string> arrangedGroupIds, IList<AppGroup> rules,
+        int paletteSize)
+    {
+        if (arrangedGroupIds == null || arrangedGroupIds.Count == 0) return new int[0];
+
+        bool[] marks = Marks(arrangedGroupIds);
+
+        // One entry per group of the row, in the order the row is drawn. An unmarked group is
+        // carried along with an accent of -1, so that it still separates the two beside it.
+        var starts = new List<int>();
+        var ends = new List<int>();
+        var accent = new List<int>();
+        var chosen = new List<bool>();
+
+        int at = 0;
+        while (at < arrangedGroupIds.Count)
+        {
+            int end = EndOfRun(arrangedGroupIds, at);
+
+            starts.Add(at);
+            ends.Add(end);
+            accent.Add(marks[at] ? AccentFor(arrangedGroupIds[at], rules, paletteSize) : -1);
+            chosen.Add(marks[at] && IsChosen(arrangedGroupIds[at], rules, paletteSize));
+
+            at = end + 1;
+        }
+
+        // Two accents are needed for one to give way, and three for the one that gives way to
+        // clear both of its neighbours.
+        if (paletteSize > 2)
+        {
+            for (int i = 1; i < accent.Count; i++)
+            {
+                if (accent[i] < 0 || accent[i] != accent[i - 1]) continue;
+
+                if (!chosen[i])
+                {
+                    accent[i] = NextApartFrom(accent[i], accent[i - 1], -1, paletteSize);
+                }
+                else if (!chosen[i - 1])
+                {
+                    // The user chose this one, so the group in front of it moves instead - clear
+                    // of this accent and of whatever sits on its own other side.
+                    accent[i - 1] = NextApartFrom(
+                        accent[i - 1], accent[i], i >= 2 ? accent[i - 2] : -1, paletteSize);
+                }
+
+                // Neither branch taken means both accents were chosen by hand, which is what the
+                // user asked for and is left as it is.
             }
         }
 
-        return (int)(Hash(groupId) % (uint)paletteSize);
+        var accents = new int[arrangedGroupIds.Count];
+        for (int run = 0; run < starts.Count; run++)
+        {
+            for (int i = starts[run]; i <= ends[run]; i++) accents[i] = accent[run];
+        }
+
+        return accents;
+    }
+
+    /// <summary>
+    /// The first accent after <paramref name="start"/> that is neither of the two given. Either
+    /// may be -1, which no accent matches.
+    /// </summary>
+    private static int NextApartFrom(int start, int first, int second, int paletteSize)
+    {
+        for (int step = 1; step <= paletteSize; step++)
+        {
+            int candidate = (start + step) % paletteSize;
+            if (candidate != first && candidate != second) return candidate;
+        }
+
+        return start;
+    }
+
+    /// <summary>Whether a rule names this group and gives it an accent the user picked.</summary>
+    private static bool IsChosen(string groupId, IList<AppGroup> rules, int paletteSize)
+    {
+        if (rules == null || string.IsNullOrEmpty(groupId)) return false;
+
+        foreach (AppGroup rule in rules)
+        {
+            if (rule == null || string.IsNullOrEmpty(rule.Name)) continue;
+            if (!string.Equals(rule.Name, groupId, StringComparison.OrdinalIgnoreCase)) continue;
+
+            return rule.Accent >= 0 && rule.Accent < paletteSize;
+        }
+
+        return false;
+    }
+
+    /// <summary>The accent a name gives on its own, before any collision is considered.</summary>
+    private static int Hashed(string name, int paletteSize)
+    {
+        return (int)(Hash(name) % (uint)paletteSize);
+    }
+
+    /// <summary>
+    /// The first accent not yet taken, starting at <paramref name="start"/> and wrapping round,
+    /// or -1 when every one of them is taken.
+    /// </summary>
+    private static int FirstFree(int start, bool[] taken)
+    {
+        for (int step = 0; step < taken.Length; step++)
+        {
+            int accent = (start + step) % taken.Length;
+            if (!taken[accent]) return accent;
+        }
+
+        return -1;
     }
 
     /// <summary>

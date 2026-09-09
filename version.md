@@ -13,10 +13,6 @@ in [README.md](README.md).
 
 ## Unreleased
 
-- The colours can now be chosen in the settings: follow Windows, always light, or always dark.
-  Following Windows stays the default, so nothing changes until you pick one of the other two.
-  With light or dark chosen, the bar keeps it when Windows switches its own setting, including
-  the automatic switch some people schedule.
 - The bar now looks for a newer release when it starts, and tells you when there is one: a
   notification names the version, and the menu gains an entry that opens the release page in your
   browser. Nothing is downloaded and nothing is replaced - you download the new executable
@@ -24,6 +20,49 @@ in [README.md](README.md).
   nothing about you, and runs at most once a day. Each release is announced once rather than at
   every logon. A new box in the settings dialog turns it off, and the menu entry still lets you
   ask whenever you like.
+
+## v0.5.0
+
+- The interface is now available in twelve languages: English, Japanese, Simplified Chinese,
+  Traditional Chinese, Russian, German, French, Spanish, Portuguese (Brazil), Korean, Polish and
+  Italian. It follows Windows, so a machine set to one of the twelve shows it without anything
+  being set, and any other display language shows English. It can also be chosen by hand in the
+  settings, and the choice is kept between runs. Changing it applies at once: the bar, its two
+  menus and the settings dialog are all redrawn without a restart.
+- Only English and Japanese have been read by someone who knows them. Corrections to the other
+  ten languages are welcome as issues or pull requests.
+- The font follows the language. Chinese, Japanese and Korean share code points, so one font
+  cannot serve all three: each is drawn in a font of its own, and every other language in
+  Segoe UI, which is the font Windows itself uses. English therefore moves from Yu Gothic UI,
+  which the bar used for everything, to Segoe UI. A font that is missing from Windows falls back
+  to the one Windows draws its own dialogs in.
+- The heading of each group of settings is now visible. Bar height, Colours and Tab groups each
+  had one, and the contents of the group were being drawn over it, leaving the heading blank and
+  a gap at the foot of the group instead.
+- The executable is 111,104 bytes, against 83,456 in v0.4.0. The twelve string tables account
+  for most of the difference.
+
+## v0.4.0
+
+- The colours can now be chosen in the settings: follow Windows, always light, or always dark.
+  Following Windows stays the default, so nothing changes until you pick one of the other two.
+  With light or dark chosen, the bar keeps it when Windows switches its own setting, including
+  the automatic switch some people schedule.
+- Two tab groups left on the automatic colour are no longer marked in the same one. There are
+  eight colours, and each group used to take the one its name gave it without looking at what the
+  other groups held, so with three groups there was about one chance in three of a repeat. A
+  colour chosen by hand is now reserved first, and a group left automatic moves to the next free
+  colour when the one its name gives is taken. Past eight groups a repeat cannot be avoided.
+- Two groups side by side on the bar are no longer marked in the same colour either. This covers
+  the groups that are one application, which are not in the settings and so could not be held
+  apart there: several folder windows beside several of something else came out in one colour and
+  read as a single group. A colour chosen by hand is kept, and the group beside it moves instead.
+  Two groups in the same colour with something between them are left as they are.
+- The colour list in the settings names each colour and shows a square of it, in place of
+  "Colour 1" to "Colour 8".
+- The list of applications in the settings no longer jumps back to the top each time a box is
+  ticked. It stays where it was scrolled to.
+- The executable is 83,456 bytes, against 77,312 in v0.3.0.
 
 ## v0.3.0
 

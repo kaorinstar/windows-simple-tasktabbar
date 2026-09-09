@@ -33,6 +33,12 @@ windows-simple-tasktabbar/
 │   │   ├── Layout/
 │   │   │   ├── BarMetrics.cs               Drawing sizes, from bar height and DPI
 │   │   │   └── TabStrip.cs                 Tab width, overflow, scroll arithmetic
+│   │   ├── Localization/
+│   │   │   ├── LanguageInfo.cs             One language: its name and its font
+│   │   │   ├── Languages.cs                The languages offered, and which one to use
+│   │   │   ├── StringId.cs                 The name of every piece of interface text
+│   │   │   ├── UiStrings.cs                What each one says, in each language
+│   │   │   └── UiText.cs                   The text in one language, as callers read it
 │   │   ├── Settings/
 │   │   │   ├── AppGroup.cs                 One group the user defined by hand
 │   │   │   └── AppSettings.cs              The settings and their defaults
@@ -51,13 +57,16 @@ windows-simple-tasktabbar/
 │       │   ├── UpdateService.cs            Asking GitHub for the newest release
 │       │   └── WindowService.cs            Enumerate, activate, close windows
 │       └── UI/
+│           ├── AccentPalette.cs            The square of colour shown beside each accent
 │           ├── MainForm.cs                 AppBar registration, painting, input
-│           └── SettingsForm.cs             The settings dialog
+│           ├── SettingsForm.cs             The settings dialog
+│           └── UiFonts.cs                  The font of the active language, with a fallback
 └── tests/
     └── WindowsSimpleTaskTabBar.Tests/      Unit tests
         ├── AppSettingsTests.cs
         ├── BarMetricsTests.cs
         ├── BarPaletteTests.cs
+        ├── LocalizationTests.cs
         ├── ReleaseVersionTests.cs
         ├── TabGroupingTests.cs
         ├── TabStripTests.cs
@@ -114,6 +123,7 @@ Program.cs
    ↓
 UI/MainForm.cs  ──→  Core/Layout/                (calculations)
    │             ──→  Core/Grouping/              (which tab is in which group)
+   │             ──→  Core/Localization/          (what every piece of text says)
    ↓
 Services/WindowService.cs                       (window operations)
    ↓
@@ -167,6 +177,43 @@ therefore read in `OnMouseUp`, and the menu shown from there. The tab menu acts 
 handle rather than an index, so a refresh while it is open cannot move it to another window; the
 commands that close one side of the row look the tab's position up when they run, for the same
 reason.
+
+### The interface text
+
+Nothing the user reads is written where it is drawn. Every piece of it has a name in
+`Core/Localization/StringId.cs` and a line in each table in `Core/Localization/UiStrings.cs`,
+and `UiText` reads one language of that table. English is the source language; every other table
+is a translation of it.
+
+**A plain table rather than `.resx` and satellite assemblies.** A satellite assembly adds a
+folder and a DLL for each language, and this application is distributed as a single executable.
+The tables are compiled in with everything else in Core, which also means they can be tested on
+any operating system. Two unit tests hold them together: every table answers every name, and no
+table holds a name the others do not.
+
+**Adding a language costs one table and one row.** The table goes in `UiStrings`, the row in
+`Languages.All`. The settings dialog lists whatever stands in that list, under each language's
+own name, so nothing else is edited. `Languages.Canonical` says which row a Windows culture
+belongs to: Chinese and Portuguese cannot be answered by the two-letter code alone, and
+everything else is matched on it.
+
+**Only English and Japanese have been read by someone who knows them.** The parity test holds
+every table to the same set of names; nothing holds a translation to what it ought to say. A
+translation that reads wrongly to a native speaker is worth an issue or a pull request.
+
+**The font follows the language.** Chinese, Japanese and Korean share code points, so one font
+cannot serve all three: a Japanese font draws Chinese text with Japanese letter shapes, which a
+Chinese reader sees as wrong rather than as a missing character. Each language names its family
+in `Languages.All`, and `UI/UiFonts.cs` falls back to the font Windows draws its own dialogs in
+when the family is not installed, which a stripped-down Windows can be missing.
+
+**A change of language applies at once**, like every other setting here. The bar rebuilds its
+menus and its font, and the settings dialog builds itself again from the same code that built it
+the first time, so there is no second list of which control holds which piece of text. Two
+things wait for the message that changed them to finish being handled: the dialog rebuilds
+itself through `BeginInvoke`, because it disposes the box the change came from, and the menus
+the bar replaces are kept until it closes, because the menu whose Settings item opened the
+dialog is still held by Windows Forms further up the stack.
 
 ### Grouping the row by application
 
@@ -236,6 +283,48 @@ of the step moved onto it, which is a change of its own.
 A group of one window is not marked. The accent says "these belong together", which a single tab
 has nothing to say to, and marking every tab of a row where no two windows share an application
 would colour the whole bar and tell the user nothing.
+
+### Which accent a group is given
+
+`TabGrouping.AccentFor` answers with a number from 0 to 7, which is an index into
+`BarPalette.Accents` and so into the shade of the palette in use. A group whose accent the user
+chose keeps that one. The rest are derived, and the derivation has two parts.
+
+The first is a hash of the group's name, FNV-1a over its lower-cased characters, taken modulo the
+palette size. It is written out rather than taken from `string.GetHashCode`, which is randomized
+per process on .NET Core and later: an application would be a different colour every time the bar
+started, and a different colour again on the other target framework.
+
+The second part is there because a hash cannot avoid a collision. Eight accents are few enough
+that two different names agreeing is met rather than unlucky - about one chance in three with
+three groups, and certain past eight - and two groups in the same colour is exactly what the
+accent is meant to rule out. So the accents chosen by hand are reserved first, and then the groups
+left automatic are walked in the order the settings hold them, each keeping the accent its name
+gives when that one is still free and taking the next free one when it is not.
+
+The settings order is used because it is the one order available that does not change by itself,
+which is what keeps the answer the same on every run. The cost is that adding a group can move the
+accent of a group listed after it; choosing an accent by hand is how a user holds one still.
+
+Only the groups the user defined take part in that. A group that is one application is not in the
+settings at all, so there is nothing there to hold it apart from anything else, and a row of half
+a dozen applications repeats an accent often.
+
+`TabGrouping.AccentsFor` covers what is left, on the row rather than in the settings. Where a
+repeat does harm is between neighbours: the band is carried across the gap inside a group, so two
+groups side by side in one colour read as a single group, which is the one thing the band is there
+to say. Two groups in the same colour with something between them are only two groups in the same
+colour. So the row is walked from the front, and where a group's accent matches the group before
+it, one of the two moves on. The one that moves is the one whose accent was derived; an accent the
+user chose stays where they put it and its neighbour gives way, and when both were chosen both are
+left alone. A group of one window is not marked, and an unmarked group breaks the band, so the
+group after it has nothing to differ from.
+
+This is the row's own order, so a group can change colour when it is dragged to a new neighbour or
+when a window opens beside it. That is what the guarantee costs, and it is paid on the two groups
+the user is looking at rather than across the whole bar. Ordering every group by the row instead,
+and holding all of them apart that way, would spread the same instability over every colour on the
+bar.
 
 ### Reading the process behind a window
 
@@ -324,11 +413,6 @@ Everything decidable without a network or a window lives in `Core/Update/`: read
 of a tag, comparing two of them, and deciding whether a check is due. `Services/UpdateService.cs`
 makes the request and answers with one of three outcomes. `MainForm` owns the thread the answer
 comes back on, and everything the user sees.
-
-**While the repository is private (#26) this finds nothing.** An unauthenticated request for the
-latest release of a private repository fails, and the failure is indistinguishable from being
-offline, so no notice is ever shown. That is safe, and it is also why the feature cannot be tested
-end to end until the repository is published.
 
 ### Who owns what, and how a leak is caught
 

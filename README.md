@@ -8,6 +8,8 @@ Chrome-style tab.
 It does **not** merge windows into a single container. It only displays them and switches
 between them.
 
+![A row of tabs, one for each open window, sitting directly above the Windows taskbar](docs/images/bar.png)
+
 ## Why
 
 Windows restricts which processes may bring a window to the foreground. Because of that
@@ -42,10 +44,26 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
 - **A new version** — the bar checks for one when it starts and tells you when there is one.
   Nothing is downloaded. See [Updates](#updates).
 
+- **Choose the language** — an option in the settings: follow Windows, or one of twelve
+  languages. English, Japanese, Simplified Chinese, Traditional Chinese, Russian, German, French,
+  Spanish, Portuguese (Brazil), Korean, Polish and Italian. Following Windows is the default, and
+  a display language that is none of the twelve shows English. The font follows the language, so
+  Chinese, Japanese and Korean each get their own rather than one another's letter shapes.
+  English and Japanese are the two the maintainer can check; corrections to the rest are welcome.
+
+With grouping turned on, the windows of one application sit together and share a colour along
+the top edge of their tabs, with a rule between one group and the next.
+
+![Tabs grouped by application, each group marked with its own colour and separated by a rule](docs/images/grouping.png)
+
+The settings:
+
+![The settings window, with sections for language, bar height, colours and tab groups](docs/images/settings.png)
+
 ## Download
 
 One file is attached to each [release](https://github.com/kaorinstar/windows-simple-tasktabbar/releases):
-`WindowsSimpleTaskTabBar.exe`, under 100 KB. Each release entry in
+`WindowsSimpleTaskTabBar.exe`, under 150 KB. Each release entry in
 [version.md](version.md) gives the size of that release.
 
 It targets .NET Framework 4.8, which ships with Windows 10 version 1903 and later and with
@@ -81,7 +99,7 @@ shortly after it starts.
 - **It reads one number.** Nothing about you or your machine is sent, and nothing is stored
   anywhere but on your own computer.
 - **Nothing is downloaded and nothing is replaced.** If a newer release exists, the notification
-  area says so, and the menu gains **Update available: v0.4.0...**, which opens the release page
+  area says so, and the menu gains **Update available: v0.6.0...**, which opens the release page
   in your browser. You download the new executable and put it in place yourself, exactly as you
   did to install it.
 - **At most once a day**, and each release is announced once rather than at every logon.
@@ -214,11 +232,22 @@ rather than listed here, so there is one list to keep up to date. Two issues col
 
 Issues and pull requests are welcome. Please keep the following in mind:
 
-- Code, comments, and documentation are written in English. `README.ja.md` and
-  `docs/architecture.ja.md` are Japanese translations kept in sync with the English originals.
+- Code, comments, and documentation are written in English. A file whose name ends `.ja.md` is
+  the Japanese translation of the file beside it, kept in sync with the English original in the
+  same commit.
+- Interface text is not written where it is drawn. Every string has a name in
+  `src/WindowsSimpleTaskTabBar.Core/Localization/StringId.cs` and a line in each table in
+  `UiStrings.cs`. A translation that reads wrongly to a native speaker is worth an issue or a
+  pull request, and a new language costs one table there and one row in `Languages.cs`.
 - The build must pass with `-warnaserror`.
 - The `net48` target must keep working. Shipping a single executable that needs no runtime
   install is a core requirement of this project.
+
+## Security
+
+A vulnerability goes to the private form linked from [SECURITY.md](SECURITY.md), not to an issue.
+That file also writes out what the application reaches — no network connection at all, one
+settings file, one registry value read — so a report can be judged against it.
 
 ## License
 
