@@ -214,9 +214,17 @@ sharp says which application this is, and the title beneath says which window.
 
 The pointer can move onto the panel and read the title there, which is why it sits against the top
 of the bar with nothing in between: a gap is desktop, and the bar would clear its hover the moment
-the pointer touched it. `MainForm.PointerIsOnPreview` is what keeps the hover while the pointer is
-on the panel, in `RecomputeHover` and in `OnMouseLeave`, and `PreviewWindow.PointerLeft` is what
-takes the panel down once the pointer has left it without landing back on the bar.
+the pointer touched it. `MainForm.PointerIsAtPreview` is what keeps the hover while the pointer is
+on the panel, in `RecomputeHover`, `OnMouseMove` and `OnMouseLeave`, and
+`PreviewWindow.PointerLeft` is what takes the panel down once the pointer has left it without
+landing back on the bar.
+
+Touching the bar is not the whole of it. The strip the bar leaves above the tabs, `TopOffset` tall,
+belongs to no tab: the panel covers its top row and the tabs start below it, so a couple of pixels
+in between are on the bar and on nothing at all. `PointerIsAtPreview` counts those as being at the
+panel, or the hover clears there and the preview goes as the user reaches for it. A pointer moving
+quickly crosses them within one mouse message and never notices; a slow one lands in them every
+time, which is how this was found.
 
 The panel has a tooltip of its own for a title it had to cut short, shown over the title alone.
 Over the picture it would cover what the pointer came to look at, and a title already shown in

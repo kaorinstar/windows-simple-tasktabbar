@@ -1371,7 +1371,7 @@ public class MainForm : Form
         // stays hovered until the pointer leaves the preview as well - found by window rather
         // than by index, because the row may have been rebuilt while the pointer sat there. A
         // window that closed meanwhile answers -1, and the preview goes with it.
-        if (PointerIsOnPreview)
+        if (PointerIsAtPreview)
         {
             _hoverIndex = _tabs.FindIndex(t => t.Hwnd == _previewHwnd);
             _hoverClose = false;
@@ -1466,15 +1466,30 @@ public class MainForm : Form
     }
 
     /// <summary>
-    /// Whether the pointer is on the preview rather than on the bar.
+    /// Whether the pointer is on the preview, or on the way between it and the tab below.
     /// </summary>
     /// <remarks>
     /// The preview is a window of its own, so the pointer moving onto it leaves the bar. Without
     /// this the bar would clear its hover as the pointer arrived, and the preview would take
     /// itself down at the moment the user reached for it.
+    ///
+    /// The way between them is the strip the bar leaves above the tabs, <see cref="BarMetrics.
+    /// TopOffset"/> tall, which belongs to no tab: the preview covers the top row of it and the
+    /// tabs start below it, so a couple of pixels in between are on the bar and on nothing. A
+    /// pointer moving fast crosses them in one message and a slow one lands in them, which is
+    /// what made this show up as "it disappears if I move slowly".
     /// </remarks>
-    private bool PointerIsOnPreview =>
-        _preview != null && _preview.Visible && _preview.Bounds.Contains(MousePosition);
+    private bool PointerIsAtPreview
+    {
+        get
+        {
+            if (_preview == null || !_preview.Visible) return false;
+            if (_preview.Bounds.Contains(MousePosition)) return true;
+
+            Point p = PointToClient(MousePosition);
+            return ClientRectangle.Contains(p) && p.Y < _metrics.TopOffset;
+        }
+    }
 
     /// <summary>
     /// The pointer has left the preview. It goes unless the bar has it back, in which case the
@@ -1588,6 +1603,11 @@ public class MainForm : Form
         }
 
         int index = HitTest(e.Location, out bool onClose);
+
+        // On nothing, between the tabs and the preview above them. The hover is left where it
+        // was so the preview survives the crossing; PointerIsAtPreview says why.
+        if (index < 0 && PointerIsAtPreview) return;
+
         SetHover(index, onClose);
     }
 
@@ -1603,7 +1623,7 @@ public class MainForm : Form
 
         // Onto the preview rather than away from the bar: the preview stays, and takes itself
         // down when the pointer leaves it.
-        if (PointerIsOnPreview) return;
+        if (PointerIsAtPreview) return;
 
         SetHover(-1, false);
     }
