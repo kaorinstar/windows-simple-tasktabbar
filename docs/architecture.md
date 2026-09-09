@@ -28,6 +28,8 @@ windows-simple-tasktabbar/
 │   └── architecture.ja.md         Japanese translation
 ├── src/
 │   ├── WindowsSimpleTaskTabBar.Core/       Logic with no UI dependency
+│   │   ├── Focus/
+│   │   │   └── ActiveMark.cs               Which tab is marked as the window in front
 │   │   ├── Grouping/
 │   │   │   └── TabGrouping.cs              Which group a tab is in, and the row's order
 │   │   ├── Layout/
@@ -52,6 +54,7 @@ windows-simple-tasktabbar/
 │           └── SettingsForm.cs             The settings dialog
 └── tests/
     └── WindowsSimpleTaskTabBar.Tests/      Unit tests
+        ├── ActiveMarkTests.cs
         ├── AppSettingsTests.cs
         ├── BarMetricsTests.cs
         ├── BarPaletteTests.cs
@@ -109,6 +112,7 @@ Program.cs
    ↓
 UI/MainForm.cs  ──→  Core/Layout/                (calculations)
    │             ──→  Core/Grouping/              (which tab is in which group)
+   │             ──→  Core/Focus/                 (which tab is marked as in front)
    ↓
 Services/WindowService.cs                       (window operations)
    ↓
@@ -164,6 +168,30 @@ the outline marks it down the sides. Its foot goes one outline width past the bo
 the outline follows a closed path, and a bottom edge left on the last row of pixels would be drawn
 as a line under the tab rather than the open foot a tab standing on the edge of the bar should
 have.
+
+### Which tab the mark goes on
+
+Not simply the foreground window. The bar activates itself when it is clicked, as the section on
+three-step activation explains, so touching the bar at all takes the foreground away from the
+window the user was in. A click hands it back on release, through `ClickTab`. A drag does not: it
+ends with no window to activate, so the bar is still in front when the button comes up, and the
+row would sit unmarked until the user went somewhere else. The fill alone made that easy to miss;
+an outline does not.
+
+So `WindowToMark` asks `Core/Focus/ActiveMark.cs` instead, and a window of this application's own
+never takes the mark - the window that held it keeps it, which is what the Windows taskbar does
+with its own highlight while it is being used. A window the bar does not list cannot hold the mark
+either, so a handle Windows has since given to something else cannot inherit one.
+
+`ActiveMark` is given three booleans rather than window handles, so the rule can be tested on any
+platform while asking Windows which window is which stays in the UI layer. `IsOwnWindow` compares
+process ids rather than handles: the bar is not the only window this application puts on screen,
+and the settings dialog or a menu can be what a click leaves in the foreground.
+
+This also settles a piece of timing. `ClickTab` minimizes a tab that is already in front, and it
+reads `tab.Active` to decide. That flag used to depend on whether the 250 ms refresh happened to
+land between the press and the release; now the mark stays put while the bar is in front, so the
+answer is the same either way.
 
 Giving the active tab a larger share of the width was considered and dropped as well (#9).
 `TabStrip.Measure` returns one width for the whole row and four calculations read it, so two

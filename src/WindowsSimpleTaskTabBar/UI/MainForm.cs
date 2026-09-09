@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
+using WindowsSimpleTaskTabBar.Core.Focus;
 using WindowsSimpleTaskTabBar.Core.Grouping;
 using WindowsSimpleTaskTabBar.Core.Layout;
 using WindowsSimpleTaskTabBar.Core.Settings;
@@ -79,6 +80,13 @@ public class MainForm : Form
     private Rectangle _scrollRightButton;
     private int _hoverButton = -1;           // 0 left arrow, 1 right arrow, -1 neither
     private IntPtr _lastForeground;
+
+    // The window the tabs mark as the one in front. Not always the foreground window: see
+    // WindowToMark, and Core/Focus/ActiveMark.cs for the rule itself.
+    private IntPtr _markedWindow;
+
+    // Read once. A process cannot change the id it was given.
+    private static readonly uint OwnProcessId = NativeMethods.GetCurrentProcessId();
 
     // Dragging a tab to a new position. A press is only a candidate for a drag: what it turns
     // out to be is decided on release, so a press that does not move still acts as a click.
@@ -560,15 +568,53 @@ public class MainForm : Form
     // ---------------------------------------------------------------
     // Refreshing the tab list
     // ---------------------------------------------------------------
+    /// <summary>
+    /// Which window the tabs mark as the one in front, which is not always the one Windows says
+    /// is in the foreground. <see cref="ActiveMark"/> holds the rule and the reasons for it.
+    /// </summary>
+    /// <param name="live">The windows the bar lists as of this pass.</param>
+    private IntPtr WindowToMark(HashSet<IntPtr> live)
+    {
+        IntPtr foreground = NativeMethods.GetForegroundWindow();
+
+        switch (ActiveMark.Choose(IsOwnWindow(foreground), live.Contains(foreground),
+                                  live.Contains(_markedWindow)))
+        {
+            case MarkChoice.TakeForeground: _markedWindow = foreground; break;
+            case MarkChoice.MarkNothing: _markedWindow = IntPtr.Zero; break;
+            default: break;   // KeepMarked: _markedWindow is already the answer
+        }
+
+        return _markedWindow;
+    }
+
+    /// <summary>Whether a window belongs to this application rather than somebody else.</summary>
+    /// <remarks>
+    /// The process rather than the handle, because the bar is not the only window this
+    /// application puts on screen: the settings dialog and both menus are windows of their own,
+    /// and any of them can be what a click leaves in the foreground.
+    /// </remarks>
+    private static bool IsOwnWindow(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero) return false;
+
+        // A window this application may not query answers 0, which belongs to no process and so
+        // is somebody else's, which is the safe reading: the mark moves rather than sticking.
+        NativeMethods.GetWindowThreadProcessId(hwnd, out uint processId);
+        return processId == OwnProcessId;
+    }
+
     private void RefreshTabs()
     {
         List<IntPtr> current = WindowService.EnumerateTaskWindows(Handle);
-        IntPtr foreground = NativeMethods.GetForegroundWindow();
 
         // Keep the existing order and append newly opened windows at the end.
         // Membership is tested through sets: this runs every 250 ms.
         var live = new HashSet<IntPtr>(current);
         _order.RemoveAll(h => !live.Contains(h));
+
+        // After the live set is built, because which window is marked depends on it.
+        IntPtr foreground = WindowToMark(live);
 
         var known = new HashSet<IntPtr>(_order);
         foreach (IntPtr h in current)
