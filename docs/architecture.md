@@ -35,6 +35,12 @@ windows-simple-tasktabbar/
 │   │   ├── Layout/
 │   │   │   ├── BarMetrics.cs               Drawing sizes, from bar height and DPI
 │   │   │   └── TabStrip.cs                 Tab width, overflow, scroll arithmetic
+│   │   ├── Localization/
+│   │   │   ├── LanguageInfo.cs             One language: its name and its font
+│   │   │   ├── Languages.cs                The languages offered, and which one to use
+│   │   │   ├── StringId.cs                 The name of every piece of interface text
+│   │   │   ├── UiStrings.cs                What each one says, in each language
+│   │   │   └── UiText.cs                   The text in one language, as callers read it
 │   │   ├── Settings/
 │   │   │   ├── AppGroup.cs                 One group the user defined by hand
 │   │   │   └── AppSettings.cs              The settings and their defaults
@@ -49,15 +55,17 @@ windows-simple-tasktabbar/
 │       │   ├── SettingsStore.cs            Reading and writing the settings file
 │       │   └── WindowService.cs            Enumerate, activate, close windows
 │       └── UI/
-│           ├── AccentPalette.cs            What each accent is called, for the settings
+│           ├── AccentPalette.cs            The square of colour shown beside each accent
 │           ├── MainForm.cs                 AppBar registration, painting, input
-│           └── SettingsForm.cs             The settings dialog
+│           ├── SettingsForm.cs             The settings dialog
+│           └── UiFonts.cs                  The font of the active language, with a fallback
 └── tests/
     └── WindowsSimpleTaskTabBar.Tests/      Unit tests
         ├── ActiveMarkTests.cs
         ├── AppSettingsTests.cs
         ├── BarMetricsTests.cs
         ├── BarPaletteTests.cs
+        ├── LocalizationTests.cs
         ├── TabGroupingTests.cs
         └── TabStripTests.cs
 ```
@@ -113,6 +121,7 @@ Program.cs
 UI/MainForm.cs  ──→  Core/Layout/                (calculations)
    │             ──→  Core/Grouping/              (which tab is in which group)
    │             ──→  Core/Focus/                 (which tab is marked as in front)
+   │             ──→  Core/Localization/          (what every piece of text says)
    ↓
 Services/WindowService.cs                       (window operations)
    ↓
@@ -219,6 +228,43 @@ therefore read in `OnMouseUp`, and the menu shown from there. The tab menu acts 
 handle rather than an index, so a refresh while it is open cannot move it to another window; the
 commands that close one side of the row look the tab's position up when they run, for the same
 reason.
+
+### The interface text
+
+Nothing the user reads is written where it is drawn. Every piece of it has a name in
+`Core/Localization/StringId.cs` and a line in each table in `Core/Localization/UiStrings.cs`,
+and `UiText` reads one language of that table. English is the source language; every other table
+is a translation of it.
+
+**A plain table rather than `.resx` and satellite assemblies.** A satellite assembly adds a
+folder and a DLL for each language, and this application is distributed as a single executable.
+The tables are compiled in with everything else in Core, which also means they can be tested on
+any operating system. Two unit tests hold them together: every table answers every name, and no
+table holds a name the others do not.
+
+**Adding a language costs one table and one row.** The table goes in `UiStrings`, the row in
+`Languages.All`. The settings dialog lists whatever stands in that list, under each language's
+own name, so nothing else is edited. `Languages.Canonical` says which row a Windows culture
+belongs to: Chinese and Portuguese cannot be answered by the two-letter code alone, and
+everything else is matched on it.
+
+**Only English and Japanese have been read by someone who knows them.** The parity test holds
+every table to the same set of names; nothing holds a translation to what it ought to say. A
+translation that reads wrongly to a native speaker is worth an issue or a pull request.
+
+**The font follows the language.** Chinese, Japanese and Korean share code points, so one font
+cannot serve all three: a Japanese font draws Chinese text with Japanese letter shapes, which a
+Chinese reader sees as wrong rather than as a missing character. Each language names its family
+in `Languages.All`, and `UI/UiFonts.cs` falls back to the font Windows draws its own dialogs in
+when the family is not installed, which a stripped-down Windows can be missing.
+
+**A change of language applies at once**, like every other setting here. The bar rebuilds its
+menus and its font, and the settings dialog builds itself again from the same code that built it
+the first time, so there is no second list of which control holds which piece of text. Two
+things wait for the message that changed them to finish being handled: the dialog rebuilds
+itself through `BeginInvoke`, because it disposes the box the change came from, and the menus
+the bar replaces are kept until it closes, because the menu whose Settings item opened the
+dialog is still held by Windows Forms further up the stack.
 
 ### Grouping the row by application
 

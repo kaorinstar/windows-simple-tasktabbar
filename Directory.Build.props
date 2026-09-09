@@ -27,7 +27,7 @@
          as -p:Version, so a published executable carries the version of its release. It is set to
          the version last released, so a build taken from a branch does not claim to be older than
          the release it came after. Preparing a release moves it on with the changelog heading. -->
-    <Version>0.3.0</Version>
+    <Version>0.5.0</Version>
     <Company>Kaoru Ishikura</Company>
     <Authors>Kaoru Ishikura</Authors>
     <Copyright>Copyright (c) 2026 Kaoru Ishikura</Copyright>

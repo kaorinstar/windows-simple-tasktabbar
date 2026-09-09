@@ -16,10 +16,17 @@ decision.
 
 - **All code, comments, identifiers, commit messages, and documentation are written in
   English.** This project is published publicly.
-- `README.ja.md` and `docs/architecture.ja.md` are Japanese translations. When you change
-  `README.md` or `docs/architecture.md`, update the Japanese file in the same commit so the two
-  stay in sync.
-- User-facing strings in the application are English. There is no localization framework yet.
+- A file whose name ends `.ja.md` is the Japanese translation of the file beside it:
+  `README.ja.md`, `docs/architecture.ja.md`, `version.ja.md` and `SECURITY.ja.md`. When you change
+  the English file, update its translation in the same commit so the two stay in sync.
+- **User-facing strings are never written where they are drawn.** Each one has a name in
+  `src/WindowsSimpleTaskTabBar.Core/Localization/StringId.cs` and a line in every table in
+  `UiStrings.cs`. English is the source language and the fallback. A name left out of a table
+  fails the tests, so a string added to one table is added to all of them in the same commit.
+- The interface is written in the twelve languages of #35. A thirteenth costs one table in
+  `UiStrings.cs` and one row in `Languages.All`, and nothing else. Keep that property.
+- English and Japanese are the two that have been read by someone who knows them. Do not rewrite
+  another language's table on your own judgement; a correction comes from someone who reads it.
 
 ## Build and test
 
@@ -248,7 +255,10 @@ and uses it as the release notes, so the entry has to be committed **before** th
 malformed tag, a missing section or an empty one fails the workflow before anything is built.
 
 **Every change that a user would notice adds its entry to `## Unreleased` in the same pull request
-that makes the change**, in both files. Preparing a release is then renaming that heading to the
+that makes the change**, in both files. Both files also name `## Unreleased` in the paragraph
+that explains them, so rename the heading itself rather than the first match in the file: doing
+the latter left v0.5.0 with its notes swallowed by that paragraph and no heading for the tag to
+match. Preparing a release is then renaming that heading to the
 version number rather than reconstructing the list from the commit log afterwards. No tag matches
 `Unreleased`, so forgetting to rename it fails the workflow instead of publishing an empty
 release.
@@ -263,8 +273,9 @@ heading and set the version together.
 Each entry in `version.md` quotes the size of that release's executable. Take it from the "Show
 the size of the net48 build" step of `build.yml`, which prints it on every run, rather than
 copying the entry above it: the figure sat at 23 KB while the application grew to more than twice
-that, and it reached a published release that way. The READMEs say only "under 100 KB" and point
-at `version.md`, so there is one number to keep right rather than five.
+that, and it reached a published release that way. The READMEs say only "under 150 KB" and point
+at `version.md`, so there is one number to keep right rather than five. Raise that bound when a
+release passes it, as v0.5.0 did, rather than quoting the size itself in two more files.
 
 That step is the one thing `build.yml` does that `release.yml` does not. It is there because the
 number is needed while a release is being prepared, which happens in a pull request, and pull

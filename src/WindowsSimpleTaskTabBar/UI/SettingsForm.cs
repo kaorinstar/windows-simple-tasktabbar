@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using WindowsSimpleTaskTabBar.Core.Grouping;
+using WindowsSimpleTaskTabBar.Core.Localization;
 using WindowsSimpleTaskTabBar.Core.Settings;
 
 namespace WindowsSimpleTaskTabBar.UI;
@@ -18,19 +19,40 @@ namespace WindowsSimpleTaskTabBar.UI;
 internal sealed class SettingsForm : Form
 {
     /// <summary>
-    /// The first entry of the colour list. It stands for no colour chosen, which leaves the group
-    /// to be given one.
+    /// The name shown in the title bar. A product name, so it is not translated.
     /// </summary>
-    private const string AutomaticAccent = "Automatic";
+    /// <remarks>
+    /// Not called ProductName: <see cref="Control.ProductName"/> already carries that name, and
+    /// hiding it fails the build.
+    /// </remarks>
+    private const string ApplicationName = "WindowsSimpleTaskTabBar";
 
     private readonly AppSettings _settings;
     private readonly Action _onChanged;
     private readonly Func<List<string>> _runningApplications;
+    private readonly Func<UiText> _currentText;
+
+    /// <summary>
+    /// The interface text this dialog is drawn in. Asked for again after the language is
+    /// changed, so it is not readonly.
+    /// </summary>
+    private UiText _text;
+
+    /// <summary>
+    /// The dialog's font, in the family the language asks for. Nothing else owns it, so
+    /// <see cref="Dispose(bool)"/> releases it.
+    /// </summary>
+    private Font _uiFont;
+
     private bool _loading;
 
     // Every control below is added to a Controls collection in BuildControls, and a control is
     // disposed by whatever it was added to. CA2213 cannot see that, so the ownership is stated
     // here.
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private ComboBox _language;
+
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
         Justification = "Owned by the Controls collection it is added to.")]
     private RadioButton _standard;
@@ -89,14 +111,20 @@ internal sealed class SettingsForm : Form
     /// The executables that have a window open, asked for again each time the list is shown
     /// rather than taken once, so a window opened while the dialog is up still appears.
     /// </param>
+    /// <param name="currentText">
+    /// The interface text as the bar has it. Asked for rather than passed once, because changing
+    /// the language here changes what the bar answers, and this dialog draws itself again from
+    /// the answer.
+    /// </param>
     public SettingsForm(AppSettings settings, Action onChanged,
-        Func<List<string>> runningApplications)
+        Func<List<string>> runningApplications, Func<UiText> currentText)
     {
         _settings = settings;
         _onChanged = onChanged;
         _runningApplications = runningApplications;
+        _currentText = currentText;
+        _text = currentText();
 
-        Text = "WindowsSimpleTaskTabBar settings";
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterScreen;
         MinimizeBox = false;
@@ -105,8 +133,87 @@ internal sealed class SettingsForm : Form
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
+        Build();
+    }
+
+    /// <summary>
+    /// Draws the whole dialog in the current language: the title, the font, and every control.
+    /// </summary>
+    private void Build()
+    {
+        Text = _text.Format(StringId.SettingsTitle, ApplicationName);
+        ApplyFont();
         BuildControls();
         LoadFromSettings();
+    }
+
+    /// <summary>
+    /// Gives the dialog the font of the language it is drawn in.
+    /// </summary>
+    /// <remarks>
+    /// The size comes from the font Windows draws its own dialogs in, so the text still follows
+    /// the size the user set for Windows; only the family is chosen here.
+    ///
+    /// A font equal to the one already in use is dropped rather than swapped in. Two fonts are
+    /// equal to Windows Forms when their family, size and style match, and the <c>Font</c>
+    /// property keeps the object it already has in that case. Handing it a second one and then
+    /// disposing the first would leave the dialog drawing with a font that no longer exists,
+    /// which is what happens between Japanese and Automatic on a Japanese Windows: both are
+    /// Yu Gothic UI.
+    /// </remarks>
+    private void ApplyFont()
+    {
+        Font wanted = UiFonts.ForDialog(_text.FontFamily);
+
+        if (_uiFont != null && wanted.Equals(_uiFont))
+        {
+            wanted.Dispose();
+            return;
+        }
+
+        Font previous = _uiFont;
+
+        _uiFont = wanted;
+        Font = wanted;
+
+        // After the new one is in place: the controls are measured against whatever Font holds.
+        previous?.Dispose();
+    }
+
+    /// <summary>
+    /// Builds the dialog again in the language just chosen.
+    /// </summary>
+    /// <remarks>
+    /// Each label is written where its control is created, so nothing here walks the controls
+    /// replacing text: they are thrown away and built again by the same code that built them the
+    /// first time. The dialog sizes itself from its contents, so it grows or shrinks to fit the
+    /// new language rather than cutting a longer label off.
+    /// </remarks>
+    private void Rebuild()
+    {
+        Control previous = Controls.Count > 0 ? Controls[0] : null;
+        Controls.Clear();
+        previous?.Dispose();
+
+        _text = _currentText();
+        Build();
+
+        // Back to the box the language was chosen in, which the rebuild has just replaced.
+        _language.Focus();
+    }
+
+    /// <summary>
+    /// Releases the font this dialog owns. The base call comes first, so no control is being
+    /// disposed while the font it was drawn with is going away.
+    /// </summary>
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+
+        if (!disposing) return;
+
+        _uiFont?.Dispose();
+        _uiFont = null;
     }
 
     private void BuildControls()
@@ -118,13 +225,14 @@ internal sealed class SettingsForm : Form
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Dock = DockStyle.Fill,
         };
+        root.Controls.Add(BuildLanguageGroup());
         root.Controls.Add(BuildHeightGroup());
         root.Controls.Add(BuildColourGroup());
         root.Controls.Add(BuildGroupingGroup());
 
         var note = new Label
         {
-            Text = "Changes apply straight away.",
+            Text = _text[StringId.SettingsChangesApply],
             AutoSize = true,
             ForeColor = SystemColors.GrayText,
             Margin = new Padding(14, 0, 12, 8),
@@ -132,7 +240,7 @@ internal sealed class SettingsForm : Form
 
         var close = new Button
         {
-            Text = "Close",
+            Text = _text[StringId.SettingsClose],
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Anchor = AnchorStyles.Right,
@@ -149,11 +257,72 @@ internal sealed class SettingsForm : Form
         CancelButton = close;
     }
 
+    /// <remarks>
+    /// A drop-down rather than a row of buttons: the list grows with every language added, and
+    /// each language is listed under its own name, so that someone who cannot read the language
+    /// the dialog is currently in can still find theirs.
+    ///
+    /// The choice applies at once, like every other setting here: the bar, its menus and this
+    /// dialog are all drawn again in the language just chosen.
+    /// </remarks>
+    private GroupBox BuildLanguageGroup()
+    {
+        _language = new ComboBox
+        {
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Margin = new Padding(4, 4, 4, 4),
+        };
+
+        _language.Items.Add(_text[StringId.LanguageAutomatic]);
+        foreach (LanguageInfo language in Languages.All)
+            _language.Items.Add(language.NativeName);
+
+        // Wide enough for the longest entry, measured rather than guessed: the entries are in
+        // different languages and their lengths are not known here.
+        int widest = 0;
+        foreach (object item in _language.Items)
+            widest = Math.Max(widest, TextRenderer.MeasureText(item.ToString(), Font).Width);
+
+        _language.Width = widest + Font.Height * 3;   // the name, and the arrow after it
+        _language.SelectedIndexChanged += (_, __) => OnLanguageChanged();
+
+        var choices = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.TopDown,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(8, 4, 8, 8),
+
+            // Docked, so that it starts below the caption. A control added to a group box
+            // without this sits in the top left corner of the box, over the caption, and the
+            // room the box leaves for the caption shows up as a gap at the bottom instead.
+            //
+            // A docked panel is given the box's display rectangle, which is a few pixels
+            // smaller than the size the box asked for on its behalf. WrapContents is off so
+            // that those few pixels come off the padding at the edge rather than sending the
+            // last control into a second column.
+            Dock = DockStyle.Fill,
+            WrapContents = false,
+        };
+        choices.Controls.Add(_language);
+
+        var box = new GroupBox
+        {
+            Text = _text[StringId.LanguageGroup],
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(12, 12, 12, 6),
+        };
+        box.Controls.Add(choices);
+        return box;
+    }
+
     private GroupBox BuildHeightGroup()
     {
         _standard = new RadioButton
         {
-            Text = $"Standard ({AppSettings.HeightInPixels(BarHeightMode.Standard)} px)",
+            Text = _text.Format(StringId.HeightStandard,
+                AppSettings.HeightInPixels(BarHeightMode.Standard)),
             AutoSize = true,
             Margin = new Padding(4, 4, 4, 2),
         };
@@ -161,8 +330,8 @@ internal sealed class SettingsForm : Form
 
         _compact = new RadioButton
         {
-            Text = $"Compact ({AppSettings.HeightInPixels(BarHeightMode.Compact)} px)"
-                   + " - gives the height back to your windows",
+            Text = _text.Format(StringId.HeightCompact,
+                AppSettings.HeightInPixels(BarHeightMode.Compact)),
             AutoSize = true,
             Margin = new Padding(4, 2, 4, 4),
         };
@@ -174,16 +343,27 @@ internal sealed class SettingsForm : Form
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Padding = new Padding(8, 4, 8, 8),
+
+            // Docked, so that it starts below the caption. A control added to a group box
+            // without this sits in the top left corner of the box, over the caption, and the
+            // room the box leaves for the caption shows up as a gap at the bottom instead.
+            //
+            // A docked panel is given the box's display rectangle, which is a few pixels
+            // smaller than the size the box asked for on its behalf. WrapContents is off so
+            // that those few pixels come off the padding at the edge rather than sending the
+            // last control into a second column.
+            Dock = DockStyle.Fill,
+            WrapContents = false,
         };
         choices.Controls.Add(_standard);
         choices.Controls.Add(_compact);
 
         var box = new GroupBox
         {
-            Text = "Bar height",
+            Text = _text[StringId.HeightGroup],
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Margin = new Padding(12, 12, 12, 6),
+            Margin = new Padding(12, 6, 12, 6),
         };
         box.Controls.Add(choices);
         return box;
@@ -197,7 +377,7 @@ internal sealed class SettingsForm : Form
     {
         _followWindows = new RadioButton
         {
-            Text = "Follow Windows",
+            Text = _text[StringId.ColourFollowWindows],
             AutoSize = true,
             Margin = new Padding(4, 4, 4, 2),
         };
@@ -205,7 +385,7 @@ internal sealed class SettingsForm : Form
 
         _light = new RadioButton
         {
-            Text = "Light",
+            Text = _text[StringId.ColourLight],
             AutoSize = true,
             Margin = new Padding(4, 2, 4, 2),
         };
@@ -213,7 +393,7 @@ internal sealed class SettingsForm : Form
 
         _dark = new RadioButton
         {
-            Text = "Dark",
+            Text = _text[StringId.ColourDark],
             AutoSize = true,
             Margin = new Padding(4, 2, 4, 4),
         };
@@ -221,7 +401,7 @@ internal sealed class SettingsForm : Form
 
         var explanation = new Label
         {
-            Text = "Light and Dark stay as you set them when Windows changes its own setting.",
+            Text = _text[StringId.ColourNote],
             AutoSize = true,
             ForeColor = SystemColors.GrayText,
             Margin = new Padding(4, 0, 4, 4),
@@ -233,6 +413,17 @@ internal sealed class SettingsForm : Form
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Padding = new Padding(8, 4, 8, 8),
+
+            // Docked, so that it starts below the caption. A control added to a group box
+            // without this sits in the top left corner of the box, over the caption, and the
+            // room the box leaves for the caption shows up as a gap at the bottom instead.
+            //
+            // A docked panel is given the box's display rectangle, which is a few pixels
+            // smaller than the size the box asked for on its behalf. WrapContents is off so
+            // that those few pixels come off the padding at the edge rather than sending the
+            // last control into a second column.
+            Dock = DockStyle.Fill,
+            WrapContents = false,
         };
         choices.Controls.Add(_followWindows);
         choices.Controls.Add(_light);
@@ -241,7 +432,7 @@ internal sealed class SettingsForm : Form
 
         var box = new GroupBox
         {
-            Text = "Colours",
+            Text = _text[StringId.ColourGroup],
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Margin = new Padding(12, 6, 12, 6),
@@ -262,7 +453,7 @@ internal sealed class SettingsForm : Form
 
         _groupByApplication = new CheckBox
         {
-            Text = "Group tabs by application",
+            Text = _text[StringId.GroupsEnable],
             AutoSize = true,
             Margin = new Padding(4, 4, 4, 2),
         };
@@ -270,8 +461,7 @@ internal sealed class SettingsForm : Form
 
         var explanation = new Label
         {
-            Text = "Windows of one application sit together and share a colour."
-                   + " Dragging a tab past another group moves its whole group.",
+            Text = _text[StringId.GroupsNote],
             AutoSize = true,
             MaximumSize = new Size(column * 2, 0),
             ForeColor = SystemColors.GrayText,
@@ -305,14 +495,14 @@ internal sealed class SettingsForm : Form
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Margin = new Padding(4, 0, 4, 0),
         };
-        lists.Controls.Add(Caption("Groups:"), 0, 0);
-        lists.Controls.Add(Caption("Applications in the selected group:"), 1, 0);
+        lists.Controls.Add(Caption(_text[StringId.GroupsCaption]), 0, 0);
+        lists.Controls.Add(Caption(_text[StringId.GroupsApplicationsCaption]), 1, 0);
         lists.Controls.Add(_groups, 0, 1);
         lists.Controls.Add(_applications, 1, 1);
 
         _addGroup = new Button
         {
-            Text = "New group",
+            Text = _text[StringId.GroupsNew],
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Margin = new Padding(4, 0, 4, 4),
@@ -321,7 +511,7 @@ internal sealed class SettingsForm : Form
 
         _removeGroup = new Button
         {
-            Text = "Remove",
+            Text = _text[StringId.GroupsRemove],
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Margin = new Padding(0, 0, 12, 4),
@@ -344,9 +534,9 @@ internal sealed class SettingsForm : Form
             ItemHeight = row + 2,
             Margin = new Padding(0, 2, 4, 4),
         };
-        _groupAccent.Items.Add(AutomaticAccent);
+        _groupAccent.Items.Add(_text[StringId.AccentAutomatic]);
         for (int i = 0; i < AppSettings.AccentCount; i++)
-            _groupAccent.Items.Add(AccentPalette.Name(i));
+            _groupAccent.Items.Add(_text.AccentName(i));
 
         int widest = 0;
         foreach (object item in _groupAccent.Items)
@@ -366,9 +556,9 @@ internal sealed class SettingsForm : Form
         };
         editRow.Controls.Add(_addGroup);
         editRow.Controls.Add(_removeGroup);
-        editRow.Controls.Add(Caption("Name:"));
+        editRow.Controls.Add(Caption(_text[StringId.GroupsName]));
         editRow.Controls.Add(_groupName);
-        editRow.Controls.Add(Caption("Colour:"));
+        editRow.Controls.Add(Caption(_text[StringId.GroupsColour]));
         editRow.Controls.Add(_groupAccent);
 
         var detailContent = new FlowLayoutPanel
@@ -397,6 +587,8 @@ internal sealed class SettingsForm : Form
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Padding = new Padding(8, 4, 8, 8),
+            Dock = DockStyle.Fill,    // below the caption; see BuildLanguageGroup
+            WrapContents = false,
         };
         content.Controls.Add(_groupByApplication);
         content.Controls.Add(explanation);
@@ -404,7 +596,7 @@ internal sealed class SettingsForm : Form
 
         var box = new GroupBox
         {
-            Text = "Tab groups",
+            Text = _text[StringId.GroupsGroup],
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Margin = new Padding(12, 6, 12, 6),
@@ -428,6 +620,7 @@ internal sealed class SettingsForm : Form
     {
         // Guarded, so setting the initial state does not count as a user change.
         _loading = true;
+        _language.SelectedIndex = LanguageIndex();
         _standard.Checked = _settings.BarHeight == BarHeightMode.Standard;
         _compact.Checked = _settings.BarHeight == BarHeightMode.Compact;
         _followWindows.Checked = _settings.Colours == ColourMode.FollowWindows;
@@ -438,6 +631,42 @@ internal sealed class SettingsForm : Form
         _loading = false;
 
         ReloadGroups(_groups.SelectedIndex);
+    }
+
+    /// <summary>
+    /// Which entry of the language list the settings name. Zero is automatic, which is what an
+    /// empty setting and a language that is no longer available both come to.
+    /// </summary>
+    private int LanguageIndex()
+    {
+        for (int i = 0; i < Languages.All.Count; i++)
+        {
+            if (string.Equals(Languages.All[i].Code, _settings.Language,
+                    StringComparison.OrdinalIgnoreCase))
+                return i + 1;
+        }
+
+        return 0;
+    }
+
+    private void OnLanguageChanged()
+    {
+        if (_loading) return;
+
+        string language = _language.SelectedIndex <= 0
+            ? Languages.Automatic
+            : Languages.All[_language.SelectedIndex - 1].Code;
+
+        if (string.Equals(language, _settings.Language, StringComparison.Ordinal)) return;
+
+        _settings.Language = language;
+
+        // The bar first, so that asking for the text again answers in the new language.
+        _onChanged();
+
+        // Rebuilding disposes the box this call came from, so it waits until the change has
+        // finished being handled, as the tick in the application list does.
+        BeginInvoke(new Action(Rebuild));
     }
 
     private void OnHeightChanged()
@@ -611,7 +840,7 @@ internal sealed class SettingsForm : Form
     {
         for (int n = 1; ; n++)
         {
-            string candidate = "Group " + n;
+            string candidate = _text.Format(StringId.GroupsDefaultName, n);
             bool taken = false;
 
             foreach (AppGroup group in _settings.Groups)
