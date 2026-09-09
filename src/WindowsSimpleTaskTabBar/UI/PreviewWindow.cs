@@ -4,13 +4,13 @@ using WindowsSimpleTaskTabBar.Interop;
 namespace WindowsSimpleTaskTabBar.UI;
 
 /// <summary>
-/// The window a preview of another window is drawn in: a live picture, with the window's title
-/// under it.
+/// The window a preview of another window is drawn in: a live picture, with the window's icon
+/// and title under it.
 /// </summary>
 /// <remarks>
 /// The picture is not drawn here. The desktop compositor is asked to draw the source window
 /// inside this one, so what appears is the window as it is now rather than a picture taken
-/// earlier. The title underneath is this window's own painting.
+/// earlier. The icon and the title underneath are this window's own painting.
 ///
 /// <b>The title has to be here rather than in a tooltip beside it.</b> Two answers arriving at
 /// once - a picture above and a tooltip below - are harder to read than either alone, and the
@@ -44,13 +44,36 @@ internal sealed class PreviewWindow : Form
     // changes.
     private readonly Font _font;
 
+    // The full title, for a title too long to be drawn whole. Nothing is shown for one that
+    // fits: a tooltip repeating what is already on screen is in the way rather than of use.
+    private readonly ToolTip _toolTip = new();
+    private string _toolTipText = string.Empty;
+
     /// <summary>Where the picture goes, in this window's own coordinates.</summary>
     private Rectangle _pictureArea;
 
+    /// <summary>Where the icon and the title go, under the picture.</summary>
+    private Rectangle _titleArea;
+
+    // Worked out when the preview is presented rather than while it is painted: whether the
+    // title fits decides whether the tooltip has anything to add, and the pointer can reach the
+    // panel before the first paint of it has run.
+    private Rectangle _titleIconArea;
+    private Rectangle _titleTextArea;
+
     private string _title = string.Empty;
 
+    // Borrowed from the bar's icon cache for as long as one preview is up. Never disposed here.
+    private Icon _icon;
+
+    /// <summary>Whether the title had to be cut short to fit.</summary>
+    private bool _titleClipped;
+
+    /// <summary>Raised when the pointer leaves the panel, so the bar can take it down.</summary>
+    public event EventHandler PointerLeft;
+
     /// <param name="border">Width of the frame, in device pixels.</param>
-    /// <param name="background">Behind the title, and the frame's own colour underneath.</param>
+    /// <param name="background">Behind the icon and the title.</param>
     /// <param name="frame">The line drawn around the panel.</param>
     /// <param name="title">The title text.</param>
     /// <param name="fontFamily">Font family for the title, which the language decides.</param>
@@ -76,10 +99,16 @@ internal sealed class PreviewWindow : Form
         TopMost = true;
         BackColor = background;
         DoubleBuffered = true;
+
+        // The bar is usually not the active window, and neither is this.
+        _toolTip.ShowAlways = true;
+        _toolTip.InitialDelay = 400;
+        _toolTip.ReshowDelay = 200;
+        _toolTip.AutoPopDelay = 10000;
     }
 
     /// <summary>
-    /// How much room the title takes under the picture, in device pixels.
+    /// How much room the icon and title take under the picture, in device pixels.
     /// </summary>
     /// <remarks>
     /// Read before the size of the picture is decided: it comes out of the same room above the
@@ -108,6 +137,10 @@ internal sealed class PreviewWindow : Form
     /// <remarks>
     /// Registering is what makes the size readable, so the two happen together. A registration
     /// that answers no size is released here rather than left for the caller to remember.
+    ///
+    /// A minimized window is registered like any other. The compositor is not drawing one, so
+    /// there may be no picture to show, but the icon painted behind it is what the panel falls
+    /// back to and asking costs nothing.
     /// </remarks>
     /// <returns>False when there is nothing to show, in which case nothing is registered.</returns>
     public bool Register(IntPtr source, out int sourceWidth, out int sourceHeight)
@@ -145,16 +178,22 @@ internal sealed class PreviewWindow : Form
     /// includes <see cref="TitleHeight"/>.
     /// </param>
     /// <param name="title">The window's title, drawn under the picture.</param>
-    public void Present(PreviewBox content, string title)
+    /// <param name="icon">
+    /// The window's icon, from the bar's cache. Drawn beside the title, and behind the picture
+    /// so that a window with no picture to show still says which application it belongs to.
+    /// </param>
+    public void Present(PreviewBox content, string title, Icon icon)
     {
         if (_thumbnail == IntPtr.Zero) return;
-
-        _title = title ?? string.Empty;
 
         int pictureHeight = content.Height - TitleHeight;
         if (pictureHeight < 1) return;
 
+        _title = title ?? string.Empty;
+        _icon = icon;
         _pictureArea = new Rectangle(_border, _border, content.Width, pictureHeight);
+        _titleArea = new Rectangle(_border, _pictureArea.Bottom, content.Width, TitleHeight);
+        LayoutTitle();
 
         Bounds = new Rectangle(content.X - _border, content.Y - _border,
                                content.Width + _border * 2, content.Height + _border * 2);
@@ -188,31 +227,118 @@ internal sealed class PreviewWindow : Form
     }
 
     /// <summary>
-    /// Draws the frame and the title. The picture is not drawn here: the compositor puts it over
-    /// the area this leaves for it, after this method has run.
+    /// Draws the frame, the icon standing in for the picture, and the icon and title below it.
     /// </summary>
+    /// <remarks>
+    /// The picture itself is not drawn here. The compositor puts it over the area this leaves
+    /// for it, after this method has run, which is what makes the icon in that area a fallback:
+    /// a window the compositor is drawing covers it, and one it is not - a minimized window -
+    /// leaves it showing.
+    /// </remarks>
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
 
-        using (var pen = new Pen(_frameColour, _border))
-        {
-            // Inset by half the pen, which is drawn centred on the line it is given.
-            int inset = _border / 2;
-            Rectangle frame = Rectangle.FromLTRB(inset, inset,
-                ClientSize.Width - inset - 1, ClientSize.Height - inset - 1);
+        DrawStandIn(e.Graphics);
+        DrawTitle(e.Graphics);
 
-            if (frame.Width > 0 && frame.Height > 0) e.Graphics.DrawRectangle(pen, frame);
+        using var pen = new Pen(_frameColour, _border);
+
+        // Inset by half the pen, which is drawn centred on the line it is given.
+        int inset = _border / 2;
+        Rectangle frame = Rectangle.FromLTRB(inset, inset,
+            ClientSize.Width - inset - 1, ClientSize.Height - inset - 1);
+
+        if (frame.Width > 0 && frame.Height > 0) e.Graphics.DrawRectangle(pen, frame);
+    }
+
+    /// <summary>The icon, centred where the picture goes, at the size it actually is.</summary>
+    /// <remarks>
+    /// Its own size rather than filled to the area: the icon a window answers with is usually
+    /// 16 pixels across, and stretched to fill a preview it is a blur. Small and sharp says
+    /// which application this is; large and blurred says it less well.
+    /// </remarks>
+    private void DrawStandIn(Graphics g)
+    {
+        if (_icon == null || _pictureArea.Width <= 0 || _pictureArea.Height <= 0) return;
+
+        int width = _icon.Width;
+        int height = _icon.Height;
+        if (width > _pictureArea.Width) width = _pictureArea.Width;
+        if (height > _pictureArea.Height) height = _pictureArea.Height;
+
+        g.DrawIcon(_icon, new Rectangle(
+            _pictureArea.Left + (_pictureArea.Width - width) / 2,
+            _pictureArea.Top + (_pictureArea.Height - height) / 2,
+            width, height));
+    }
+
+    /// <summary>
+    /// Where the icon and the title sit under the picture: from the left, the icon first, the
+    /// way the taskbar lays out its own.
+    /// </summary>
+    private void LayoutTitle()
+    {
+        _titleIconArea = Rectangle.Empty;
+        _titleTextArea = Rectangle.Empty;
+        _titleClipped = false;
+
+        if (_titleArea.Width <= 0 || _title.Length == 0) return;
+
+        int padding = _border * 2;
+        int side = _titleArea.Height - padding * 2;
+        int left = _titleArea.Left + padding;
+
+        if (_icon != null && side > 0)
+        {
+            _titleIconArea = new Rectangle(left, _titleArea.Top + padding, side, side);
+            left += side + padding;
         }
 
-        if (_title.Length == 0 || _pictureArea.Height <= 0) return;
+        _titleTextArea = Rectangle.FromLTRB(left, _titleArea.Top,
+                                            _titleArea.Right - padding, _titleArea.Bottom);
+        if (_titleTextArea.Width <= 0) return;
 
-        var titleArea = new Rectangle(_pictureArea.Left, _pictureArea.Bottom,
-                                      _pictureArea.Width, TitleHeight);
+        _titleClipped = TextRenderer.MeasureText(_title, _font).Width > _titleTextArea.Width;
+    }
 
-        TextRenderer.DrawText(e.Graphics, _title, _font, titleArea, _titleColour,
-            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter
+    private void DrawTitle(Graphics g)
+    {
+        if (!_titleIconArea.IsEmpty) g.DrawIcon(_icon, _titleIconArea);
+        if (_titleTextArea.Width <= 0) return;
+
+        TextRenderer.DrawText(g, _title, _font, _titleTextArea, _titleColour,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter
             | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+    }
+
+    /// <summary>
+    /// Shows the whole title while the pointer rests on the clipped one.
+    /// </summary>
+    /// <remarks>
+    /// Only over the title, and only when it was cut short. Over the picture it would cover the
+    /// thing the pointer came here to look at, and a tooltip repeating a title already shown in
+    /// full is in the way rather than of use.
+    /// </remarks>
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        base.OnMouseMove(e);
+
+        string wanted = _titleClipped && _titleArea.Contains(e.Location)
+            ? _title
+            : string.Empty;
+
+        // Setting the same text again restarts the tooltip and makes it flicker.
+        if (wanted == _toolTipText) return;
+
+        _toolTipText = wanted;
+        _toolTip.SetToolTip(this, wanted);
+    }
+
+    protected override void OnMouseLeave(EventArgs e)
+    {
+        base.OnMouseLeave(e);
+        PointerLeft?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
@@ -225,6 +351,17 @@ internal sealed class PreviewWindow : Form
     public void HidePreview()
     {
         Unregister();
+
+        _icon = null;
+        _title = string.Empty;
+        LayoutTitle();
+
+        if (_toolTipText.Length != 0)
+        {
+            _toolTipText = string.Empty;
+            _toolTip.SetToolTip(this, string.Empty);
+        }
+
         if (Visible) Visible = false;
     }
 
@@ -241,7 +378,11 @@ internal sealed class PreviewWindow : Form
         // Before the base call, which destroys the window the registration names.
         Unregister();
 
-        if (disposing) _font?.Dispose();
+        if (disposing)
+        {
+            _toolTip.Dispose();
+            _font?.Dispose();
+        }
 
         base.Dispose(disposing);
     }

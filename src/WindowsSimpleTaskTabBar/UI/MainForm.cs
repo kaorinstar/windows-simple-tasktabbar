@@ -140,9 +140,6 @@ public class MainForm : Form
     /// </remarks>
     private const int PreviewMaxLogical = 280;
 
-    /// <summary>Space between the preview and the top of the bar, in logical pixels.</summary>
-    private const int PreviewGapLogical = 6;
-
     // Two menus for the bar: one for a tab, one for the space around the tabs. Neither is
     // assigned to the ContextMenuStrip property, because which one to show depends on where
     // the click landed, and that property would always show the same one.
@@ -1370,6 +1367,17 @@ public class MainForm : Form
             return;
         }
 
+        // The pointer may be reading the preview, which is off the bar. The tab it belongs to
+        // stays hovered until the pointer leaves the preview as well - found by window rather
+        // than by index, because the row may have been rebuilt while the pointer sat there. A
+        // window that closed meanwhile answers -1, and the preview goes with it.
+        if (PointerIsOnPreview)
+        {
+            _hoverIndex = _tabs.FindIndex(t => t.Hwnd == _previewHwnd);
+            _hoverClose = false;
+            return;
+        }
+
         Point p = PointToClient(MousePosition);
 
         if (ClientRectangle.Contains(p))
@@ -1443,9 +1451,10 @@ public class MainForm : Form
     /// The window a preview should be showing, or zero for none.
     /// </summary>
     /// <remarks>
-    /// A minimized window is none of them. The compositor has no picture of one, so the preview
-    /// would be an empty box; the tooltip still gives its title, which is what the empty box
-    /// would have been worth.
+    /// A minimized window is not left out. The compositor is not drawing one, so there may be no
+    /// picture for it, but the panel draws the window's icon behind the picture and its title
+    /// below: something that says which window this is either way, which is what the taskbar
+    /// shows for a minimized window too.
     /// </remarks>
     private IntPtr PreviewTarget()
     {
@@ -1453,9 +1462,30 @@ public class MainForm : Form
         if (_hoverIndex < 0 || _hoverIndex >= _tabs.Count) return IntPtr.Zero;
 
         TabItem tab = _tabs[_hoverIndex];
-        if (!IsTabVisible(tab)) return IntPtr.Zero;
+        return IsTabVisible(tab) ? tab.Hwnd : IntPtr.Zero;
+    }
 
-        return NativeMethods.IsIconic(tab.Hwnd) ? IntPtr.Zero : tab.Hwnd;
+    /// <summary>
+    /// Whether the pointer is on the preview rather than on the bar.
+    /// </summary>
+    /// <remarks>
+    /// The preview is a window of its own, so the pointer moving onto it leaves the bar. Without
+    /// this the bar would clear its hover as the pointer arrived, and the preview would take
+    /// itself down at the moment the user reached for it.
+    /// </remarks>
+    private bool PointerIsOnPreview =>
+        _preview != null && _preview.Visible && _preview.Bounds.Contains(MousePosition);
+
+    /// <summary>
+    /// The pointer has left the preview. It goes unless the bar has it back, in which case the
+    /// bar's own mouse events settle where the hover is.
+    /// </summary>
+    private void OnPreviewPointerLeft()
+    {
+        if (_released) return;
+        if (ClientRectangle.Contains(PointToClient(MousePosition))) return;
+
+        SetHover(-1, false);
     }
 
     /// <summary>Shows the preview, once the pointer has rested long enough for it.</summary>
@@ -1476,8 +1506,13 @@ public class MainForm : Form
         if (index < 0) return;
 
         int border = Scaled(1);
-        _preview ??= new PreviewWindow(border, _cBack, _cLine, _cText,
-                                       _text.FontFamily, _metrics.FontPixels);
+
+        if (_preview == null)
+        {
+            _preview = new PreviewWindow(border, _cBack, _cLine, _cText,
+                                         _text.FontFamily, _metrics.FontPixels);
+            _preview.PointerLeft += (_, __) => OnPreviewPointerLeft();
+        }
 
         if (!_preview.Register(hwnd, out int sourceWidth, out int sourceHeight))
         {
@@ -1487,13 +1522,18 @@ public class MainForm : Form
 
         Rectangle tab = RectangleToScreen(_tabs[index].Bounds);
         Rectangle screen = Screen.FromControl(this).Bounds;
-        int gap = Scaled(PreviewGapLogical);
+
+        // No gap. The panel sits on the bar's top edge so the pointer can travel from the tab
+        // onto it without crossing anything in between: a gap is desktop, and the moment the
+        // pointer touched it the bar would lose its hover and take the preview down. The
+        // taskbar's own thumbnails sit against it for the same reason.
+        const int gap = 0;
 
         // As large as the box allows, and never taller than the room above the bar, which the
         // title and the frame are taken out of first. Fit is what keeps the whole panel inside
         // that room, so Place has nothing to bring back down from the top.
         int max = Scaled(PreviewMaxLogical);
-        int room = Top - screen.Top - gap - border * 2 - _preview.TitleHeight;
+        int room = Top - screen.Top - border * 2 - _preview.TitleHeight;
         int maxHeight = max < room ? max : room;
 
         PreviewPlacement.Fit(sourceWidth, sourceHeight, max, maxHeight,
@@ -1509,7 +1549,7 @@ public class MainForm : Form
         PreviewBox content = PreviewPlacement.Place(width, height + _preview.TitleHeight,
             tab.Left, tab.Width, Top, screen.Left, screen.Right, gap);
 
-        _preview.Present(content, _tabs[index].Title);
+        _preview.Present(content, _tabs[index].Title, _tabs[index].Icon);
 
         // The preview now says the title itself, so the tooltip stops saying it too.
         UpdateToolTip();
@@ -1560,6 +1600,10 @@ public class MainForm : Form
             _hoverButton = -1;
             Invalidate();
         }
+
+        // Onto the preview rather than away from the bar: the preview stays, and takes itself
+        // down when the pointer leaves it.
+        if (PointerIsOnPreview) return;
 
         SetHover(-1, false);
     }
@@ -1872,6 +1916,13 @@ public class MainForm : Form
             NativeMethods.UnhookWinEvent(hook);
         _hooks.Clear();
 
+        // Before the icons: the preview draws one of them, borrowed from this cache.
+        _previewTimer.Stop();
+        _previewTimer.Dispose();
+        _preview?.Dispose();
+        _preview = null;
+        _previewHwnd = IntPtr.Zero;
+
         foreach (CachedIcon cached in _iconCache.Values)
             cached.Icon?.Dispose();
         _iconCache.Clear();
@@ -1885,14 +1936,6 @@ public class MainForm : Form
         _groupIds.Clear();
 
         _toolTip.Dispose();
-
-        // The window holds a registration with the compositor, which its own Dispose releases
-        // before the window it names is destroyed.
-        _previewTimer.Stop();
-        _previewTimer.Dispose();
-        _preview?.Dispose();
-        _preview = null;
-        _previewHwnd = IntPtr.Zero;
 
         _font?.Dispose();
         _font = null;

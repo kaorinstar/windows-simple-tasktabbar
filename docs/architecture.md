@@ -197,8 +197,30 @@ One instance of the window is kept for the life of the bar rather than one per p
 pointer crossing a row of tabs would otherwise create and destroy one for each. It is created on
 the first preview, so a bar left on the default setting never makes it at all.
 
-A minimized window gets no preview. The compositor has no picture of one, so it would be an empty
-box; the tooltip still gives the title, which is what the empty box would have been worth.
+A minimized window is not left out, but there may be no picture of it. The compositor draws what
+is on screen, and a minimized window is not, so `DwmRegisterThumbnail` has nothing live to show.
+The picture of one that the taskbar shows comes from the shell, through something Windows does not
+expose to other applications: the documented way for a minimized window to have a thumbnail,
+`DWMWA_HAS_ICONIC_BITMAP` and `WM_DWMSENDICONICTHUMBNAIL`, is for the window's own owner to use,
+not for anyone watching it.
+
+So the panel draws the window's icon in the picture area first and lets the compositor draw over
+it. A window being drawn covers the icon; one that is not leaves it showing. There is no test of
+whether the source is minimized anywhere in this, and no empty box either way.
+
+The icon is drawn at the size it actually is rather than filled to the area. A window usually
+answers `WM_GETICON` with 16 pixels, and stretched across a preview that is a blur; small and
+sharp says which application this is, and the title beneath says which window.
+
+The pointer can move onto the panel and read the title there, which is why it sits against the top
+of the bar with nothing in between: a gap is desktop, and the bar would clear its hover the moment
+the pointer touched it. `MainForm.PointerIsOnPreview` is what keeps the hover while the pointer is
+on the panel, in `RecomputeHover` and in `OnMouseLeave`, and `PreviewWindow.PointerLeft` is what
+takes the panel down once the pointer has left it without landing back on the bar.
+
+The panel has a tooltip of its own for a title it had to cut short, shown over the title alone.
+Over the picture it would cover what the pointer came to look at, and a title already shown in
+full has nothing to add.
 
 ### Dragging a tab
 
