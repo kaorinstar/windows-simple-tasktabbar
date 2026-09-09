@@ -170,6 +170,18 @@ nothing to keep current. `UI/PreviewWindow.cs` owns the registration and release
 call that hides the window: a registration outlives the call that made it and belongs to no window
 on its own, so hiding without releasing would leave the compositor drawing for nobody.
 
+**The window's title is drawn under the picture, and the tooltip stands down while it is.** The
+two answer different questions - which window this is, and what it is called - and both are worth
+having, but a picture above and a tooltip below arriving together are harder to read than either
+alone. The picture cannot carry the title itself: a 1920 pixel window drawn 280 wide is at 15 per
+cent, which puts its title bar text at about two pixels. So the preview carries both, the way the
+Windows taskbar does with its own thumbnails, and `UpdateToolTip` answers with nothing while a
+preview is on screen. Every place that recomputes the hovered tab therefore calls `UpdatePreview`
+before `UpdateToolTip`, so the tooltip is asked after the old preview has gone rather than before.
+
+The title comes out of the same room above the bar as the picture, so `PreviewWindow.TitleHeight`
+is read before the picture is measured and the two are placed as one panel.
+
 **The preview window must never take the foreground.** The bar activates itself when it is
 clicked, and the three-step activation depends on that being the bar rather than anything else
 this application owns. `WS_EX_NOACTIVATE` and `ShowWithoutActivation` are what keep it out of the

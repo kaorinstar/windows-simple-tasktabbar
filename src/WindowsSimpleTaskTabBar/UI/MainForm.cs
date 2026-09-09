@@ -539,6 +539,7 @@ public class MainForm : Form
         // off is what this is here for: the preview on screen goes now rather than when the
         // pointer next moves.
         UpdatePreview();
+        UpdateToolTip();
 
         SettingsStore.Save(_settings);
     }
@@ -759,8 +760,8 @@ public class MainForm : Form
         // The tab list has just been rebuilt, so a stored hover index would now point at
         // a different window. Take it from where the pointer actually is.
         RecomputeHover();
-        UpdateToolTip();
         UpdatePreview();
+        UpdateToolTip();
 
         Invalidate();
     }
@@ -1013,6 +1014,7 @@ public class MainForm : Form
         _scroll = scrolled;
         LayoutTabs();
         RecomputeHover();
+        UpdatePreview();
         UpdateToolTip();
         Invalidate();
     }
@@ -1387,8 +1389,11 @@ public class MainForm : Form
 
         _hoverIndex = index;
         _hoverClose = onClose;
-        UpdateToolTip();
+
+        // The preview first: it is what the tooltip stands down for, so the tooltip has to be
+        // asked after the old preview has gone rather than before.
         UpdatePreview();
+        UpdateToolTip();
         Invalidate();
     }
 
@@ -1398,7 +1403,9 @@ public class MainForm : Form
     /// </summary>
     private void UpdateToolTip()
     {
-        string text = _hoverIndex >= 0 && _hoverIndex < _tabs.Count
+        // Nothing while a preview is on screen: it draws the same title under its picture, and
+        // two answers arriving at once are harder to read than either alone.
+        string text = _hoverIndex >= 0 && _hoverIndex < _tabs.Count && !PreviewIsShowing
             ? _tabs[_hoverIndex].Title
             : string.Empty;
 
@@ -1417,6 +1424,8 @@ public class MainForm : Form
     /// Called from everywhere the hovered tab can change, and from the settings, so that turning
     /// the preview off closes the one on screen rather than leaving it until the pointer moves.
     /// </remarks>
+    private bool PreviewIsShowing => _preview != null && _preview.Visible;
+
     private void UpdatePreview()
     {
         IntPtr wanted = PreviewTarget();
@@ -1428,6 +1437,7 @@ public class MainForm : Form
 
         if (wanted != IntPtr.Zero) _previewTimer.Start();
     }
+
 
     /// <summary>
     /// The window a preview should be showing, or zero for none.
@@ -1466,7 +1476,8 @@ public class MainForm : Form
         if (index < 0) return;
 
         int border = Scaled(1);
-        _preview ??= new PreviewWindow(border, _cLine);
+        _preview ??= new PreviewWindow(border, _cBack, _cLine, _cText,
+                                       _text.FontFamily, _metrics.FontPixels);
 
         if (!_preview.Register(hwnd, out int sourceWidth, out int sourceHeight))
         {
@@ -1478,10 +1489,11 @@ public class MainForm : Form
         Rectangle screen = Screen.FromControl(this).Bounds;
         int gap = Scaled(PreviewGapLogical);
 
-        // As large as the box allows, and never taller than the room above the bar. Fit is what
-        // keeps the preview inside that room, so Place has nothing to bring back down.
+        // As large as the box allows, and never taller than the room above the bar, which the
+        // title and the frame are taken out of first. Fit is what keeps the whole panel inside
+        // that room, so Place has nothing to bring back down from the top.
         int max = Scaled(PreviewMaxLogical);
-        int room = Top - screen.Top - gap - border * 2;
+        int room = Top - screen.Top - gap - border * 2 - _preview.TitleHeight;
         int maxHeight = max < room ? max : room;
 
         PreviewPlacement.Fit(sourceWidth, sourceHeight, max, maxHeight,
@@ -1493,8 +1505,14 @@ public class MainForm : Form
             return;
         }
 
-        _preview.Present(PreviewPlacement.Place(width, height, tab.Left, tab.Width,
-                                                Top, screen.Left, screen.Right, gap));
+        // The title travels with the picture, so it is part of what is being placed.
+        PreviewBox content = PreviewPlacement.Place(width, height + _preview.TitleHeight,
+            tab.Left, tab.Width, Top, screen.Left, screen.Right, gap);
+
+        _preview.Present(content, _tabs[index].Title);
+
+        // The preview now says the title itself, so the tooltip stops saying it too.
+        UpdateToolTip();
     }
 
     /// <summary>A logical size in device pixels, for the sizes the preview is built from.</summary>
@@ -1765,6 +1783,7 @@ public class MainForm : Form
 
         LayoutTabs();
         RecomputeHover();
+        UpdatePreview();
         UpdateToolTip();
         Invalidate();
     }

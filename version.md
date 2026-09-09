@@ -13,10 +13,11 @@ in [README.md](README.md).
 
 ## Unreleased
 
-- Resting the pointer on a tab can now show a live picture of that window, which is the quickest
-  way to tell apart several windows of one application whose tabs look alike. **It is off until
-  you turn it on**, under Window preview in the settings. A minimized window has no picture to
-  show and keeps its title instead.
+- Resting the pointer on a tab can now show a live picture of that window, with its full title
+  underneath, which is the quickest way to tell apart several windows of one application whose
+  tabs look alike. **It is off until you turn it on**, under Window preview in the settings. The
+  tooltip does not appear alongside it, because the preview already says the title. A minimized
+  window has no picture to show and keeps its tooltip instead.
 
 ## v0.5.0
 
