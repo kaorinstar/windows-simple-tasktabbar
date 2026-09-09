@@ -141,6 +141,7 @@ public class MainForm : Form
 
     // Colors, chosen to match the current Windows theme
     private Color _cBack, _cTab, _cTabActive, _cTabHover, _cText, _cTextActive, _cLine;
+    private Color _cTabActiveOutline;
 
     // The accents a tab group can be marked with, in the shade of the palette in use. Held as
     // colours rather than as BarPalette's numbers so that painting a tab is a lookup.
@@ -903,6 +904,7 @@ public class MainForm : Form
         _cTab = FromRgb(palette.Tab);
         _cTabHover = FromRgb(palette.TabHover);
         _cTabActive = FromRgb(palette.TabActive);
+        _cTabActiveOutline = FromRgb(palette.TabActiveOutline);
         _cText = FromRgb(palette.Text);
         _cTextActive = FromRgb(palette.TextActive);
         _cLine = FromRgb(palette.Line);
@@ -987,8 +989,11 @@ public class MainForm : Form
         }
 
         // Clipped, so a partly scrolled tab stops at the edge of the row instead of painting
-        // over the arrows.
-        g.SetClip(_contentRect);
+        // over the arrows. Down the sides of _contentRect, but from the top of the bar rather
+        // than the top of the row, because the active tab rises above the row into the strip
+        // the layout leaves there. _contentRect itself is left alone: it is what a click is
+        // tested against, and the strip belongs to no tab.
+        g.SetClip(new Rectangle(_contentRect.Left, 0, _contentRect.Width, ClientSize.Height));
 
         int dragIndex = _dragging ? _tabs.FindIndex(t => t.Hwnd == _dragHwnd) : -1;
 
@@ -1013,12 +1018,39 @@ public class MainForm : Form
     private void DrawTab(Graphics g, TabItem tab, int index)
     {
         Color fill = tab.Active ? _cTabActive : (index == _hoverIndex ? _cTabHover : _cTab);
-        using (GraphicsPath path = RoundedTop(tab.Bounds, _metrics.CornerRadius))
+
+        // The active tab is drawn taller than the rest. Only taller: it keeps the bounds it is
+        // measured and hit tested against, and reaches up into the strip above the row, which
+        // nothing else draws in. So no other tab moves, and the row keeps one width for them all.
+        //
+        // The contents are placed from tab.Bounds below, not from this, so a title stays where
+        // it was when its window comes to the front. The extra height reads as headroom.
+        //
+        // Its foot goes past the bottom of the bar as well, by the width of the outline. The
+        // outline follows a closed path, and a bottom edge left on the last row of pixels would
+        // be drawn as a line under the tab; pushed out of the client area it is not drawn at
+        // all, which is what a tab standing on the edge of the bar should look like. The fill
+        // does not care: everything below the bar is clipped away either way.
+        Rectangle body = tab.Active
+            ? Rectangle.FromLTRB(tab.Bounds.Left, tab.Bounds.Top - _metrics.ActiveTabRise,
+                                 tab.Bounds.Right, tab.Bounds.Bottom + _metrics.ActiveOutlineWidth)
+            : tab.Bounds;
+
+        using (GraphicsPath path = RoundedTop(body, _metrics.CornerRadius))
         {
             using (var brush = new SolidBrush(fill))
                 g.FillPath(brush, path);
 
+            // The band is drawn at the tab's own top rather than the path's, so a group still
+            // reads as one unbroken accent across the row while the active tab rises clear
+            // above it. Before the outline, so the outline is the last thing on that edge.
             if (tab.Marked) DrawGroupBand(g, path, tab);
+
+            if (tab.Active)
+            {
+                using var pen = new Pen(_cTabActiveOutline, _metrics.ActiveOutlineWidth);
+                g.DrawPath(pen, path);
+            }
         }
 
         int padding = _metrics.Padding;

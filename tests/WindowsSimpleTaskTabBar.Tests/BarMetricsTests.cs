@@ -98,6 +98,36 @@ public class BarMetricsTests
         Assert.Equal((int)System.Math.Round(baseline.FontPixels * (double)scale), scaled.FontPixels);
     }
 
+    [Theory]
+    [InlineData(34, 1.0f)]
+    [InlineData(24, 1.0f)]
+    [InlineData(34, 1.5f)]
+    [InlineData(24, 2.0f)]
+    public void TheActiveTabRisesIntoTheStripAboveTheRow(int height, float scale)
+    {
+        BarMetrics m = BarMetrics.For(height, scale);
+
+        // Far enough to see at all, and never past the strip: the rise comes out of the room
+        // above the row, so a rise that reached the row would push the icon and the title down
+        // with it. The pixel it stops short of is the line along the top of the bar, which is
+        // one pixel wide whatever the DPI.
+        Assert.True(m.ActiveTabRise >= 1);
+        Assert.True(m.ActiveTabRise <= m.TopOffset - 1);
+    }
+
+    [Theory]
+    [InlineData(34, 1.0f)]
+    [InlineData(24, 1.0f)]
+    [InlineData(24, 2.0f)]
+    public void TheActiveTabIsStillOutlinedOnACompactBar(int height, float scale)
+    {
+        BarMetrics m = BarMetrics.For(height, scale);
+
+        // Thick enough to draw, thin enough to leave the fill it surrounds.
+        Assert.True(m.ActiveOutlineWidth >= 1);
+        Assert.True(m.ActiveOutlineWidth < m.CornerRadius);
+    }
+
     [Fact]
     public void TextAndIconsStayLegibleOnAVeryShortBar()
     {
@@ -117,5 +147,10 @@ public class BarMetricsTests
         Assert.True(m.BarHeight >= 1);
         Assert.True(m.IconSize >= 1);
         Assert.True(m.TabMaxWidth >= 1);
+
+        // A bar with no strip above the row gets no rise rather than a negative one, which
+        // would draw the active tab shorter than the others.
+        Assert.True(m.ActiveTabRise >= 0);
+        Assert.True(m.ActiveOutlineWidth >= 1);
     }
 }

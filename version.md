@@ -13,6 +13,11 @@ in [README.md](README.md).
 
 ## Unreleased
 
+- The tab of the window you are using is easier to pick out. It now sits a little higher than the
+  rest of the row and is drawn with an outline, so it can be found by its shape instead of by
+  reading titles. Its colour alone was close to the tabs beside it, particularly in the light
+  theme. Nothing moves sideways: every tab is the same width as before, and dragging and scrolling
+  behave as they did.
 - The colours can now be chosen in the settings: follow Windows, always light, or always dark.
   Following Windows stays the default, so nothing changes until you pick one of the other two.
   With light or dark chosen, the bar keeps it when Windows switches its own setting, including

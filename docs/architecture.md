@@ -142,6 +142,32 @@ the bar is the one failure this application must not have.
 An icon-only stage was tried and removed. A row of windows from one application shows the same
 icon over and over, so the text is the only thing that tells them apart.
 
+### Marking the active tab
+
+The tab of the window in the foreground is drawn a little taller than the others and carries an
+outline. Both are painting alone. `tab.Bounds` is the same for every tab, so what the row is
+measured, hit tested, dragged and scrolled by is untouched, and the contents of the tab are placed
+from those bounds rather than from the taller shape, so a title does not move when its window
+comes to the front.
+
+Colour could not carry it. The active fill against an inactive tab is 1.27 to 1 on the light
+palette and 1.63 to 1 on the dark one, where WCAG asks for 3 to 1 to tell one part of an interface
+from another, and reaching that by fill alone would mean a mid grey tab in a light bar - every
+other tab paying for the one being marked. `BarPalette.TabActiveOutline` carries it instead, and
+`BarPaletteTests` holds it to 3 to 1 against both the fill it surrounds and the bar behind it.
+
+The rise comes out of `BarMetrics.TopOffset`, the strip above the row that nothing else draws in,
+so no tab gives up anything for it. One pixel of the strip is left over, which keeps the line along
+the top of the bar unbroken. The row is clipped from the top of the bar rather than the top of the
+row so the rise is not cut off; `_contentRect`, which a click is tested against, is left as it was,
+because the strip belongs to no tab.
+
+Giving the active tab a larger share of the width instead was considered and dropped (#9).
+`TabStrip.Measure` returns one width for the whole row and four calculations read it, so two
+widths would mean rebuilding all four. The active tab also changes whenever the user switches
+window, so its width would change with it and move every tab to its right - the opposite of what
+a bar for reaching a window at once should do.
+
 ### Dragging a tab
 
 A left press on a tab does nothing on its own. The window is activated on release, and only if

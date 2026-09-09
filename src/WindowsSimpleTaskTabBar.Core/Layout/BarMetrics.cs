@@ -75,6 +75,25 @@ public sealed class BarMetrics
     /// <summary>Thickness of the rule drawn where one group ends and the next begins.</summary>
     public int GroupDividerWidth { get; private set; }
 
+    /// <summary>
+    /// How much higher the active tab starts than the others, so that it reads as the tab in
+    /// front rather than one more tab in a row.
+    /// </summary>
+    /// <remarks>
+    /// It rises into <see cref="TopOffset"/>, the strip the bar leaves above the row, which
+    /// nothing else draws in. So the active tab takes room from no other tab: every tab keeps
+    /// the same width, and the arithmetic that reads that one width - the drop position while a
+    /// tab is dragged, and how far one press of a scroll arrow moves the row - is untouched.
+    ///
+    /// A pixel of the strip is always left over. The line along the top of the bar is drawn a
+    /// single pixel wide whatever the DPI, and the active tab stopping short of it keeps that
+    /// line unbroken.
+    /// </remarks>
+    public int ActiveTabRise { get; private set; }
+
+    /// <summary>Thickness of the outline that marks the active tab.</summary>
+    public int ActiveOutlineWidth { get; private set; }
+
     /// <param name="barHeightLogical">Bar height in logical pixels, before DPI scaling.</param>
     /// <param name="scale">DPI scale, where 1.0 is 96 DPI.</param>
     public static BarMetrics For(int barHeightLogical, float scale)
@@ -103,7 +122,14 @@ public sealed class BarMetrics
             TabMaxWidth = Scaled(220, scale, 1),
             OuterMargin = Scaled(4, scale, 1),
             GroupDividerWidth = Scaled(1, scale, 1),
+            ActiveOutlineWidth = Scaled(1, scale, 1),
         };
+
+        // All of the strip above the row except one pixel, which is left for the line along the
+        // top of the bar. A bar too short to have a strip gets no rise rather than a negative
+        // one, which would draw the active tab shorter than the others.
+        metrics.ActiveTabRise = metrics.TopOffset - 1;
+        if (metrics.ActiveTabRise < 0) metrics.ActiveTabRise = 0;
 
         // Room for the icon, the padding either side, and the text with its ellipsis. The text is
         // drawn with TextFormatFlags.NoPadding, so all of this reaches the characters themselves.
