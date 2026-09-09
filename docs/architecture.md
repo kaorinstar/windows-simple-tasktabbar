@@ -144,25 +144,28 @@ icon over and over, so the text is the only thing that tells them apart.
 
 ### Marking the active tab
 
-The tab of the window in the foreground is drawn a little taller than the others and carries an
-outline. Both are painting alone. `tab.Bounds` is the same for every tab, so what the row is
-measured, hit tested, dragged and scrolled by is untouched, and the contents of the tab are placed
-from those bounds rather than from the taller shape, so a title does not move when its window
-comes to the front.
+The tab of the window in the foreground is drawn with an outline and is otherwise exactly the same
+tab as every other one - the same bounds, the same size, the same place for its icon and its title.
 
-Colour could not carry it. The active fill against an inactive tab is 1.27 to 1 on the light
+Colour could not carry it alone. The active fill against an inactive tab is 1.27 to 1 on the light
 palette and 1.63 to 1 on the dark one, where WCAG asks for 3 to 1 to tell one part of an interface
 from another, and reaching that by fill alone would mean a mid grey tab in a light bar - every
 other tab paying for the one being marked. `BarPalette.TabActiveOutline` carries it instead, and
 `BarPaletteTests` holds it to 3 to 1 against both the fill it surrounds and the bar behind it.
 
-The rise comes out of `BarMetrics.TopOffset`, the strip above the row that nothing else draws in,
-so no tab gives up anything for it. One pixel of the strip is left over, which keeps the line along
-the top of the bar unbroken. The row is clipped from the top of the bar rather than the top of the
-row so the rise is not cut off; `_contentRect`, which a click is tested against, is left as it was,
-because the strip belongs to no tab.
+Drawing the active tab taller was tried first and removed. A group's accent runs along the top edge
+of its tabs, and `DrawGroupBand` puts it at the tab's own top so that the accent joins up across
+the row. Raising one tab moved its accent down from the edge it shares with its neighbours and
+squared off the ends the corner radius had rounded, so the band came out of line exactly where a
+group most needs to read as one. Height and the accent cannot both own the top edge.
 
-Giving the active tab a larger share of the width instead was considered and dropped (#9).
+The outline is drawn before the accent, so a marked tab keeps the full thickness of its band and
+the outline marks it down the sides. Its foot goes one outline width past the bottom of the bar:
+the outline follows a closed path, and a bottom edge left on the last row of pixels would be drawn
+as a line under the tab rather than the open foot a tab standing on the edge of the bar should
+have.
+
+Giving the active tab a larger share of the width was considered and dropped as well (#9).
 `TabStrip.Measure` returns one width for the whole row and four calculations read it, so two
 widths would mean rebuilding all four. The active tab also changes whenever the user switches
 window, so its width would change with it and move every tab to its right - the opposite of what
