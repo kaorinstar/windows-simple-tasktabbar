@@ -107,6 +107,59 @@ internal static class NativeMethods
 
     public const int DWMWA_CLOAKED = 14;
 
+    // ---------------------------------------------------------------
+    // Window previews
+    // ---------------------------------------------------------------
+
+    /// <summary>
+    /// What a thumbnail shows and where. Only the fields named in <c>dwFlags</c> are read, so a
+    /// call sets the flags for what it fills in and leaves the rest alone.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct DWM_THUMBNAIL_PROPERTIES
+    {
+        public int dwFlags;
+        public RECT rcDestination;
+        public RECT rcSource;
+        public byte opacity;
+        [MarshalAs(UnmanagedType.Bool)] public bool fVisible;
+        [MarshalAs(UnmanagedType.Bool)] public bool fSourceClientAreaOnly;
+    }
+
+    public const int DWM_TNP_RECTDESTINATION = 0x00000001;
+    public const int DWM_TNP_OPACITY = 0x00000004;
+    public const int DWM_TNP_VISIBLE = 0x00000008;
+    public const int DWM_TNP_SOURCECLIENTAREAONLY = 0x00000010;
+
+    /// <summary>
+    /// Asks the desktop compositor to draw one window inside another. The handle it hands back
+    /// has to be given to <see cref="DwmUnregisterThumbnail"/>; the registration outlives the
+    /// call and belongs to no window on its own.
+    /// </summary>
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmRegisterThumbnail(IntPtr hwndDestination, IntPtr hwndSource,
+        out IntPtr phThumbnailId);
+
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmUnregisterThumbnail(IntPtr hThumbnailId);
+
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmUpdateThumbnailProperties(IntPtr hThumbnailId,
+        ref DWM_THUMBNAIL_PROPERTIES ptnProperties);
+
+    /// <summary>
+    /// The size of the window being drawn, which is what the preview's shape is taken from.
+    /// </summary>
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmQueryThumbnailSourceSize(IntPtr hThumbnailId, out SIZE pSize);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SIZE
+    {
+        public int cx;
+        public int cy;
+    }
+
     [DllImport("user32.dll", SetLastError = true)]
     public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 

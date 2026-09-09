@@ -79,6 +79,10 @@ internal sealed class SettingsForm : Form
 
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
         Justification = "Owned by the Controls collection it is added to.")]
+    private CheckBox _showWindowPreview;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
     private Panel _groupDetail;
 
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
@@ -229,6 +233,7 @@ internal sealed class SettingsForm : Form
         root.Controls.Add(BuildHeightGroup());
         root.Controls.Add(BuildColourGroup());
         root.Controls.Add(BuildGroupingGroup());
+        root.Controls.Add(BuildPreviewGroup());
 
         var note = new Label
         {
@@ -373,6 +378,54 @@ internal sealed class SettingsForm : Form
     /// Three buttons rather than a tick box for dark: "follow Windows" is not the same choice as
     /// light or dark, and a tick box would have to say so in its label.
     /// </remarks>
+    /// <summary>
+    /// The window preview and its one checkbox.
+    /// </summary>
+    /// <remarks>
+    /// Laid out like the colour group: a docked panel inside the box, so the contents start
+    /// below the caption rather than over it.
+    /// </remarks>
+    private GroupBox BuildPreviewGroup()
+    {
+        _showWindowPreview = new CheckBox
+        {
+            Text = _text[StringId.PreviewEnable],
+            AutoSize = true,
+            Margin = new Padding(4, 4, 4, 2),
+        };
+        _showWindowPreview.CheckedChanged += (_, __) => OnPreviewToggled();
+
+        var explanation = new Label
+        {
+            Text = _text[StringId.PreviewNote],
+            AutoSize = true,
+            ForeColor = SystemColors.GrayText,
+            Margin = new Padding(4, 0, 4, 4),
+        };
+
+        var content = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.TopDown,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(8, 4, 8, 8),
+            Dock = DockStyle.Fill,
+            WrapContents = false,
+        };
+        content.Controls.Add(_showWindowPreview);
+        content.Controls.Add(explanation);
+
+        var box = new GroupBox
+        {
+            Text = _text[StringId.PreviewGroup],
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(12, 6, 12, 6),
+        };
+        box.Controls.Add(content);
+        return box;
+    }
+
     private GroupBox BuildColourGroup()
     {
         _followWindows = new RadioButton
@@ -627,6 +680,7 @@ internal sealed class SettingsForm : Form
         _light.Checked = _settings.Colours == ColourMode.Light;
         _dark.Checked = _settings.Colours == ColourMode.Dark;
         _groupByApplication.Checked = _settings.GroupByApplication;
+        _showWindowPreview.Checked = _settings.ShowWindowPreview;
         _groupDetail.Enabled = _settings.GroupByApplication;
         _loading = false;
 
@@ -818,6 +872,14 @@ internal sealed class SettingsForm : Form
 
         _settings.GroupByApplication = _groupByApplication.Checked;
         _groupDetail.Enabled = _groupByApplication.Checked;
+        _onChanged();
+    }
+
+    private void OnPreviewToggled()
+    {
+        if (_loading) return;
+
+        _settings.ShowWindowPreview = _showWindowPreview.Checked;
         _onChanged();
     }
 

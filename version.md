@@ -11,6 +11,13 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
+## Unreleased
+
+- Resting the pointer on a tab can now show a live picture of that window, which is the quickest
+  way to tell apart several windows of one application whose tabs look alike. **It is off until
+  you turn it on**, under Window preview in the settings. A minimized window has no picture to
+  show and keeps its title instead.
+
 ## v0.5.0
 
 - The interface is now available in twelve languages: English, Japanese, Simplified Chinese,

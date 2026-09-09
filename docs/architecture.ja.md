@@ -38,6 +38,8 @@ windows-simple-tasktabbar/
 │   │   │   ├── StringId.cs        画面に出す文字それぞれの名前
 │   │   │   ├── UiStrings.cs       各言語での文言の一覧
 │   │   │   └── UiText.cs          1つの言語の文言を読み出す窓口
+│   │   ├── Preview/
+│   │   │   └── PreviewPlacement.cs  プレビューの大きさと表示位置の計算
 │   │   ├── Settings/
 │   │   │   ├── AppGroup.cs        利用者が作った1つのグループ
 │   │   │   └── AppSettings.cs     設定項目と既定値
@@ -54,6 +56,7 @@ windows-simple-tasktabbar/
 │       └── UI/
 │           ├── AccentPalette.cs   設定画面に出す色見本
 │           ├── MainForm.cs        画面本体（AppBar登録・描画・操作）
+│           ├── PreviewWindow.cs  プレビューを描くウィンドウ
 │           ├── SettingsForm.cs    設定画面
 │           └── UiFonts.cs         言語に応じた書体の作成と代替
 └── tests/
@@ -62,6 +65,7 @@ windows-simple-tasktabbar/
         ├── BarMetricsTests.cs
         ├── BarPaletteTests.cs
         ├── LocalizationTests.cs
+        ├── PreviewPlacementTests.cs
         ├── TabGroupingTests.cs
         └── TabStripTests.cs
 ```
@@ -116,6 +120,7 @@ Program.cs
 UI/MainForm.cs  ──→  Core/Layout/（計算）
    │             ──→  Core/Grouping/（どのタブがどのグループか）
    │             ──→  Core/Localization/（画面に出す文言）
+   │             ──→  Core/Preview/（プレビューの大きさと位置）
    ↓
 Services/WindowService.cs（ウィンドウ操作）
    ↓
@@ -159,6 +164,38 @@ Interop/NativeMethods.cs（Windows API）
 設定画面の作り直しは、変更のきっかけになった選択欄自身を破棄するため `BeginInvoke` で
 遅らせます。バーが差し替えた古いメニューは、終了時まで保持します。設定画面を開いたメニューは、
 Windows Forms 側がまだ保持しているためです。
+
+## ウィンドウのプレビュー
+
+タブにポインターを重ねると、そのウィンドウの中身を表示できます。同じアプリのウィンドウは
+アイコンも題名の先頭も同じになりがちで、それを見分けるための機能です。設定で切り替えられ、
+初期状態では無効です。プレビューは専用のウィンドウと、デスクトップコンポジターへの登録を
+必要とし、ポインターを重ねている間そのウィンドウをもう一度描かせます。更新しただけで
+それが始まることはない、という判断です。
+
+画面はこのアプリが撮って描くのではありません。`DwmRegisterThumbnail` がコンポジターに
+「このウィンドウの中にあのウィンドウを描いてほしい」と依頼します。そのため表示されるのは
+現在のウィンドウそのもので、内容を追従させる費用もかかりません。`UI/PreviewWindow.cs` が
+登録を保持し、ウィンドウを隠すのと同じ呼び出しで解除します。登録は呼び出しより長く残り、
+どのウィンドウの持ち物でもないため、隠すだけでは誰も見ていない絵をコンポジターが
+描き続けることになります。
+
+**プレビュー用のウィンドウは、決して前面を取ってはいけません。** バーはクリックされると
+自分自身を前面にし、3段階のウィンドウ切り替えはそれがバーであることを前提にしています。
+`WS_EX_NOACTIVATE` と `ShowWithoutActivation` がそれを防ぎ、`WS_EX_TOOLWINDOW` が
+Alt+Tab の一覧からも外します。
+
+`Core/Preview/PreviewPlacement.cs` は、間違えやすく、かつ画面がなくても確かめられる2つの
+判断を担います。`Fit` は大きさを決め、ウィンドウ本来の形を保ち、元より大きくはしません。
+`Place` はタブの中央に置き、両端で画面の中へ戻します。`Fit` にはバーより上の余白を最大の
+高さとして渡すため、`Place` が上方向を調整する必要はありません。
+
+ウィンドウは1つだけを作り、バーが終わるまで使い回します。1回ごとに作ると、ポインターが
+タブの列を横切るだけで作成と破棄を繰り返すためです。最初のプレビューのときに作るので、
+初期設定のまま使う場合は1度も作られません。
+
+最小化されたウィンドウにはプレビューを出しません。コンポジターに描く内容がなく、空の枠に
+なるためです。題名はツールチップが表示します。それが空の枠の代わりになります。
 
 ## アプリ単位で行をまとめる仕組み
 

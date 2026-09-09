@@ -39,6 +39,8 @@ windows-simple-tasktabbar/
 │   │   │   ├── StringId.cs                 The name of every piece of interface text
 │   │   │   ├── UiStrings.cs                What each one says, in each language
 │   │   │   └── UiText.cs                   The text in one language, as callers read it
+│   │   ├── Preview/
+│   │   │   └── PreviewPlacement.cs         How big a window preview is, and where it sits
 │   │   ├── Settings/
 │   │   │   ├── AppGroup.cs                 One group the user defined by hand
 │   │   │   └── AppSettings.cs              The settings and their defaults
@@ -55,6 +57,7 @@ windows-simple-tasktabbar/
 │       └── UI/
 │           ├── AccentPalette.cs            The square of colour shown beside each accent
 │           ├── MainForm.cs                 AppBar registration, painting, input
+│           ├── PreviewWindow.cs            The window a live preview is drawn in
 │           ├── SettingsForm.cs             The settings dialog
 │           └── UiFonts.cs                  The font of the active language, with a fallback
 └── tests/
@@ -63,6 +66,7 @@ windows-simple-tasktabbar/
         ├── BarMetricsTests.cs
         ├── BarPaletteTests.cs
         ├── LocalizationTests.cs
+        ├── PreviewPlacementTests.cs
         ├── TabGroupingTests.cs
         └── TabStripTests.cs
 ```
@@ -118,6 +122,7 @@ Program.cs
 UI/MainForm.cs  ──→  Core/Layout/                (calculations)
    │             ──→  Core/Grouping/              (which tab is in which group)
    │             ──→  Core/Localization/          (what every piece of text says)
+   │             ──→  Core/Preview/               (how big a window preview is, and where)
    ↓
 Services/WindowService.cs                       (window operations)
    ↓
@@ -150,6 +155,38 @@ the bar is the one failure this application must not have.
 
 An icon-only stage was tried and removed. A row of windows from one application shows the same
 icon over and over, so the text is the only thing that tells them apart.
+
+### Previewing a window
+
+Resting the pointer on a tab can show a live picture of that window, which is how two windows of
+one application are told apart when their icons and the first few characters of their titles are
+the same. It is a setting, and it is off until it is asked for: a preview holds a window and a
+registration with the desktop compositor, which draws the source window a second time for as long
+as the pointer rests. Nobody's bar starts doing that because they updated.
+
+The picture is not taken and drawn by this application. `DwmRegisterThumbnail` asks the compositor
+to draw one window inside another, so what appears is the window as it is now, and it costs
+nothing to keep current. `UI/PreviewWindow.cs` owns the registration and releases it in the same
+call that hides the window: a registration outlives the call that made it and belongs to no window
+on its own, so hiding without releasing would leave the compositor drawing for nobody.
+
+**The preview window must never take the foreground.** The bar activates itself when it is
+clicked, and the three-step activation depends on that being the bar rather than anything else
+this application owns. `WS_EX_NOACTIVATE` and `ShowWithoutActivation` are what keep it out of the
+way, and `WS_EX_TOOLWINDOW` keeps it out of Alt+Tab.
+
+`Core/Preview/PreviewPlacement.cs` holds the two decisions that are easy to get wrong and need no
+screen to check: `Fit` gives the size, keeping the window's own shape and never enlarging it, and
+`Place` centres it over its tab and brings it back onto the screen at either end. `Fit` is handed
+the room above the bar as its maximum height, which is why `Place` has nothing to bring down from
+the top.
+
+One instance of the window is kept for the life of the bar rather than one per preview: the
+pointer crossing a row of tabs would otherwise create and destroy one for each. It is created on
+the first preview, so a bar left on the default setting never makes it at all.
+
+A minimized window gets no preview. The compositor has no picture of one, so it would be an empty
+box; the tooltip still gives the title, which is what the empty box would have been worth.
 
 ### Dragging a tab
 

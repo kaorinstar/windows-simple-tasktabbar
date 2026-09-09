@@ -44,7 +44,7 @@ public class AppSettings
     /// The schema this instance was written with. Present from the first release so that a later
     /// version can tell an old file apart from a new one instead of guessing.
     /// </summary>
-    public const int CurrentSchema = 4;
+    public const int CurrentSchema = 5;
 
     /// <summary>How many accents a group can be marked with.</summary>
     public const int AccentCount = 8;
@@ -74,6 +74,21 @@ public class AppSettings
     /// something to do to somebody who has only updated the application.
     /// </remarks>
     public bool GroupByApplication { get; set; }
+
+    /// <summary>
+    /// Whether resting the pointer on a tab shows a live picture of that window.
+    /// </summary>
+    /// <remarks>
+    /// Off by default, and a plain <c>bool</c> rather than a nullable one for that reason: the
+    /// serializer does not run the constructor, so a settings file written before this existed
+    /// reads as false, which is the answer wanted anyway.
+    ///
+    /// Off because it is not free. A preview holds a window of its own and a registration with
+    /// the desktop compositor, which draws the source window a second time for as long as the
+    /// pointer rests. Nobody's bar starts doing that because they updated, and the tooltip still
+    /// gives the full title to everyone who leaves this alone.
+    /// </remarks>
+    public bool ShowWindowPreview { get; set; }
 
     /// <summary>
     /// Which language the interface is drawn in, as a language code, or
@@ -110,6 +125,7 @@ public class AppSettings
             BarHeight = IsKnown(BarHeight) ? BarHeight : BarHeightMode.Standard,
             Colours = IsKnown(Colours) ? Colours : ColourMode.FollowWindows,
             GroupByApplication = GroupByApplication,
+            ShowWindowPreview = ShowWindowPreview,
             Language = Languages.Find(Language)?.Code ?? Languages.Automatic,
             Groups = NormalizedGroups(Groups),
         };
@@ -132,6 +148,7 @@ public class AppSettings
         BarHeight = tidy.BarHeight;
         Colours = tidy.Colours;
         GroupByApplication = tidy.GroupByApplication;
+        ShowWindowPreview = tidy.ShowWindowPreview;
         Language = tidy.Language;
         Groups = tidy.Groups;
     }
