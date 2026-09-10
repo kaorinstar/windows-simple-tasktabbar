@@ -33,6 +33,7 @@ public enum StringId
     TabMenuCloseLeft,
     TabMenuCloseRight,
     TabMenuMinimize,
+    TabMenuExclude,
 
     /// <summary>Drawn on the bar while no window is open.</summary>
     BarNoWindows,
@@ -65,6 +66,12 @@ public enum StringId
     GroupsName,
     GroupsColour,
     GroupsDefaultName,
+
+    ExclusionsGroup,
+    ExclusionsNote,
+    ExclusionsCaption,
+    ExclusionsAddCaption,
+    ExclusionsAdd,
 
     PreviewGroup,
     PreviewEnable,

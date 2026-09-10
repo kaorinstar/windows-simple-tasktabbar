@@ -375,4 +375,91 @@ public class AppSettingsTests
 
         Assert.Equal(expected, settings.Normalized().LastNoticedRelease);
     }
+
+    // ---------------------------------------------------------------
+    // The applications the user excludes
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public void NothingIsExcludedByDefault()
+    {
+        // An update must not take anybody's windows off their bar.
+        Assert.Empty(new AppSettings().ExcludedApplications);
+    }
+
+    [Fact]
+    public void AnExclusionIsKeptAsABareFileNameInLowerCase()
+    {
+        var settings = new AppSettings
+        {
+            ExcludedApplications = new List<string> { @"C:\Windows\System32\NOTEPAD.EXE" },
+        };
+
+        // The same form the bar reads from a window, so a path pasted into the file by hand
+        // still matches the application it names.
+        Assert.Equal(new[] { "notepad.exe" }, settings.Normalized().ExcludedApplications);
+    }
+
+    [Fact]
+    public void AnExclusionListedTwiceIsKeptOnce()
+    {
+        var settings = new AppSettings
+        {
+            ExcludedApplications = new List<string>
+            {
+                "notepad.exe", @"C:\Windows\notepad.exe", "Notepad.exe",
+            },
+        };
+
+        Assert.Equal(new[] { "notepad.exe" }, settings.Normalized().ExcludedApplications);
+    }
+
+    [Fact]
+    public void AnEmptyExclusionIsDropped()
+    {
+        var settings = new AppSettings
+        {
+            ExcludedApplications = new List<string> { string.Empty, "   ", null, "teams.exe" },
+        };
+
+        Assert.Equal(new[] { "teams.exe" }, settings.Normalized().ExcludedApplications);
+    }
+
+    [Fact]
+    public void TheExclusionsComeBackSorted()
+    {
+        var settings = new AppSettings
+        {
+            ExcludedApplications = new List<string> { "teams.exe", "chrome.exe", "notepad.exe" },
+        };
+
+        Assert.Equal(new[] { "chrome.exe", "notepad.exe", "teams.exe" },
+            settings.Normalized().ExcludedApplications);
+    }
+
+    [Fact]
+    public void AnAbsentExclusionListReadsAsAnEmptyOne()
+    {
+        // DataContractJsonSerializer does not run the constructor, so a settings file written
+        // before this setting existed leaves the property null rather than empty.
+        var settings = new AppSettings { ExcludedApplications = null };
+        settings.Normalize();
+
+        Assert.Empty(settings.ExcludedApplications);
+    }
+
+    [Fact]
+    public void NormalizingInPlaceKeepsTheExclusions()
+    {
+        // Normalize and Normalized have to stay in step: the bar reads the same object the
+        // store writes, so a value kept by one and dropped by the other would show up as a
+        // setting that came back after a restart.
+        var settings = new AppSettings
+        {
+            ExcludedApplications = new List<string> { "Teams.exe" },
+        };
+        settings.Normalize();
+
+        Assert.Equal(new[] { "teams.exe" }, settings.ExcludedApplications);
+    }
 }

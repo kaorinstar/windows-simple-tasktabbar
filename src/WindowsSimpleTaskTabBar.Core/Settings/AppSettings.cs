@@ -45,7 +45,7 @@ public class AppSettings
     /// The schema this instance was written with. Present from the first release so that a later
     /// version can tell an old file apart from a new one instead of guessing.
     /// </summary>
-    public const int CurrentSchema = 6;
+    public const int CurrentSchema = 7;
 
     /// <summary>How many accents a group can be marked with.</summary>
     public const int AccentCount = 8;
@@ -53,6 +53,9 @@ public class AppSettings
     /// <summary>The most groups the user may define, and the most executables one may hold.</summary>
     private const int MaxGroups = 64;
     private const int MaxExecutablesPerGroup = 256;
+
+    /// <summary>The most applications the user may exclude.</summary>
+    private const int MaxExcludedApplications = 256;
 
     public int Schema { get; set; } = CurrentSchema;
 
@@ -108,6 +111,21 @@ public class AppSettings
     public List<AppGroup> Groups { get; set; } = new List<AppGroup>();
 
     /// <summary>
+    /// The executables whose windows are kept off the bar, in lower case, for example
+    /// <c>notepad.exe</c>. Empty until the user excludes something.
+    /// </summary>
+    /// <remarks>
+    /// The file name rather than the full path, for the reason grouping uses one: that is how
+    /// people recognise an application, and a program installed in two folders is one
+    /// application to the person looking at the bar. It carries the same cost, that two
+    /// unrelated programs both called <c>app.exe</c> are excluded together.
+    ///
+    /// This is the user's list. The shell's own windows are excluded by class name from a list
+    /// built into <c>WindowExclusion</c> that nothing here can shorten.
+    /// </remarks>
+    public List<string> ExcludedApplications { get; set; } = new List<string>();
+
+    /// <summary>
     /// Whether the bar looks for a newer release when it starts.
     /// </summary>
     /// <remarks>
@@ -159,6 +177,7 @@ public class AppSettings
             ShowWindowPreview = ShowWindowPreview,
             Language = Languages.Find(Language)?.Code ?? Languages.Automatic,
             Groups = NormalizedGroups(Groups),
+            ExcludedApplications = NormalizedExclusions(ExcludedApplications),
             CheckForUpdates = CheckForUpdates ?? true,
             LastUpdateCheckUtc = NormalizedStamp(LastUpdateCheckUtc),
             LastNoticedRelease = NormalizedTag(LastNoticedRelease),
@@ -185,6 +204,7 @@ public class AppSettings
         ShowWindowPreview = tidy.ShowWindowPreview;
         Language = tidy.Language;
         Groups = tidy.Groups;
+        ExcludedApplications = tidy.ExcludedApplications;
         CheckForUpdates = tidy.CheckForUpdates;
         LastUpdateCheckUtc = tidy.LastUpdateCheckUtc;
         LastNoticedRelease = tidy.LastNoticedRelease;
@@ -278,6 +298,43 @@ public class AppSettings
             });
         }
 
+        return result;
+    }
+
+    /// <summary>
+    /// The excluded applications with every value brought into range: each one a bare file name
+    /// in lower case, none of them empty, and no name listed twice.
+    /// </summary>
+    /// <remarks>
+    /// Sorted, because the list has no meaningful order of its own: the dialog shows it
+    /// alongside the applications that are running and sorts the two together, and a settings
+    /// file somebody opens to edit reads more easily in order than in the order things happened
+    /// to be ticked.
+    ///
+    /// <paramref name="excluded"/> can be null, for the reason given on <see cref="NormalizedGroups"/>:
+    /// a settings file written before this setting existed leaves the property unset.
+    /// </remarks>
+    private static List<string> NormalizedExclusions(List<string> excluded)
+    {
+        var result = new List<string>();
+        if (excluded == null) return result;
+
+        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (string name in excluded)
+        {
+            if (result.Count >= MaxExcludedApplications) break;
+
+            // The same normalization the bar applies to what it reads from a window, so a full
+            // path typed into the settings file still matches the window it names.
+            string key = TabGrouping.KeyFor(name);
+            if (key.Length == 0) continue;
+            if (!taken.Add(key)) continue;
+
+            result.Add(key);
+        }
+
+        result.Sort(StringComparer.Ordinal);   // every entry is already lower case
         return result;
     }
 

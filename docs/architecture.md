@@ -28,6 +28,8 @@ windows-simple-tasktabbar/
 │   └── architecture.ja.md         Japanese translation
 ├── src/
 │   ├── WindowsSimpleTaskTabBar.Core/       Logic with no UI dependency
+│   │   ├── Filtering/
+│   │   │   └── WindowExclusion.cs          Which windows are left off the bar
 │   │   ├── Focus/
 │   │   │   └── ActiveMark.cs               Which tab is marked as the window in front
 │   │   ├── Grouping/
@@ -77,7 +79,8 @@ windows-simple-tasktabbar/
         ├── ReleaseVersionTests.cs
         ├── TabGroupingTests.cs
         ├── TabStripTests.cs
-        └── UpdateCheckScheduleTests.cs
+        ├── UpdateCheckScheduleTests.cs
+        └── WindowExclusionTests.cs
 ```
 
 ## Why src and tests are separate
@@ -130,6 +133,7 @@ Program.cs
    ↓
 UI/MainForm.cs  ──→  Core/Layout/                (calculations)
    │             ──→  Core/Grouping/              (which tab is in which group)
+   │             ──→  Core/Filtering/             (which windows are left off the bar)
    │             ──→  Core/Focus/                 (which tab is marked as in front)
    │             ──→  Core/Localization/          (what every piece of text says)
    │             ──→  Core/Preview/               (how big a window preview is, and where)
@@ -483,6 +487,38 @@ Grouping is matched on the executable's file name rather than its full path, bec
 people recognise an application; two copies of one program installed in different folders are
 the same application to the person looking at the bar. The cost is that two unrelated programs
 both called `app.exe` are treated as one.
+
+### Leaving a window off the bar
+
+Two separate lists decide this, and they are kept apart on purpose.
+
+The first is the shell's own window classes - `Shell_TrayWnd`, `Progman`, `WorkerW` and the rest -
+which is built into `WindowExclusion` and cannot be shortened by anything the user does. A bar
+that listed them would be listing the taskbar under it and the desktop behind it. The class name
+is on the window itself, so `WindowService.IsTaskWindow` asks while the windows are being
+enumerated.
+
+The second is the user's own list, in `AppSettings.ExcludedApplications`, and it names
+executables rather than window classes: people recognise an application by the program it is,
+not by a class name they have never seen. Reading the executable behind a window costs a process
+query, so it is asked afterwards, in `MainForm.WithoutExcludedApplications`, and only for the
+windows that got past the first list. While the list is empty that method returns what it was
+given without reading a single process, so a bar nobody has configured costs exactly what it did
+before the setting existed. Once something is excluded, `ProcessInfoCache` answers each window
+after the first query, so the 250 ms refresh costs a dictionary lookup rather than a process
+query.
+
+`ProcessInfoCache` is pruned against the windows that were *offered*, not the ones that were
+kept. Pruned against the shorter list, an excluded window would be forgotten and looked up again
+four times a second for as long as it stayed open - the one window in the session that is
+guaranteed never to be drawn would be the most expensive one on the bar.
+
+The same list of offered windows is what the settings dialog is shown. An application excluded
+from the row still has a line in the dialog, ticked, so the choice can be undone; taken from
+the row instead, the tick that hid it would have been the last thing the user could do to it.
+
+Matching is on the executable's file name, exactly as grouping matches, and carries the same
+cost: two unrelated programs both called `app.exe` are excluded together.
 
 ### Telling the user a new version exists
 

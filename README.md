@@ -27,7 +27,7 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
   on, a tab moves within its own group, and dragging it past a neighbouring group carries the
   whole group with it. A window that is the only one of its application travels on its own.
 - **Right-click a tab** — opens a menu with Close, Close other tabs, Close tabs to the left,
-  Close tabs to the right and Minimize.
+  Close tabs to the right, Minimize and Exclude this application.
 - **Right-click the space around the tabs** — opens a menu with Settings, Refresh and Exit.
 - **Scroll the wheel over the bar, or click the arrows at either end** — moves the row when
   there are more tabs than fit. The row also follows the window you switch to.
@@ -36,6 +36,12 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
   and the next. A new window joins its application rather than the end of the row. Applications
   can be combined into one named group of your own, with a colour you pick. It is off until you
   turn it on.
+- **Exclude an application** — an option in the settings. A background utility or a chat client
+  you never switch to with the bar can be kept off it, so the tabs you do use are wider. The
+  windows stay open and nothing is closed: only their tabs go. Right-clicking a tab excludes its
+  application in one step, and the settings list it beside everything else that is running, so
+  the choice can be undone. An application that is not running can be excluded by typing its
+  name.
 - The tab list updates automatically when windows open, close, change title, or gain focus.
   A two-second timer runs as a safety net.
 - **Choose the colours** — an option in the settings: follow Windows, always light, or always

@@ -4,6 +4,7 @@ using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
+using WindowsSimpleTaskTabBar.Core.Filtering;
 using WindowsSimpleTaskTabBar.Core.Focus;
 using WindowsSimpleTaskTabBar.Core.Grouping;
 using WindowsSimpleTaskTabBar.Core.Layout;
@@ -63,6 +64,12 @@ public class MainForm : Form
     private readonly List<IntPtr> _order = new();          // keeps the display order stable
     private readonly Dictionary<IntPtr, CachedIcon> _iconCache = new();
     private readonly ProcessInfoCache _processInfo = new();
+
+    // Every window that could be a tab, including the ones the user excludes. _order holds
+    // what is shown; this holds what was offered, so the settings dialog can still list an
+    // application whose windows it has just taken off the bar, and so the process cache keeps
+    // its entry for a window that is looked at on every refresh but never drawn.
+    private readonly List<IntPtr> _candidates = new();
 
     // The group of each tab in _tabs, reused rather than rebuilt: it is read on every mouse
     // move while a tab is being dragged.
@@ -173,6 +180,12 @@ public class MainForm : Form
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
         Justification = "Owned by _tabMenu.Items, which releases it.")]
     private ToolStripItem _closeRightItem;
+
+    // Greyed out for a window whose process could not be read: there is no application name to
+    // put in the list, so the command would do nothing.
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by _tabMenu.Items, which releases it.")]
+    private ToolStripItem _excludeItem;
 
     private NotifyIcon _trayIcon;
 
@@ -298,6 +311,10 @@ public class MainForm : Form
         menu.Items.Add(_text[StringId.TabMenuMinimize], null,
             (_, __) => { WindowService.Minimize(_menuTarget); _dirty = true; });
 
+        menu.Items.Add(new ToolStripSeparator());
+        _excludeItem = menu.Items.Add(_text[StringId.TabMenuExclude], null,
+            (_, __) => ExcludeApplication(_menuTarget));
+
         return menu;
     }
 
@@ -349,6 +366,10 @@ public class MainForm : Form
             _closeOthersItem.Enabled = _tabs.Count > 1;
             _closeLeftItem.Enabled = index > 0;
             _closeRightItem.Enabled = index < _tabs.Count - 1;
+
+            // The same rule: a window whose process could not be read has no application name
+            // to exclude by, so the command is shown greyed rather than left to do nothing.
+            _excludeItem.Enabled = _processInfo.Name(_menuTarget).Length > 0;
 
             _tabMenu.Show(this, p);
         }
@@ -978,7 +999,15 @@ public class MainForm : Form
 
     private void RefreshTabs()
     {
-        List<IntPtr> current = WindowService.EnumerateTaskWindows(Handle);
+        _candidates.Clear();
+        _candidates.AddRange(WindowService.EnumerateTaskWindows(Handle));
+
+        // Before the excluded windows are dropped, so each one keeps its cache entry. Pruned
+        // against the shorter list they would be forgotten and looked up again four times a
+        // second, for windows that are never drawn.
+        _processInfo.Forget(new HashSet<IntPtr>(_candidates));
+
+        List<IntPtr> current = WithoutExcludedApplications(_candidates);
 
         // Keep the existing order and append newly opened windows at the end.
         // Membership is tested through sets: this runs every 250 ms.
@@ -1003,8 +1032,6 @@ public class MainForm : Form
                 _iconCache.Remove(key);
             }
         }
-
-        _processInfo.Forget(known);
 
         // Before the tabs are rebuilt, so no tab holds an icon that is about to be replaced.
         RefreshStalestIcon();
@@ -1085,6 +1112,61 @@ public class MainForm : Form
     }
 
     // ---------------------------------------------------------------
+    // Applications the user has excluded
+    // ---------------------------------------------------------------
+
+    /// <summary>
+    /// The windows that are left after the applications the user excluded are taken out.
+    /// </summary>
+    /// <remarks>
+    /// The list itself is returned untouched while nothing is excluded, down to not reading a
+    /// single process, so a bar nobody has configured behaves exactly as it did before this
+    /// setting existed. That is the same bargain grouping makes.
+    ///
+    /// Once something is excluded the executable is asked for once per window and answered from
+    /// <see cref="ProcessInfoCache"/> after that, so the 250 ms refresh costs a dictionary
+    /// lookup rather than a process query.
+    /// </remarks>
+    private List<IntPtr> WithoutExcludedApplications(List<IntPtr> windows)
+    {
+        List<string> excluded = _settings.ExcludedApplications;
+        if (excluded == null || excluded.Count == 0) return windows;
+
+        var result = new List<IntPtr>(windows.Count);
+        foreach (IntPtr h in windows)
+        {
+            if (!WindowExclusion.IsExcludedApplication(_processInfo.Name(h), excluded))
+                result.Add(h);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Adds the application behind one window to the excluded list, and takes its windows off
+    /// the bar at once.
+    /// </summary>
+    /// <remarks>
+    /// Through the settings rather than by hiding the one tab: the user is excluding an
+    /// application, so its other windows go too, and the choice is written down where it can be
+    /// undone.
+    /// </remarks>
+    private void ExcludeApplication(IntPtr hwnd)
+    {
+        string name = _processInfo.Name(hwnd);
+        if (name.Length == 0) return;
+
+        if (_settings.ExcludedApplications.Contains(name, StringComparer.OrdinalIgnoreCase))
+            return;
+
+        _settings.ExcludedApplications.Add(name);
+
+        // The same call the settings dialog makes, so the row, the reserved area and the
+        // settings file are brought up to date by one path rather than two.
+        ApplySettings();
+    }
+
+    // ---------------------------------------------------------------
     // Grouping the row by application
     // ---------------------------------------------------------------
 
@@ -1145,12 +1227,17 @@ public class MainForm : Form
     }
 
     /// <summary>The executables that have a window open right now, for the settings dialog.</summary>
+    /// <remarks>
+    /// From the candidates rather than from the row, so an application the user has just
+    /// excluded is still listed. Taken from the row it would leave the list the moment it was
+    /// ticked, and the tick that hid it would be the last thing the user could do to it.
+    /// </remarks>
     private List<string> RunningApplications()
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var result = new List<string>();
 
-        foreach (IntPtr h in _order)
+        foreach (IntPtr h in _candidates)
         {
             string name = _processInfo.Name(h);
             if (name.Length > 0 && seen.Add(name)) result.Add(name);

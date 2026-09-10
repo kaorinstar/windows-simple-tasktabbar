@@ -1,4 +1,5 @@
 using System.Text;
+using WindowsSimpleTaskTabBar.Core.Filtering;
 using WindowsSimpleTaskTabBar.Interop;
 
 namespace WindowsSimpleTaskTabBar.Services;
@@ -26,20 +27,6 @@ internal static class WindowService
         return result;
     }
 
-    private static readonly string[] ExcludedClasses =
-    {
-        "Shell_TrayWnd",
-        "Shell_SecondaryTrayWnd",
-        "Progman",
-        "WorkerW",
-        "Button",
-        "DV2ControlHost",
-        "MsgrIMEWindowClass",
-        "SysShadow",
-        "Windows.UI.Core.CoreWindow",
-        "Xaml_WindowedPopupClass",
-    };
-
     private static bool IsTaskWindow(IntPtr hwnd)
     {
         if (!NativeMethods.IsWindowVisible(hwnd)) return false;
@@ -57,14 +44,9 @@ internal static class WindowService
             && cloaked != 0)
             return false;
 
-        string className = GetClassName(hwnd);
-        foreach (string excluded in ExcludedClasses)
-        {
-            if (string.Equals(className, excluded, StringComparison.OrdinalIgnoreCase))
-                return false;
-        }
-
-        return true;
+        // The shell's own windows only. What the user excludes is an application, which needs
+        // the process behind the window and is settled in MainForm, where the answers are cached.
+        return !WindowExclusion.IsShellWindow(GetClassName(hwnd));
     }
 
     public static string GetTitle(IntPtr hwnd)

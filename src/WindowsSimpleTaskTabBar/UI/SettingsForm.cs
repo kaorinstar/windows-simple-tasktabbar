@@ -113,6 +113,18 @@ internal sealed class SettingsForm : Form
         Justification = "Owned by the Controls collection it is added to.")]
     private CheckBox _checkForUpdates;
 
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private CheckedListBox _excluded;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private TextBox _excludedName;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private Button _addExcluded;
+
     /// <param name="settings">The live settings object, edited in place.</param>
     /// <param name="onChanged">Called after every change, to apply and save it.</param>
     /// <param name="runningApplications">
@@ -237,6 +249,7 @@ internal sealed class SettingsForm : Form
         root.Controls.Add(BuildHeightGroup());
         root.Controls.Add(BuildColourGroup());
         root.Controls.Add(BuildGroupingGroup());
+        root.Controls.Add(BuildExclusionsGroup());
         root.Controls.Add(BuildPreviewGroup());
         root.Controls.Add(BuildUpdatesGroup());
 
@@ -663,6 +676,100 @@ internal sealed class SettingsForm : Form
         return box;
     }
 
+    /// <summary>
+    /// The applications the user keeps off the bar: one list, ticked to exclude, and a box for
+    /// naming one that is not running.
+    /// </summary>
+    /// <remarks>
+    /// One list rather than a pair of them. What is excluded and what is not are the two halves
+    /// of one set of applications, and a tick box says which half something is in more directly
+    /// than moving names between two boxes does.
+    ///
+    /// The box for typing a name is there because a list of what is running cannot offer an
+    /// application that is closed. Somebody who has just been interrupted by a program they do
+    /// not want on the bar should not have to start it again to exclude it.
+    /// </remarks>
+    private GroupBox BuildExclusionsGroup()
+    {
+        // The same row height and column width as the grouping box above, so the lists in the
+        // two boxes are the same size whatever the DPI and the text size are.
+        int row = Font.Height;
+        int column = TextRenderer.MeasureText("chromium-browser.exe", Font).Width + row * 2;
+
+        var explanation = new Label
+        {
+            Text = _text[StringId.ExclusionsNote],
+            AutoSize = true,
+            MaximumSize = new Size(column * 2, 0),
+            ForeColor = SystemColors.GrayText,
+            Margin = new Padding(4, 0, 4, 6),
+        };
+
+        _excluded = new CheckedListBox
+        {
+            Height = row * 5,
+            Width = column * 2,
+            Margin = new Padding(4, 0, 4, 4),
+            CheckOnClick = true,
+            IntegralHeight = false,
+        };
+        _excluded.ItemCheck += OnExcludedChecked;
+
+        _excludedName = new TextBox
+        {
+            Width = column,
+            Margin = new Padding(0, 2, 8, 4),
+        };
+
+        // Enter adds the name rather than closing the dialog, which is what the Close button
+        // being the accept button would otherwise make it do.
+        _excludedName.KeyDown += OnExcludedNameKeyDown;
+
+        _addExcluded = new Button
+        {
+            Text = _text[StringId.ExclusionsAdd],
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(0, 0, 4, 4),
+        };
+        _addExcluded.Click += (_, __) => OnAddExcluded();
+
+        var addRow = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.LeftToRight,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(4, 0, 4, 4),
+        };
+        addRow.Controls.Add(Caption(_text[StringId.ExclusionsAddCaption]));
+        addRow.Controls.Add(_excludedName);
+        addRow.Controls.Add(_addExcluded);
+
+        var content = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.TopDown,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(8, 4, 8, 8),
+            Dock = DockStyle.Fill,    // below the caption; see BuildLanguageGroup
+            WrapContents = false,
+        };
+        content.Controls.Add(explanation);
+        content.Controls.Add(Caption(_text[StringId.ExclusionsCaption]));
+        content.Controls.Add(_excluded);
+        content.Controls.Add(addRow);
+
+        var box = new GroupBox
+        {
+            Text = _text[StringId.ExclusionsGroup],
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(12, 6, 12, 6),
+        };
+        box.Controls.Add(content);
+        return box;
+    }
+
     /// <remarks>
     /// The application is one file that the user copied into a folder of their own, so there is
     /// nothing else that would tell them a new version exists. The note says what the check does
@@ -742,6 +849,7 @@ internal sealed class SettingsForm : Form
         _loading = false;
 
         ReloadGroups(_groups.SelectedIndex);
+        ReloadExcluded();
     }
 
     /// <summary>
@@ -953,6 +1061,125 @@ internal sealed class SettingsForm : Form
         if (_loading) return;
 
         ReloadApplications();
+    }
+
+    // ---------------------------------------------------------------
+    // Excluded applications
+    // ---------------------------------------------------------------
+
+    /// <summary>
+    /// Fills the list with everything that has a window open, plus everything already excluded,
+    /// ticking the ones that are.
+    /// </summary>
+    /// <remarks>
+    /// The two sources are needed together. An application that is not running would otherwise
+    /// have no line to untick, which would leave the user unable to undo the exclusion that
+    /// closed it out; and one that is running but not excluded would have no line to tick.
+    ///
+    /// The line the list was scrolled to is put back afterwards, for the reason
+    /// <see cref="ReloadApplications"/> gives: a list that jumped to the top after every tick
+    /// would have to be scrolled back before the next one.
+    /// </remarks>
+    private void ReloadExcluded()
+    {
+        int firstVisible = _excluded.TopIndex;
+        int highlighted = _excluded.SelectedIndex;
+
+        var names = new List<string>(_runningApplications() ?? new List<string>());
+        var seen = new HashSet<string>(names, StringComparer.OrdinalIgnoreCase);
+
+        foreach (string name in _settings.ExcludedApplications)
+        {
+            if (seen.Add(name)) names.Add(name);
+        }
+
+        names.Sort(StringComparer.OrdinalIgnoreCase);
+
+        _loading = true;
+        try
+        {
+            _excluded.Items.Clear();
+            foreach (string name in names)
+            {
+                bool excluded = _settings.ExcludedApplications
+                    .Contains(name, StringComparer.OrdinalIgnoreCase);
+                _excluded.Items.Add(name, excluded);
+            }
+
+            // Both clamped to what the list now holds; see ReloadApplications.
+            if (highlighted >= 0 && highlighted < _excluded.Items.Count)
+                _excluded.SelectedIndex = highlighted;
+
+            if (firstVisible > 0 && _excluded.Items.Count > 0)
+                _excluded.TopIndex = Math.Min(firstVisible, _excluded.Items.Count - 1);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    /// <summary>Reports the change and redraws the list from the settings that were kept.</summary>
+    private void ApplyExclusions()
+    {
+        _onChanged();
+        ReloadExcluded();
+    }
+
+    private void OnExcludedChecked(object sender, ItemCheckEventArgs e)
+    {
+        if (_loading) return;
+
+        string name = TabGrouping.KeyFor(_excluded.Items[e.Index].ToString());
+        if (name.Length == 0) return;
+
+        if (e.NewValue == CheckState.Checked)
+        {
+            if (!_settings.ExcludedApplications.Contains(name, StringComparer.OrdinalIgnoreCase))
+                _settings.ExcludedApplications.Add(name);
+        }
+        else
+        {
+            _settings.ExcludedApplications.RemoveAll(
+                x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // ItemCheck runs before the tick is drawn, so the reload has to wait for it to land.
+        BeginInvoke(new Action(ApplyExclusions));
+    }
+
+    private void OnExcludedNameKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.KeyCode != Keys.Enter) return;
+
+        // Both, so that neither the dialog's accept button nor the beep that follows an
+        // unhandled Enter in a text box gets the key.
+        e.Handled = true;
+        e.SuppressKeyPress = true;
+
+        OnAddExcluded();
+    }
+
+    /// <summary>
+    /// Excludes the application named in the box, for one that has no window open to tick.
+    /// </summary>
+    /// <remarks>
+    /// A name with no extension is taken as an executable and given <c>.exe</c>. What the bar
+    /// matches on is the file name of the executable, so "notepad" on its own would sit in the
+    /// list matching nothing, and the user would have no way of telling why.
+    /// </remarks>
+    private void OnAddExcluded()
+    {
+        string name = TabGrouping.KeyFor(_excludedName.Text);
+        if (name.Length == 0) return;
+
+        if (name.IndexOf('.') < 0) name += ".exe";
+
+        if (!_settings.ExcludedApplications.Contains(name, StringComparer.OrdinalIgnoreCase))
+            _settings.ExcludedApplications.Add(name);
+
+        _excludedName.Text = string.Empty;
+        ApplyExclusions();
     }
 
     private void OnAddGroup()
