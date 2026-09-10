@@ -113,6 +113,28 @@ internal sealed class SettingsForm : Form
         Justification = "Owned by the Controls collection it is added to.")]
     private CheckBox _checkForUpdates;
 
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private CheckedListBox _excluded;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private TextBox _excludedName;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private Button _addExcluded;
+
+    // The group boxes, and the panel they scroll inside. Held so that FitToScreen can measure
+    // the one and size the other; nothing else reads them.
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private TableLayoutPanel _boxes;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private Panel _scroller;
+
     /// <param name="settings">The live settings object, edited in place.</param>
     /// <param name="onChanged">Called after every change, to apply and save it.</param>
     /// <param name="runningApplications">
@@ -153,6 +175,83 @@ internal sealed class SettingsForm : Form
         ApplyFont();
         BuildControls();
         LoadFromSettings();
+
+        // Last: it measures what the three calls above have built.
+        FitToScreen();
+    }
+
+    /// <summary>
+    /// Stops the dialog growing taller than the screen: the boxes scroll instead, and the note
+    /// and the Close button below them stay where they are.
+    /// </summary>
+    /// <remarks>
+    /// The dialog has no size of its own. It is drawn from layout panels and takes whatever
+    /// height its contents come to, so that it still fits its text at a high DPI and in a
+    /// language whose labels are longer. That works until the contents are taller than the
+    /// screen, and then nothing stops it: the Close button goes below the bottom edge, where it
+    /// cannot be reached. Every setting added makes that more likely rather than less, so the
+    /// answer is a bound rather than a smaller control somewhere.
+    ///
+    /// The bound is put on the panel holding the boxes, not on the form. Capping the form and
+    /// letting it scroll was tried and is wrong twice over: a form that scrolls carries its own
+    /// Close button out of sight along with everything else, and <c>AutoScroll</c> on a form
+    /// that also sizes itself to its contents leaves it doing neither - it stops measuring the
+    /// children it can scroll to, and the dialog comes up as a narrow column with every label
+    /// cut off.
+    ///
+    /// So the panel is the only control here given a size. It starts at the height of the boxes,
+    /// which is the dialog as it was; when that puts the form over the screen, the overshoot is
+    /// taken off the panel and <c>AutoScroll</c> turns it into a scrollbar. The overshoot is
+    /// measured rather than estimated, so nothing here has to know how tall a title bar, a note
+    /// or a button is.
+    ///
+    /// The work area rather than the screen, because it is what is left after the taskbar and
+    /// this application's own bar, which is an AppBar and reserves its strip. The primary
+    /// monitor, because that is where <see cref="FormStartPosition.CenterScreen"/> puts the
+    /// dialog and the only monitor this application draws on (#62).
+    /// </remarks>
+    private void FitToScreen()
+    {
+        Screen screen = Screen.PrimaryScreen;
+        if (screen == null) return;
+
+        // The full height of the boxes: the dialog as it was before it had enough of them to
+        // overflow.
+        _scroller.Size = _boxes.PreferredSize;
+
+        int cap = screen.WorkingArea.Height;
+
+        // A floor, so that a screen too short for the note and the button as well cannot leave
+        // the panel with no height at all.
+        int floor = Font.Height * 6;
+
+        // Measured and corrected rather than calculated. Nothing here works out how tall a
+        // title bar, a note or a button is: the overshoot is read off the form and taken off
+        // the panel, and the next pass settles whatever that moved. The third pass is only ever
+        // a stop.
+        //
+        // Both measurements, because this runs before the dialog is shown. Height is the whole
+        // window once the form has sized itself and the default 300 until it has; PreferredSize
+        // answers from the layout either way. The larger is the one to trust.
+        for (int pass = 0; pass < 3; pass++)
+        {
+            PerformLayout();
+
+            int overshoot = Math.Max(Height, PreferredSize.Height) - cap;
+            if (overshoot <= 0) break;
+
+            int height = Math.Max(floor, _scroller.Height - overshoot);
+            if (height == _scroller.Height) break;
+
+            // A vertical scrollbar takes its width out of the panel. Unaccounted for, it would
+            // cover the right-hand edge of the widest box and raise a horizontal scrollbar under
+            // it, which is two scrollbars for one problem. Added once, on the pass that first
+            // makes the panel shorter than the boxes inside it.
+            if (_scroller.Height == _boxes.PreferredSize.Height)
+                _scroller.Width += SystemInformation.VerticalScrollBarWidth;
+
+            _scroller.Height = height;
+        }
     }
 
     /// <summary>
@@ -224,21 +323,90 @@ internal sealed class SettingsForm : Form
         _uiFont = null;
     }
 
+    /// <summary>
+    /// The width of one list of application names, and the unit the boxes are laid out in.
+    /// </summary>
+    /// <remarks>
+    /// Measured from the longest executable name likely to be listed rather than written in
+    /// pixels, so it follows the DPI and the user's text size without this file knowing what
+    /// either of them is. Four boxes size a list or wrap a note against it, so it is worked out
+    /// in one place rather than four.
+    /// </remarks>
+    private int ColumnWidth =>
+        TextRenderer.MeasureText("chromium-browser.exe", Font).Width + Font.Height * 2;
+
+    /// <summary>
+    /// One column of group boxes, laid out top to bottom.
+    /// </summary>
+    private static FlowLayoutPanel Column()
+    {
+        return new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.TopDown,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            WrapContents = false,
+            Margin = new Padding(0),
+        };
+    }
+
     private void BuildControls()
     {
+        // Two columns rather than one. Seven boxes in a single column came to more than the
+        // height of a screen, which left the dialog scrolling and no way to see all of it at
+        // once - a screenshot of the settings could no longer be taken, and neither could a
+        // glance. The two boxes with lists in them are much the tallest and much the widest, so
+        // they go together on the right and everything else stacks on the left; that halves the
+        // height and uses room that was empty.
+        FlowLayoutPanel left = Column();
+        left.Controls.Add(BuildLanguageGroup());
+        left.Controls.Add(BuildHeightGroup());
+        left.Controls.Add(BuildColourGroup());
+        left.Controls.Add(BuildPreviewGroup());
+        left.Controls.Add(BuildUpdatesGroup());
+
+        FlowLayoutPanel right = Column();
+        right.Controls.Add(BuildGroupingGroup());
+        right.Controls.Add(BuildExclusionsGroup());
+
+        _boxes = new TableLayoutPanel
+        {
+            ColumnCount = 2,
+            RowCount = 1,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(0),
+        };
+
+        // Both columns as wide and as tall as their contents. Without these the table splits
+        // itself evenly and the narrow column is given room the wide one needs.
+        _boxes.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        _boxes.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        _boxes.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        _boxes.Controls.Add(left, 0, 0);
+        _boxes.Controls.Add(right, 1, 0);
+
+        // The one control in this dialog given a size rather than taking one: FitToScreen
+        // measures the boxes and sets it. Scrolling has to happen here rather than on the form,
+        // so that the note and the Close button below stay in view, and so that the form keeps
+        // sizing itself to its contents as it always has.
+        _scroller = new Panel
+        {
+            AutoScroll = true,
+            Margin = new Padding(0),
+        };
+        _scroller.Controls.Add(_boxes);
+
         var root = new FlowLayoutPanel
         {
             FlowDirection = FlowDirection.TopDown,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Dock = DockStyle.Fill,
+            WrapContents = false,
         };
-        root.Controls.Add(BuildLanguageGroup());
-        root.Controls.Add(BuildHeightGroup());
-        root.Controls.Add(BuildColourGroup());
-        root.Controls.Add(BuildGroupingGroup());
-        root.Controls.Add(BuildPreviewGroup());
-        root.Controls.Add(BuildUpdatesGroup());
+        root.Controls.Add(_scroller);
 
         var note = new Label
         {
@@ -404,6 +572,12 @@ internal sealed class SettingsForm : Form
         {
             Text = _text[StringId.PreviewNote],
             AutoSize = true,
+
+            // Wrapped, like every other note. Left to itself this one laid out as a single
+            // line, and being the longest sentence in the dialog it decided how wide the whole
+            // dialog was: every box sat well short of the right-hand edge with the label
+            // running past them, unseen at the bottom.
+            MaximumSize = new Size(ColumnWidth * 2, 0),
             ForeColor = SystemColors.GrayText,
             Margin = new Padding(4, 0, 4, 4),
         };
@@ -507,7 +681,7 @@ internal sealed class SettingsForm : Form
     private GroupBox BuildGroupingGroup()
     {
         int row = Font.Height;
-        int column = TextRenderer.MeasureText("chromium-browser.exe", Font).Width + row * 2;
+        int column = ColumnWidth;
 
         _groupByApplication = new CheckBox
         {
@@ -663,6 +837,100 @@ internal sealed class SettingsForm : Form
         return box;
     }
 
+    /// <summary>
+    /// The applications the user keeps off the bar: one list, ticked to exclude, and a box for
+    /// naming one that is not running.
+    /// </summary>
+    /// <remarks>
+    /// One list rather than a pair of them. What is excluded and what is not are the two halves
+    /// of one set of applications, and a tick box says which half something is in more directly
+    /// than moving names between two boxes does.
+    ///
+    /// The box for typing a name is there because a list of what is running cannot offer an
+    /// application that is closed. Somebody who has just been interrupted by a program they do
+    /// not want on the bar should not have to start it again to exclude it.
+    /// </remarks>
+    private GroupBox BuildExclusionsGroup()
+    {
+        // The same row height and column width as the grouping box above, so the lists in the
+        // two boxes are the same size whatever the DPI and the text size are.
+        int row = Font.Height;
+        int column = ColumnWidth;
+
+        var explanation = new Label
+        {
+            Text = _text[StringId.ExclusionsNote],
+            AutoSize = true,
+            MaximumSize = new Size(column * 2, 0),
+            ForeColor = SystemColors.GrayText,
+            Margin = new Padding(4, 0, 4, 6),
+        };
+
+        _excluded = new CheckedListBox
+        {
+            Height = row * 5,
+            Width = column * 2,
+            Margin = new Padding(4, 0, 4, 4),
+            CheckOnClick = true,
+            IntegralHeight = false,
+        };
+        _excluded.ItemCheck += OnExcludedChecked;
+
+        _excludedName = new TextBox
+        {
+            Width = column,
+            Margin = new Padding(0, 2, 8, 4),
+        };
+
+        // Enter adds the name rather than closing the dialog, which is what the Close button
+        // being the accept button would otherwise make it do.
+        _excludedName.KeyDown += OnExcludedNameKeyDown;
+
+        _addExcluded = new Button
+        {
+            Text = _text[StringId.ExclusionsAdd],
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(0, 0, 4, 4),
+        };
+        _addExcluded.Click += (_, __) => OnAddExcluded();
+
+        var addRow = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.LeftToRight,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(4, 0, 4, 4),
+        };
+        addRow.Controls.Add(Caption(_text[StringId.ExclusionsAddCaption]));
+        addRow.Controls.Add(_excludedName);
+        addRow.Controls.Add(_addExcluded);
+
+        var content = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.TopDown,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(8, 4, 8, 8),
+            Dock = DockStyle.Fill,    // below the caption; see BuildLanguageGroup
+            WrapContents = false,
+        };
+        content.Controls.Add(explanation);
+        content.Controls.Add(Caption(_text[StringId.ExclusionsCaption]));
+        content.Controls.Add(_excluded);
+        content.Controls.Add(addRow);
+
+        var box = new GroupBox
+        {
+            Text = _text[StringId.ExclusionsGroup],
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(12, 6, 12, 6),
+        };
+        box.Controls.Add(content);
+        return box;
+    }
+
     /// <remarks>
     /// The application is one file that the user copied into a folder of their own, so there is
     /// nothing else that would tell them a new version exists. The note says what the check does
@@ -678,9 +946,8 @@ internal sealed class SettingsForm : Form
         };
         _checkForUpdates.CheckedChanged += (_, __) => OnUpdateCheckToggled();
 
-        // The same width as the group above, worked out the same way, so the two boxes line up
-        // whatever the DPI and the text size are.
-        int column = TextRenderer.MeasureText("chromium-browser.exe", Font).Width + Font.Height * 2;
+        // The same width as the boxes with lists in them, so a note is never wider than one.
+        int column = ColumnWidth;
 
         var explanation = new Label
         {
@@ -697,6 +964,8 @@ internal sealed class SettingsForm : Form
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Padding = new Padding(8, 4, 8, 8),
+            Dock = DockStyle.Fill,    // below the caption; see BuildLanguageGroup
+            WrapContents = false,
         };
         content.Controls.Add(_checkForUpdates);
         content.Controls.Add(explanation);
@@ -742,6 +1011,7 @@ internal sealed class SettingsForm : Form
         _loading = false;
 
         ReloadGroups(_groups.SelectedIndex);
+        ReloadExcluded();
     }
 
     /// <summary>
@@ -953,6 +1223,125 @@ internal sealed class SettingsForm : Form
         if (_loading) return;
 
         ReloadApplications();
+    }
+
+    // ---------------------------------------------------------------
+    // Excluded applications
+    // ---------------------------------------------------------------
+
+    /// <summary>
+    /// Fills the list with everything that has a window open, plus everything already excluded,
+    /// ticking the ones that are.
+    /// </summary>
+    /// <remarks>
+    /// The two sources are needed together. An application that is not running would otherwise
+    /// have no line to untick, which would leave the user unable to undo the exclusion that
+    /// closed it out; and one that is running but not excluded would have no line to tick.
+    ///
+    /// The line the list was scrolled to is put back afterwards, for the reason
+    /// <see cref="ReloadApplications"/> gives: a list that jumped to the top after every tick
+    /// would have to be scrolled back before the next one.
+    /// </remarks>
+    private void ReloadExcluded()
+    {
+        int firstVisible = _excluded.TopIndex;
+        int highlighted = _excluded.SelectedIndex;
+
+        var names = new List<string>(_runningApplications() ?? new List<string>());
+        var seen = new HashSet<string>(names, StringComparer.OrdinalIgnoreCase);
+
+        foreach (string name in _settings.ExcludedApplications)
+        {
+            if (seen.Add(name)) names.Add(name);
+        }
+
+        names.Sort(StringComparer.OrdinalIgnoreCase);
+
+        _loading = true;
+        try
+        {
+            _excluded.Items.Clear();
+            foreach (string name in names)
+            {
+                bool excluded = _settings.ExcludedApplications
+                    .Contains(name, StringComparer.OrdinalIgnoreCase);
+                _excluded.Items.Add(name, excluded);
+            }
+
+            // Both clamped to what the list now holds; see ReloadApplications.
+            if (highlighted >= 0 && highlighted < _excluded.Items.Count)
+                _excluded.SelectedIndex = highlighted;
+
+            if (firstVisible > 0 && _excluded.Items.Count > 0)
+                _excluded.TopIndex = Math.Min(firstVisible, _excluded.Items.Count - 1);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    /// <summary>Reports the change and redraws the list from the settings that were kept.</summary>
+    private void ApplyExclusions()
+    {
+        _onChanged();
+        ReloadExcluded();
+    }
+
+    private void OnExcludedChecked(object sender, ItemCheckEventArgs e)
+    {
+        if (_loading) return;
+
+        string name = TabGrouping.KeyFor(_excluded.Items[e.Index].ToString());
+        if (name.Length == 0) return;
+
+        if (e.NewValue == CheckState.Checked)
+        {
+            if (!_settings.ExcludedApplications.Contains(name, StringComparer.OrdinalIgnoreCase))
+                _settings.ExcludedApplications.Add(name);
+        }
+        else
+        {
+            _settings.ExcludedApplications.RemoveAll(
+                x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // ItemCheck runs before the tick is drawn, so the reload has to wait for it to land.
+        BeginInvoke(new Action(ApplyExclusions));
+    }
+
+    private void OnExcludedNameKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.KeyCode != Keys.Enter) return;
+
+        // Both, so that neither the dialog's accept button nor the beep that follows an
+        // unhandled Enter in a text box gets the key.
+        e.Handled = true;
+        e.SuppressKeyPress = true;
+
+        OnAddExcluded();
+    }
+
+    /// <summary>
+    /// Excludes the application named in the box, for one that has no window open to tick.
+    /// </summary>
+    /// <remarks>
+    /// A name with no extension is taken as an executable and given <c>.exe</c>. What the bar
+    /// matches on is the file name of the executable, so "notepad" on its own would sit in the
+    /// list matching nothing, and the user would have no way of telling why.
+    /// </remarks>
+    private void OnAddExcluded()
+    {
+        string name = TabGrouping.KeyFor(_excludedName.Text);
+        if (name.Length == 0) return;
+
+        if (name.IndexOf('.') < 0) name += ".exe";
+
+        if (!_settings.ExcludedApplications.Contains(name, StringComparer.OrdinalIgnoreCase))
+            _settings.ExcludedApplications.Add(name);
+
+        _excludedName.Text = string.Empty;
+        ApplyExclusions();
     }
 
     private void OnAddGroup()

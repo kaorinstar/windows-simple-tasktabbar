@@ -33,6 +33,7 @@ public static class UiStrings
         { StringId.TabMenuCloseLeft, "Close tabs to the left" },
         { StringId.TabMenuCloseRight, "Close tabs to the right" },
         { StringId.TabMenuMinimize, "Minimize" },
+        { StringId.TabMenuExclude, "Exclude this application" },
 
         { StringId.BarNoWindows, "No windows to show" },
 
@@ -70,6 +71,17 @@ public static class UiStrings
         { StringId.GroupsName, "Name:" },
         { StringId.GroupsColour, "Colour:" },
         { StringId.GroupsDefaultName, "Group {0}" },
+
+        { StringId.ExclusionsGroup, "Excluded applications" },
+        {
+            StringId.ExclusionsNote,
+            "A ticked application keeps its windows off the bar. Nothing is closed: the windows"
+            + " stay open and only their tabs go. Right-clicking a tab does the same for its"
+            + " application."
+        },
+        { StringId.ExclusionsCaption, "Applications:" },
+        { StringId.ExclusionsAddCaption, "Add by name:" },
+        { StringId.ExclusionsAdd, "Add" },
 
         { StringId.PreviewGroup, "Window preview" },
         { StringId.PreviewEnable, "Show the window when the pointer rests on a tab" },
@@ -118,6 +130,7 @@ public static class UiStrings
         { StringId.TabMenuCloseLeft, "左側のタブを閉じる" },
         { StringId.TabMenuCloseRight, "右側のタブを閉じる" },
         { StringId.TabMenuMinimize, "最小化" },
+        { StringId.TabMenuExclude, "このアプリを除外" },
 
         { StringId.BarNoWindows, "表示するウィンドウがありません" },
 
@@ -155,6 +168,12 @@ public static class UiStrings
         { StringId.GroupsName, "名前:" },
         { StringId.GroupsColour, "色:" },
         { StringId.GroupsDefaultName, "グループ {0}" },
+
+        { StringId.ExclusionsGroup, "除外するアプリ" },
+        { StringId.ExclusionsNote, "チェックを付けたアプリのウィンドウはバーに出ません。ウィンドウは閉じられず、タブだけがなくなります。タブを右クリックしても同じことができます。" },
+        { StringId.ExclusionsCaption, "アプリ:" },
+        { StringId.ExclusionsAddCaption, "名前を入力して追加:" },
+        { StringId.ExclusionsAdd, "追加" },
 
         { StringId.PreviewGroup, "ウィンドウのプレビュー" },
         { StringId.PreviewEnable, "タブにポインターを重ねたときにウィンドウを表示する" },
@@ -202,6 +221,7 @@ public static class UiStrings
         { StringId.TabMenuCloseLeft, "关闭左侧标签页" },
         { StringId.TabMenuCloseRight, "关闭右侧标签页" },
         { StringId.TabMenuMinimize, "最小化" },
+        { StringId.TabMenuExclude, "排除此应用" },
 
         { StringId.BarNoWindows, "没有可显示的窗口" },
 
@@ -232,6 +252,12 @@ public static class UiStrings
         { StringId.GroupsName, "名称:" },
         { StringId.GroupsColour, "颜色:" },
         { StringId.GroupsDefaultName, "分组 {0}" },
+
+        { StringId.ExclusionsGroup, "排除的应用" },
+        { StringId.ExclusionsNote, "勾选的应用不会在栏上显示窗口。窗口不会被关闭，只是不再显示标签页。在标签页上单击右键也能排除对应的应用。" },
+        { StringId.ExclusionsCaption, "应用:" },
+        { StringId.ExclusionsAddCaption, "按名称添加:" },
+        { StringId.ExclusionsAdd, "添加" },
 
         { StringId.PreviewGroup, "窗口预览" },
         { StringId.PreviewEnable, "指针停在标签页上时显示窗口" },
@@ -274,6 +300,7 @@ public static class UiStrings
         { StringId.TabMenuCloseLeft, "關閉左側索引標籤" },
         { StringId.TabMenuCloseRight, "關閉右側索引標籤" },
         { StringId.TabMenuMinimize, "最小化" },
+        { StringId.TabMenuExclude, "排除此應用程式" },
 
         { StringId.BarNoWindows, "沒有可顯示的視窗" },
 
@@ -304,6 +331,12 @@ public static class UiStrings
         { StringId.GroupsName, "名稱:" },
         { StringId.GroupsColour, "色彩:" },
         { StringId.GroupsDefaultName, "群組 {0}" },
+
+        { StringId.ExclusionsGroup, "排除的應用程式" },
+        { StringId.ExclusionsNote, "勾選的應用程式不會在列上顯示視窗。視窗不會被關閉，只是不再顯示索引標籤。在索引標籤上按一下右鍵也能排除對應的應用程式。" },
+        { StringId.ExclusionsCaption, "應用程式:" },
+        { StringId.ExclusionsAddCaption, "依名稱新增:" },
+        { StringId.ExclusionsAdd, "新增" },
 
         { StringId.PreviewGroup, "視窗預覽" },
         { StringId.PreviewEnable, "指標停在索引標籤上時顯示視窗" },
@@ -349,6 +382,7 @@ public static class UiStrings
         { StringId.TabMenuCloseLeft, "Закрыть вкладки слева" },
         { StringId.TabMenuCloseRight, "Закрыть вкладки справа" },
         { StringId.TabMenuMinimize, "Свернуть" },
+        { StringId.TabMenuExclude, "Исключить это приложение" },
 
         { StringId.BarNoWindows, "Нет окон для показа" },
 
@@ -387,6 +421,17 @@ public static class UiStrings
         { StringId.GroupsName, "Имя:" },
         { StringId.GroupsColour, "Цвет:" },
         { StringId.GroupsDefaultName, "Группа {0}" },
+
+        { StringId.ExclusionsGroup, "Исключённые приложения" },
+        {
+            StringId.ExclusionsNote,
+            "Окна отмеченного приложения не показываются на панели. Ничего не закрывается: окна"
+            + " остаются открытыми, исчезают только их вкладки. Щелчок правой кнопкой по вкладке"
+            + " делает то же самое."
+        },
+        { StringId.ExclusionsCaption, "Приложения:" },
+        { StringId.ExclusionsAddCaption, "Добавить по имени:" },
+        { StringId.ExclusionsAdd, "Добавить" },
 
         { StringId.PreviewGroup, "Предпросмотр окна" },
         { StringId.PreviewEnable, "Показывать окно, когда указатель задерживается на вкладке" },
@@ -443,6 +488,7 @@ public static class UiStrings
         { StringId.TabMenuCloseLeft, "Tabs links schließen" },
         { StringId.TabMenuCloseRight, "Tabs rechts schließen" },
         { StringId.TabMenuMinimize, "Minimieren" },
+        { StringId.TabMenuExclude, "Diese Anwendung ausschließen" },
 
         { StringId.BarNoWindows, "Keine Fenster vorhanden" },
 
@@ -481,6 +527,17 @@ public static class UiStrings
         { StringId.GroupsName, "Name:" },
         { StringId.GroupsColour, "Farbe:" },
         { StringId.GroupsDefaultName, "Gruppe {0}" },
+
+        { StringId.ExclusionsGroup, "Ausgeschlossene Anwendungen" },
+        {
+            StringId.ExclusionsNote,
+            "Fenster einer angehakten Anwendung erscheinen nicht auf der Leiste. Nichts wird"
+            + " geschlossen: die Fenster bleiben offen, nur ihre Tabs verschwinden. Ein Rechtsklick"
+            + " auf einen Tab bewirkt dasselbe."
+        },
+        { StringId.ExclusionsCaption, "Anwendungen:" },
+        { StringId.ExclusionsAddCaption, "Nach Namen hinzufügen:" },
+        { StringId.ExclusionsAdd, "Hinzufügen" },
 
         { StringId.PreviewGroup, "Fenstervorschau" },
         { StringId.PreviewEnable, "Das Fenster anzeigen, wenn der Zeiger auf einer Registerkarte ruht" },
@@ -536,6 +593,7 @@ public static class UiStrings
         { StringId.TabMenuCloseLeft, "Fermer les onglets à gauche" },
         { StringId.TabMenuCloseRight, "Fermer les onglets à droite" },
         { StringId.TabMenuMinimize, "Réduire" },
+        { StringId.TabMenuExclude, "Exclure cette application" },
 
         { StringId.BarNoWindows, "Aucune fenêtre à afficher" },
 
@@ -574,6 +632,17 @@ public static class UiStrings
         { StringId.GroupsName, "Nom :" },
         { StringId.GroupsColour, "Couleur :" },
         { StringId.GroupsDefaultName, "Groupe {0}" },
+
+        { StringId.ExclusionsGroup, "Applications exclues" },
+        {
+            StringId.ExclusionsNote,
+            "Les fenêtres d'une application cochée n'apparaissent pas sur la barre. Rien n'est"
+            + " fermé : les fenêtres restent ouvertes, seuls leurs onglets disparaissent. Un clic"
+            + " droit sur un onglet fait de même."
+        },
+        { StringId.ExclusionsCaption, "Applications :" },
+        { StringId.ExclusionsAddCaption, "Ajouter par nom :" },
+        { StringId.ExclusionsAdd, "Ajouter" },
 
         { StringId.PreviewGroup, "Aperçu de la fenêtre" },
         { StringId.PreviewEnable, "Afficher la fenêtre lorsque le pointeur s'arrête sur un onglet" },
@@ -629,6 +698,7 @@ public static class UiStrings
         { StringId.TabMenuCloseLeft, "Cerrar las pestañas de la izquierda" },
         { StringId.TabMenuCloseRight, "Cerrar las pestañas de la derecha" },
         { StringId.TabMenuMinimize, "Minimizar" },
+        { StringId.TabMenuExclude, "Excluir esta aplicación" },
 
         { StringId.BarNoWindows, "No hay ventanas que mostrar" },
 
@@ -666,6 +736,17 @@ public static class UiStrings
         { StringId.GroupsName, "Nombre:" },
         { StringId.GroupsColour, "Color:" },
         { StringId.GroupsDefaultName, "Grupo {0}" },
+
+        { StringId.ExclusionsGroup, "Aplicaciones excluidas" },
+        {
+            StringId.ExclusionsNote,
+            "Las ventanas de una aplicación marcada no aparecen en la barra. No se cierra nada: las"
+            + " ventanas siguen abiertas y solo desaparecen sus pestañas. Hacer clic con el botón"
+            + " derecho en una pestaña hace lo mismo."
+        },
+        { StringId.ExclusionsCaption, "Aplicaciones:" },
+        { StringId.ExclusionsAddCaption, "Añadir por nombre:" },
+        { StringId.ExclusionsAdd, "Añadir" },
 
         { StringId.PreviewGroup, "Vista previa de la ventana" },
         { StringId.PreviewEnable, "Mostrar la ventana cuando el puntero se detiene en una pestaña" },
@@ -720,6 +801,7 @@ public static class UiStrings
         { StringId.TabMenuCloseLeft, "Fechar as abas à esquerda" },
         { StringId.TabMenuCloseRight, "Fechar as abas à direita" },
         { StringId.TabMenuMinimize, "Minimizar" },
+        { StringId.TabMenuExclude, "Excluir este aplicativo" },
 
         { StringId.BarNoWindows, "Nenhuma janela para mostrar" },
 
@@ -758,6 +840,17 @@ public static class UiStrings
         { StringId.GroupsName, "Nome:" },
         { StringId.GroupsColour, "Cor:" },
         { StringId.GroupsDefaultName, "Grupo {0}" },
+
+        { StringId.ExclusionsGroup, "Aplicativos excluídos" },
+        {
+            StringId.ExclusionsNote,
+            "As janelas de um aplicativo marcado não aparecem na barra. Nada é fechado: as janelas"
+            + " continuam abertas e apenas as abas somem. Clicar com o botão direito em uma aba faz o"
+            + " mesmo."
+        },
+        { StringId.ExclusionsCaption, "Aplicativos:" },
+        { StringId.ExclusionsAddCaption, "Adicionar pelo nome:" },
+        { StringId.ExclusionsAdd, "Adicionar" },
 
         { StringId.PreviewGroup, "Visualização da janela" },
         { StringId.PreviewEnable, "Mostrar a janela quando o ponteiro parar sobre uma aba" },
@@ -806,6 +899,7 @@ public static class UiStrings
         { StringId.TabMenuCloseLeft, "왼쪽 탭 닫기" },
         { StringId.TabMenuCloseRight, "오른쪽 탭 닫기" },
         { StringId.TabMenuMinimize, "최소화" },
+        { StringId.TabMenuExclude, "이 앱 제외" },
 
         { StringId.BarNoWindows, "표시할 창이 없습니다" },
 
@@ -836,6 +930,12 @@ public static class UiStrings
         { StringId.GroupsName, "이름:" },
         { StringId.GroupsColour, "색:" },
         { StringId.GroupsDefaultName, "그룹 {0}" },
+
+        { StringId.ExclusionsGroup, "제외한 앱" },
+        { StringId.ExclusionsNote, "체크한 앱의 창은 막대에 표시되지 않습니다. 창은 닫히지 않고 탭만 사라집니다. 탭을 마우스 오른쪽 버튼으로 클릭해도 같은 동작을 합니다." },
+        { StringId.ExclusionsCaption, "앱:" },
+        { StringId.ExclusionsAddCaption, "이름을 입력해 추가:" },
+        { StringId.ExclusionsAdd, "추가" },
 
         { StringId.PreviewGroup, "창 미리 보기" },
         { StringId.PreviewEnable, "포인터를 탭에 올려 두면 창을 표시" },
@@ -889,6 +989,7 @@ public static class UiStrings
         { StringId.TabMenuCloseLeft, "Zamknij karty po lewej" },
         { StringId.TabMenuCloseRight, "Zamknij karty po prawej" },
         { StringId.TabMenuMinimize, "Minimalizuj" },
+        { StringId.TabMenuExclude, "Wyklucz tę aplikację" },
 
         { StringId.BarNoWindows, "Brak okien do pokazania" },
 
@@ -927,6 +1028,17 @@ public static class UiStrings
         { StringId.GroupsName, "Nazwa:" },
         { StringId.GroupsColour, "Kolor:" },
         { StringId.GroupsDefaultName, "Grupa {0}" },
+
+        { StringId.ExclusionsGroup, "Wykluczone aplikacje" },
+        {
+            StringId.ExclusionsNote,
+            "Okna zaznaczonej aplikacji nie pojawiają się na pasku. Nic nie jest zamykane: okna"
+            + " pozostają otwarte, znikają tylko ich karty. Kliknięcie karty prawym przyciskiem robi"
+            + " to samo."
+        },
+        { StringId.ExclusionsCaption, "Aplikacje:" },
+        { StringId.ExclusionsAddCaption, "Dodaj według nazwy:" },
+        { StringId.ExclusionsAdd, "Dodaj" },
 
         { StringId.PreviewGroup, "Podgląd okna" },
         { StringId.PreviewEnable, "Pokaż okno, gdy wskaźnik zatrzyma się na karcie" },
@@ -981,6 +1093,7 @@ public static class UiStrings
         { StringId.TabMenuCloseLeft, "Chiudi le schede a sinistra" },
         { StringId.TabMenuCloseRight, "Chiudi le schede a destra" },
         { StringId.TabMenuMinimize, "Riduci a icona" },
+        { StringId.TabMenuExclude, "Escludi questa applicazione" },
 
         { StringId.BarNoWindows, "Nessuna finestra da mostrare" },
 
@@ -1022,6 +1135,17 @@ public static class UiStrings
         { StringId.GroupsName, "Nome:" },
         { StringId.GroupsColour, "Colore:" },
         { StringId.GroupsDefaultName, "Gruppo {0}" },
+
+        { StringId.ExclusionsGroup, "Applicazioni escluse" },
+        {
+            StringId.ExclusionsNote,
+            "Le finestre di un'applicazione spuntata non compaiono sulla barra. Non viene chiuso"
+            + " nulla: le finestre restano aperte e spariscono solo le loro schede. Un clic destro su"
+            + " una scheda fa lo stesso."
+        },
+        { StringId.ExclusionsCaption, "Applicazioni:" },
+        { StringId.ExclusionsAddCaption, "Aggiungi per nome:" },
+        { StringId.ExclusionsAdd, "Aggiungi" },
 
         { StringId.PreviewGroup, "Anteprima della finestra" },
         { StringId.PreviewEnable, "Mostra la finestra quando il puntatore si ferma su una scheda" },

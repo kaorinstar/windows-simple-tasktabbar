@@ -11,6 +11,34 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
+## Unreleased
+
+- An application can now be kept off the bar. A background utility or a chat client you never
+  switch to with the bar still took a tab, and there was no way to stop it. Tick anything you
+  want left out under **Excluded applications** in the settings, or right-click one of its tabs
+  and choose **Exclude this application**, which does the same in one step.
+- Nothing is closed by excluding an application. Its windows stay open and only their tabs go,
+  and they are back on the bar the moment you untick it.
+- An application that is not running can be excluded by typing its name, so a program that
+  interrupted you does not have to be started again to be kept off the bar. An excluded
+  application is listed in the settings whether or not it is running, so the choice can always
+  be undone.
+- The shell's own windows - the taskbar, the desktop - are still kept off the bar by a list that
+  is built in and cannot be shortened, so nothing here can put them on it.
+- The settings window is now laid out in two columns, with the two boxes that hold lists on the
+  right and everything else on the left. It has always taken whatever height its contents came
+  to, which keeps it fitting its own text at any size and in any language, and with the box above
+  added that came to more than the height of a screen: its own Close button went out of reach.
+  Two columns halve the height and use room that was empty at the side, so the whole of it can be
+  seen at once again. On a screen too short even for that, the boxes scroll and the Close button
+  stays where it is.
+- The note under Window preview no longer runs off the side of the settings window. It was the
+  one note in the dialog that was never wrapped, and being the longest sentence in it, it decided
+  how wide the window was: every box sat well short of the right-hand edge.
+- The box that holds the update setting has its heading back. Its contents were placed over the
+  heading rather than below it, hiding the word Updates and leaving an empty strip along the
+  bottom of the box instead. Every other box in the dialog was already laid out the right way.
+
 ## v0.6.0
 
 - The mark on the tab of the window you are using no longer comes off when you use the bar
