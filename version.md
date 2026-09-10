@@ -36,10 +36,10 @@ in [README.md](README.md).
   be undone.
 - The shell's own windows - the taskbar, the desktop - are still kept off the bar by a list that
   is built in and cannot be shortened, so nothing here can put them on it.
-- The settings window is now laid out in two columns, with the two tallest boxes on the right and
-  everything else on the left. It has always taken whatever height its contents came to, which
-  keeps it fitting its own text at any size and in any language, and with the boxes above added
-  that came to more than the height of a screen: its own Close button went out of reach.
+- The settings window is now laid out in two columns, sorted so that the two are of a height. It
+  has always taken whatever height its contents came to, which keeps it fitting its own text at
+  any size and in any language, and with the boxes above added that came to more than the height
+  of a screen: its own Close button went out of reach.
   Two columns halve the height and use room that was empty at the side, so the whole of it can be
   seen at once again. On a screen too short even for that, the boxes scroll and the Close button
   stays where it is.

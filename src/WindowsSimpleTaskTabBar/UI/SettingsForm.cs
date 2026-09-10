@@ -376,27 +376,27 @@ internal sealed class SettingsForm : Form
 
     private void BuildControls()
     {
-        // Two columns rather than one. Seven boxes in a single column came to more than the
-        // height of a screen, which left the dialog scrolling and no way to see all of it at
-        // once - a screenshot of the settings could no longer be taken, and neither could a
-        // glance. Tab groups and excluded applications are much the tallest boxes, so they go
-        // together on the right and everything else stacks on the left; that halves the height
-        // and uses room that was empty.
+        // Two columns rather than one. Every box in a single column came to more than the height
+        // of a screen, which left the dialog scrolling and no way to see all of it at once - a
+        // screenshot of the settings could no longer be taken, and neither could a glance.
         //
-        // Tab order is the third box holding a list and would sit with them by subject, but it
-        // is put on the left instead: the two columns are here to be of a height, and a third
-        // list on the right would put most of the dialog back into one column.
+        // Which box goes in which column is decided by height rather than by subject: the two
+        // columns are here to be of a height, and a column left much longer than the other puts
+        // the dialog back where it was. So the three boxes about tabs are not kept together -
+        // tab order stands on the left, and updates, which is about nothing else in this dialog,
+        // stands on the right to make up the difference. Moving tab order across instead was
+        // measured and only swaps which column is too long: it is the tallest box on its side.
         FlowLayoutPanel left = Column();
         left.Controls.Add(BuildLanguageGroup());
         left.Controls.Add(BuildHeightGroup());
         left.Controls.Add(BuildColourGroup());
         left.Controls.Add(BuildPriorityGroup());
         left.Controls.Add(BuildPreviewGroup());
-        left.Controls.Add(BuildUpdatesGroup());
 
         FlowLayoutPanel right = Column();
         right.Controls.Add(BuildGroupingGroup());
         right.Controls.Add(BuildExclusionsGroup());
+        right.Controls.Add(BuildUpdatesGroup());
 
         _boxes = new TableLayoutPanel
         {
