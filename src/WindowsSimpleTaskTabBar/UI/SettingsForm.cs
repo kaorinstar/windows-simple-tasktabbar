@@ -153,6 +153,11 @@ internal sealed class SettingsForm : Form
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
+        // The dialog sizes itself to its contents, and the contents grow with every setting
+        // added. Without this it grew past the screen and the Close button went with it. See
+        // FitToScreen.
+        AutoScroll = true;
+
         Build();
     }
 
@@ -165,6 +170,54 @@ internal sealed class SettingsForm : Form
         ApplyFont();
         BuildControls();
         LoadFromSettings();
+
+        // Last: it measures what the three calls above have built.
+        FitToScreen();
+    }
+
+    /// <summary>
+    /// Stops the dialog growing taller than the screen, and lets it scroll when its contents
+    /// no longer fit.
+    /// </summary>
+    /// <remarks>
+    /// The dialog has no size of its own: it is drawn from layout panels and takes whatever
+    /// height its contents come to, so that it still fits its text at a high DPI and in a
+    /// language whose labels are longer. That works until the contents are taller than the
+    /// screen, and then there is nothing to stop it - the title bar goes off the top, or the
+    /// Close button off the bottom, and neither can be reached.
+    ///
+    /// Every setting added makes that more likely rather than less, so the answer is a bound
+    /// rather than a smaller control somewhere. <c>MaximumSize</c> with a zero width leaves the
+    /// width alone and caps only the height, and <c>AutoScroll</c>, set in the constructor,
+    /// turns what does not fit into a scrollbar. Below the bound nothing changes: the dialog is
+    /// exactly the size it was.
+    ///
+    /// The work area rather than the screen, because it is what is left after the taskbar and
+    /// this application's own bar, which is an AppBar and reserves its strip. The primary
+    /// monitor, because that is where <see cref="FormStartPosition.CenterScreen"/> puts the
+    /// dialog and the only monitor this application draws on (#62).
+    /// </remarks>
+    private void FitToScreen()
+    {
+        Screen screen = Screen.PrimaryScreen;
+        if (screen == null) return;
+
+        int cap = screen.WorkingArea.Height;
+
+        // Cleared before measuring. PreferredSize is brought inside MaximumSize before it is
+        // answered, so a bound left over from the last language would report a dialog that fits
+        // whether or not it does, and this runs again on every language change.
+        MaximumSize = Size.Empty;
+        Padding = new Padding(0);
+
+        bool scrolls = PreferredSize.Height > cap;
+
+        MaximumSize = new Size(0, cap);
+
+        // A vertical scrollbar takes its width out of the client area. Unaccounted for, it
+        // would cover the right-hand edge of the widest box and raise a horizontal scrollbar
+        // under it, which is two scrollbars for one problem.
+        Padding = new Padding(0, 0, scrolls ? SystemInformation.VerticalScrollBarWidth : 0, 0);
     }
 
     /// <summary>
@@ -243,7 +296,14 @@ internal sealed class SettingsForm : Form
             FlowDirection = FlowDirection.TopDown,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Dock = DockStyle.Fill,
+
+            // Not docked, unlike the panel inside each group box. A docked panel is given the
+            // client area whatever its contents come to, which is the one thing that would stop
+            // the scrolling in FitToScreen from ever happening: the form would have nothing
+            // sticking out of it to scroll to. Sized to its contents and left at the top left,
+            // it is taller than the form when the form is capped, and that is what raises the
+            // scrollbar. The form still sizes itself to this panel while it fits.
+            WrapContents = false,
         };
         root.Controls.Add(BuildLanguageGroup());
         root.Controls.Add(BuildHeightGroup());

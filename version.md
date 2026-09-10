@@ -25,6 +25,11 @@ in [README.md](README.md).
   be undone.
 - The shell's own windows - the taskbar, the desktop - are still kept off the bar by a list that
   is built in and cannot be shortened, so nothing here can put them on it.
+- The settings window no longer grows taller than the screen. It has always taken whatever height
+  its contents came to, which kept it fitting its own text at any size and in any language, and
+  with the box above added it passed the height of a screen and put its own Close button out of
+  reach. It now stops at the height of the screen and scrolls, and below that height it is
+  exactly the window it was.
 
 ## v0.6.0
 
