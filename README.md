@@ -69,7 +69,7 @@ The settings:
 ## Download
 
 One file is attached to each [release](https://github.com/kaorinstar/windows-simple-tasktabbar/releases):
-`WindowsSimpleTaskTabBar.exe`, under 150 KB. Each release entry in
+`WindowsSimpleTaskTabBar.exe`, under 200 KB. Each release entry in
 [version.md](version.md) gives the size of that release.
 
 It targets .NET Framework 4.8, which ships with Windows 10 version 1903 and later and with
