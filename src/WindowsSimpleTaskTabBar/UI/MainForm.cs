@@ -9,6 +9,7 @@ using WindowsSimpleTaskTabBar.Core.Focus;
 using WindowsSimpleTaskTabBar.Core.Grouping;
 using WindowsSimpleTaskTabBar.Core.Layout;
 using WindowsSimpleTaskTabBar.Core.Localization;
+using WindowsSimpleTaskTabBar.Core.Ordering;
 using WindowsSimpleTaskTabBar.Core.Preview;
 using WindowsSimpleTaskTabBar.Core.Settings;
 using WindowsSimpleTaskTabBar.Core.Theme;
@@ -70,6 +71,13 @@ public class MainForm : Form
     // application whose windows it has just taken off the bar, and so the process cache keeps
     // its entry for a window that is looked at on every refresh but never drawn.
     private readonly List<IntPtr> _candidates = new();
+
+    // The priority order the row was last put into, and whether it still has to be. The bar
+    // starts with the whole row to arrange, and a change to the list arranges it again; between
+    // those two moments priority decides where a new tab is inserted and nothing else, so that
+    // a tab the user has dragged stays where they put it. See Core/Ordering/AppPriority.cs.
+    private List<string> _appliedPriority = new();
+    private bool _resortByPriority = true;
 
     // The group of each tab in _tabs, reused rather than rebuilt: it is read on every mouse
     // move while a tab is being dragged.
@@ -230,6 +238,13 @@ public class MainForm : Form
                  | ControlStyles.UserPaint | ControlStyles.ResizeRedraw, true);
 
         _settings = SettingsStore.Load();
+
+        // The row is empty until the first refresh, so putting it in priority order costs
+        // nothing there; _resortByPriority is on from the start for that. Remembering the list
+        // here is what stops the first settings change of the session - a colour, a height -
+        // from being read as a change to the order and reordering tabs the user had dragged.
+        _appliedPriority = new List<string>(_settings.ApplicationPriority);
+
         _text = TextForSettings();
         _updateAvailableTag = KnownNewerRelease();
 
@@ -568,6 +583,11 @@ public class MainForm : Form
         // dialog could not keep, or an application claimed by two groups, is settled here rather
         // than only on the way out.
         _settings.Normalize();
+
+        // A change to the priority order puts the whole row into it once, on the refresh below.
+        // Every other setting leaves the row as it is, so a tab the user dragged is not pulled
+        // back because they went on to change the colours.
+        if (PriorityChanged()) _resortByPriority = true;
 
         // Before the metrics, which build the font: the family comes from the language.
         UiText text = TextForSettings();
@@ -1018,9 +1038,43 @@ public class MainForm : Form
         IntPtr foreground = WindowToMark(live);
 
         var known = new HashSet<IntPtr>(_order);
-        foreach (IntPtr h in current)
+        List<string> priority = _settings.ApplicationPriority;
+        bool prioritized = priority != null && priority.Count > 0;
+
+        if (prioritized)
         {
-            if (known.Add(h)) _order.Add(h);
+            // The keys of the row, kept in step with _order as windows are inserted into it, so
+            // that several windows opening at once are each placed against the row as it stands
+            // rather than against the row as it was.
+            List<string> keys = RowKeys();
+
+            foreach (IntPtr h in current)
+            {
+                if (!known.Add(h)) continue;
+
+                string key = _processInfo.Name(h);
+                int at = AppPriority.InsertionIndex(keys, key, priority);
+
+                _order.Insert(at, h);
+                keys.Insert(at, key);
+            }
+        }
+        else
+        {
+            // Appended, exactly as the bar did before this setting existed, and without reading
+            // a single process.
+            foreach (IntPtr h in current)
+            {
+                if (known.Add(h)) _order.Add(h);
+            }
+        }
+
+        // Once at startup and once whenever the user changes the list, so that the setting shows
+        // its effect straight away rather than only on the next window opened.
+        if (_resortByPriority)
+        {
+            _resortByPriority = false;
+            if (prioritized) SortByPriority(priority);
         }
 
         // Release icons that are no longer needed.
@@ -1164,6 +1218,78 @@ public class MainForm : Form
         // The same call the settings dialog makes, so the row, the reserved area and the
         // settings file are brought up to date by one path rather than two.
         ApplySettings();
+    }
+
+    // ---------------------------------------------------------------
+    // Ordering the row by the user's priority list
+    // ---------------------------------------------------------------
+
+    /// <summary>
+    /// The executable of each window in <see cref="_order"/>, in the order the row is drawn.
+    /// </summary>
+    /// <remarks>
+    /// Answered from <see cref="ProcessInfoCache"/>, so this is a dictionary lookup per tab
+    /// rather than a process query. It is only ever called with a priority list set: a bar
+    /// nobody has ordered reads no process here at all.
+    /// </remarks>
+    private List<string> RowKeys()
+    {
+        var keys = new List<string>(_order.Count);
+        foreach (IntPtr h in _order) keys.Add(_processInfo.Name(h));
+        return keys;
+    }
+
+    /// <summary>
+    /// Puts the whole row into the user's priority order, for the two moments that call for it:
+    /// the bar starting, and the list being changed.
+    /// </summary>
+    /// <remarks>
+    /// It is _order that is sorted, not _tabs, for the reason
+    /// <see cref="ArrangeByApplication"/> gives: _order is the display order that survives the
+    /// next refresh, and the two lists are moved together by index.
+    ///
+    /// Grouping runs after this, so one list settles both levels. Sorting brings the
+    /// highest-ranked window to the front, and <c>TabGrouping.Arrange</c> puts a group where its
+    /// first window sits, which carries that window's whole group to the front with it.
+    /// </remarks>
+    private void SortByPriority(List<string> priority)
+    {
+        if (_order.Count < 2) return;
+
+        List<int> sorted = AppPriority.Sort(RowKeys(), priority);
+
+        var handles = new List<IntPtr>(sorted.Count);
+        foreach (int index in sorted) handles.Add(_order[index]);
+
+        _order.Clear();
+        _order.AddRange(handles);
+    }
+
+    /// <summary>
+    /// Whether the priority order differs from the one the row was last put into, and remembers
+    /// the current one either way.
+    /// </summary>
+    private bool PriorityChanged()
+    {
+        List<string> priority = _settings.ApplicationPriority ?? new List<string>();
+
+        if (_appliedPriority.Count == priority.Count)
+        {
+            bool same = true;
+            for (int i = 0; i < priority.Count; i++)
+            {
+                if (string.Equals(_appliedPriority[i], priority[i], StringComparison.Ordinal))
+                    continue;
+
+                same = false;
+                break;
+            }
+
+            if (same) return false;
+        }
+
+        _appliedPriority = new List<string>(priority);
+        return true;
     }
 
     // ---------------------------------------------------------------

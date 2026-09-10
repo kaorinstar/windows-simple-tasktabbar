@@ -462,4 +462,89 @@ public class AppSettingsTests
 
         Assert.Equal(new[] { "teams.exe" }, settings.ExcludedApplications);
     }
+
+    // ---------------------------------------------------------------
+    // The order the user puts their applications in
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public void NoApplicationIsPrioritizedByDefault()
+    {
+        // An update must not reorder anybody's tabs.
+        Assert.Empty(new AppSettings().ApplicationPriority);
+    }
+
+    [Fact]
+    public void APrioritizedApplicationIsKeptAsABareFileNameInLowerCase()
+    {
+        var settings = new AppSettings
+        {
+            ApplicationPriority = new List<string> { @"C:\Program Files\Editor\CODE.EXE" },
+        };
+
+        Assert.Equal(new[] { "code.exe" }, settings.Normalized().ApplicationPriority);
+    }
+
+    [Fact]
+    public void ThePriorityOrderIsKeptAsItWasGiven()
+    {
+        // Unlike the exclusions, which are sorted. Position in this list is the rank, so
+        // sorting it would throw the setting away.
+        var settings = new AppSettings
+        {
+            ApplicationPriority = new List<string> { "teams.exe", "chrome.exe", "code.exe" },
+        };
+
+        Assert.Equal(new[] { "teams.exe", "chrome.exe", "code.exe" },
+            settings.Normalized().ApplicationPriority);
+    }
+
+    [Fact]
+    public void APrioritizedApplicationListedTwiceKeepsItsFirstPlace()
+    {
+        // The first entry is the one the user can see the effect of, so a repeat is dropped
+        // rather than allowed to move the application down the order.
+        var settings = new AppSettings
+        {
+            ApplicationPriority = new List<string> { "code.exe", "chrome.exe", "Code.exe" },
+        };
+
+        Assert.Equal(new[] { "code.exe", "chrome.exe" },
+            settings.Normalized().ApplicationPriority);
+    }
+
+    [Fact]
+    public void AnEmptyPriorityEntryIsDropped()
+    {
+        var settings = new AppSettings
+        {
+            ApplicationPriority = new List<string> { string.Empty, "   ", null, "code.exe" },
+        };
+
+        Assert.Equal(new[] { "code.exe" }, settings.Normalized().ApplicationPriority);
+    }
+
+    [Fact]
+    public void AnAbsentPriorityListReadsAsAnEmptyOne()
+    {
+        // DataContractJsonSerializer does not run the constructor, so a settings file written
+        // before this setting existed leaves the property null rather than empty.
+        var settings = new AppSettings { ApplicationPriority = null };
+        settings.Normalize();
+
+        Assert.Empty(settings.ApplicationPriority);
+    }
+
+    [Fact]
+    public void NormalizingInPlaceKeepsThePriorityOrder()
+    {
+        // Normalize and Normalized have to stay in step; see the exclusions above.
+        var settings = new AppSettings
+        {
+            ApplicationPriority = new List<string> { "Code.exe", "Chrome.exe" },
+        };
+        settings.Normalize();
+
+        Assert.Equal(new[] { "code.exe", "chrome.exe" }, settings.ApplicationPriority);
+    }
 }
