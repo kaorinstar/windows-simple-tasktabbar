@@ -158,21 +158,29 @@ restriction.
 ## Not yet implemented
 
 The list of planned work lives in the issue tracker, not here, so that there is one copy of it to
-keep current. Take priorities from there.
+keep current. Take priorities from there:
 
-Three tracking issues hold most of it, each with its sub-issues in priority order: #1 for the tab
-strip, #2 for the settings, and #90 for being findable outside this repository. #17, a bar on the
-left or right edge, is marked low priority and is not scheduled. What sits under none of the three
-is listed on its own: #62 multi-monitor support, #21 the installer and the portable package, #35
-the translated interface.
+https://github.com/kaorinstar/windows-simple-tasktabbar/issues
+
+The open issues that have sub-issues are the tracking issues, and each one lists its sub-issues in
+priority order. Read those first; what sits under none of them stands on its own in the same list.
 
 **Do not write the list out again, here or in the roadmap sections of `README.md` and
 `README.ja.md`.** It stood in all three files at once, beside the issues that already tracked it,
 and had drifted from them by the time it was replaced with this pointer (#23): one item had been
 absorbed into another issue and another had no issue at all. Planned work becomes an issue, and
-finishing it then means closing that issue rather than editing three files. Keep the same rule for
-the known limitations below: the entry stays, and it links to its issue instead of describing the
-plan.
+finishing it then means closing that issue rather than editing three files.
+
+**Naming the issues drifts the same way, so do not name them either.** A shorter copy is still a
+copy: this section called #1 one of the tracking issues holding most of the work, and listed #35 as
+still to do, when both had been closed and their work finished. A number written here has to be
+checked against the tracker before it can be trusted, which is the work the pointer removes. Issue
+numbers elsewhere in this file point at a decision already taken and closed, which is why they do
+not go stale.
+
+The known limitations below are the one exception, and they follow their own rule: the entry stays
+and links to its issue rather than describing the plan, because the entry describes what the
+application does today and disappears when the issue is closed.
 
 ## Known limitations
 
@@ -219,8 +227,15 @@ the value in `Directory.Build.props`.
 Both check the dependencies for known vulnerabilities before building, with
 `dotnet list package --vulnerable --include-transitive`. That command exits 0 whether or not it
 finds anything, so the step reads its output and fails explicitly. Do not replace it with a NuGet
-package: the check comes with the SDK. It covers other people's code only; analysing this
-project's own code needs CodeQL, which is free on public repositories alone (#26).
+package: the check comes with the SDK. It covers other people's code only, so the code written here
+is analysed separately.
+
+A fourth file, `.github/workflows/codeql.yml`, is that analysis. CodeQL reads this project's own C#
+on every push to `main`, on every pull request, and weekly, because GitHub updates its queries and a
+run over unchanged code can find what the run before it could not. It analyses without a build, so
+it neither needs Windows nor puts a third copy of the build steps in this repository, and
+`security-events: write` is granted to its job alone. Code scanning is free on public repositories
+alone, which is why the file arrived when the repository was published (#26).
 
 Every action is pinned to a full commit SHA, with its version in a comment beside it. A tag is a
 pointer its owner can move, and `softprops/action-gh-release` is a third-party action that runs
