@@ -33,6 +33,19 @@ public sealed class BarPalette
     /// <summary>The tab of the window in the foreground.</summary>
     public int TabActive { get; private set; }
 
+    /// <summary>The outline drawn around the tab of the window in the foreground.</summary>
+    /// <remarks>
+    /// The fill cannot carry that distinction on its own. White on the light palette's tab grey
+    /// is 1.27 to 1, and the dark palette reaches 1.63 to 1, both short of the 3 to 1 that WCAG
+    /// asks for telling one part of an interface from another. Closing that gap by fill alone
+    /// would mean a mid grey tab in a light bar, which costs every other tab to mark one.
+    ///
+    /// So the outline carries it, and each palette's is chosen to clear 3 to 1 against both the
+    /// active tab's fill and the bar behind it. <c>BarPaletteTests</c> holds those two ratios to
+    /// that figure.
+    /// </remarks>
+    public int TabActiveOutline { get; private set; }
+
     /// <summary>Title text on an inactive tab.</summary>
     public int Text { get; private set; }
 
@@ -87,6 +100,7 @@ public sealed class BarPalette
             Tab = 0xE2E4E8,
             TabHover = 0xEBEDF0,
             TabActive = 0xFFFFFF,
+            TabActiveOutline = 0x5F6368,
             Text = 0x464A50,
             TextActive = 0x181A1E,
             Line = 0xD2D5DA,
@@ -107,6 +121,7 @@ public sealed class BarPalette
             Tab = 0x303236,
             TabHover = 0x3A3D42,
             TabActive = 0x4E5258,
+            TabActiveOutline = 0xC4C7CC,
             Text = 0xB2B6BC,
             TextActive = 0xF5F6F8,
             Line = 0x18191C,

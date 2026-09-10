@@ -3,6 +3,7 @@ using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
+using WindowsSimpleTaskTabBar.Core.Focus;
 using WindowsSimpleTaskTabBar.Core.Grouping;
 using WindowsSimpleTaskTabBar.Core.Layout;
 using WindowsSimpleTaskTabBar.Core.Localization;
@@ -82,6 +83,13 @@ public class MainForm : Form
     private int _hoverButton = -1;           // 0 left arrow, 1 right arrow, -1 neither
     private IntPtr _lastForeground;
 
+    // The window the tabs mark as the one in front. Not always the foreground window: see
+    // WindowToMark, and Core/Focus/ActiveMark.cs for the rule itself.
+    private IntPtr _markedWindow;
+
+    // Read once. A process cannot change the id it was given.
+    private static readonly uint OwnProcessId = NativeMethods.GetCurrentProcessId();
+
     // Dragging a tab to a new position. A press is only a candidate for a drag: what it turns
     // out to be is decided on release, so a press that does not move still acts as a click.
     private IntPtr _pressedHwnd;             // the tab the left button went down on
@@ -150,6 +158,7 @@ public class MainForm : Form
 
     // Colors, chosen to match the current Windows theme
     private Color _cBack, _cTab, _cTabActive, _cTabHover, _cText, _cTextActive, _cLine;
+    private Color _cTabActiveOutline;
 
     // The accents a tab group can be marked with, in the shade of the palette in use. Held as
     // colours rather than as BarPalette's numbers so that painting a tab is a lookup.
@@ -626,15 +635,53 @@ public class MainForm : Form
     // ---------------------------------------------------------------
     // Refreshing the tab list
     // ---------------------------------------------------------------
+    /// <summary>
+    /// Which window the tabs mark as the one in front, which is not always the one Windows says
+    /// is in the foreground. <see cref="ActiveMark"/> holds the rule and the reasons for it.
+    /// </summary>
+    /// <param name="live">The windows the bar lists as of this pass.</param>
+    private IntPtr WindowToMark(HashSet<IntPtr> live)
+    {
+        IntPtr foreground = NativeMethods.GetForegroundWindow();
+
+        switch (ActiveMark.Choose(IsOwnWindow(foreground), live.Contains(foreground),
+                                  live.Contains(_markedWindow)))
+        {
+            case MarkChoice.TakeForeground: _markedWindow = foreground; break;
+            case MarkChoice.MarkNothing: _markedWindow = IntPtr.Zero; break;
+            default: break;   // KeepMarked: _markedWindow is already the answer
+        }
+
+        return _markedWindow;
+    }
+
+    /// <summary>Whether a window belongs to this application rather than somebody else.</summary>
+    /// <remarks>
+    /// The process rather than the handle, because the bar is not the only window this
+    /// application puts on screen: the settings dialog and both menus are windows of their own,
+    /// and any of them can be what a click leaves in the foreground.
+    /// </remarks>
+    private static bool IsOwnWindow(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero) return false;
+
+        // A window this application may not query answers 0, which belongs to no process and so
+        // is somebody else's, which is the safe reading: the mark moves rather than sticking.
+        NativeMethods.GetWindowThreadProcessId(hwnd, out uint processId);
+        return processId == OwnProcessId;
+    }
+
     private void RefreshTabs()
     {
         List<IntPtr> current = WindowService.EnumerateTaskWindows(Handle);
-        IntPtr foreground = NativeMethods.GetForegroundWindow();
 
         // Keep the existing order and append newly opened windows at the end.
         // Membership is tested through sets: this runs every 250 ms.
         var live = new HashSet<IntPtr>(current);
         _order.RemoveAll(h => !live.Contains(h));
+
+        // After the live set is built, because which window is marked depends on it.
+        IntPtr foreground = WindowToMark(live);
 
         var known = new HashSet<IntPtr>(_order);
         foreach (IntPtr h in current)
@@ -970,6 +1017,7 @@ public class MainForm : Form
         _cTab = FromRgb(palette.Tab);
         _cTabHover = FromRgb(palette.TabHover);
         _cTabActive = FromRgb(palette.TabActive);
+        _cTabActiveOutline = FromRgb(palette.TabActiveOutline);
         _cText = FromRgb(palette.Text);
         _cTextActive = FromRgb(palette.TextActive);
         _cLine = FromRgb(palette.Line);
@@ -1080,11 +1128,35 @@ public class MainForm : Form
     private void DrawTab(Graphics g, TabItem tab, int index)
     {
         Color fill = tab.Active ? _cTabActive : (index == _hoverIndex ? _cTabHover : _cTab);
-        using (GraphicsPath path = RoundedTop(tab.Bounds, _metrics.CornerRadius))
+
+        // Every tab is the same size, the active one included. It is marked by an outline and
+        // nothing else: drawing it taller moved the group accent off the top edge it shares with
+        // the tabs beside it, and left the two out of line.
+        //
+        // The active tab's foot alone goes past the bottom of the bar, by the width of the
+        // outline. The outline follows a closed path, and a bottom edge left on the last row of
+        // pixels would be drawn as a line under the tab; pushed out of the client area it is not
+        // drawn at all, which is what a tab standing on the edge of the bar should look like.
+        // The fill does not care: everything below the bar is clipped away either way.
+        Rectangle body = tab.Active
+            ? Rectangle.FromLTRB(tab.Bounds.Left, tab.Bounds.Top,
+                                 tab.Bounds.Right, tab.Bounds.Bottom + _metrics.ActiveOutlineWidth)
+            : tab.Bounds;
+
+        using (GraphicsPath path = RoundedTop(body, _metrics.CornerRadius))
         {
             using (var brush = new SolidBrush(fill))
                 g.FillPath(brush, path);
 
+            if (tab.Active)
+            {
+                using var pen = new Pen(_cTabActiveOutline, _metrics.ActiveOutlineWidth);
+                g.DrawPath(pen, path);
+            }
+
+            // After the outline, so a marked tab keeps the full thickness of its accent and the
+            // group still reads as one band along the top of the row. The outline is left down
+            // the sides, which is where it does the marking.
             if (tab.Marked) DrawGroupBand(g, path, tab);
         }
 

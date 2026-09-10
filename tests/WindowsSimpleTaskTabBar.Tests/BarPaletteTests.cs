@@ -94,6 +94,21 @@ public class BarPaletteTests
             Assert.NotEqual(light.Accents[i], dark.Accents[i]);
     }
 
+    [Theory]
+    [InlineData(ColourMode.Light)]
+    [InlineData(ColourMode.Dark)]
+    public void TheActiveTabIsMarkedBySomethingThatCanBeSeen(ColourMode mode)
+    {
+        BarPalette p = BarPalette.For(mode, true);
+
+        // What the fill cannot do. WCAG 1.4.11 asks for 3 to 1 to tell one part of an interface
+        // from another, and the active tab's fill reaches 1.27 to 1 against an inactive tab on
+        // the light palette and 1.63 to 1 on the dark one. The outline is what has to clear it,
+        // against the fill it surrounds and against the bar it sits on.
+        Assert.True(Contrast(p.TabActiveOutline, p.TabActive) >= 3.0);
+        Assert.True(Contrast(p.TabActiveOutline, p.Background) >= 3.0);
+    }
+
     [Fact]
     public void EveryColourIsAPlainRgbNumber()
     {
@@ -105,7 +120,7 @@ public class BarPaletteTests
             foreach (int colour in new[]
                      {
                          p.Background, p.Tab, p.TabHover, p.TabActive,
-                         p.Text, p.TextActive, p.Line,
+                         p.TabActiveOutline, p.Text, p.TextActive, p.Line,
                      })
             {
                 Assert.InRange(colour, 0, 0xFFFFFF);
@@ -113,5 +128,35 @@ public class BarPaletteTests
 
             foreach (int accent in p.Accents) Assert.InRange(accent, 0, 0xFFFFFF);
         }
+    }
+
+    /// <summary>
+    /// The contrast ratio between two colours, as WCAG 2 defines it: 1 for two colours that are
+    /// the same, up to 21 for black against white.
+    /// </summary>
+    private static double Contrast(int first, int second)
+    {
+        double a = Luminance(first);
+        double b = Luminance(second);
+        double lighter = a > b ? a : b;
+        double darker = a > b ? b : a;
+
+        return (lighter + 0.05) / (darker + 0.05);
+    }
+
+    private static double Luminance(int colour)
+    {
+        double r = Channel((colour >> 16) & 0xFF);
+        double g = Channel((colour >> 8) & 0xFF);
+        double b = Channel(colour & 0xFF);
+
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    }
+
+    private static double Channel(int value)
+    {
+        double c = value / 255.0;
+
+        return c <= 0.03928 ? c / 12.92 : System.Math.Pow((c + 0.055) / 1.055, 2.4);
     }
 }

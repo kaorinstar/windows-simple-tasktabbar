@@ -28,6 +28,8 @@ windows-simple-tasktabbar/
 │   └── architecture.ja.md         Japanese translation
 ├── src/
 │   ├── WindowsSimpleTaskTabBar.Core/       Logic with no UI dependency
+│   │   ├── Focus/
+│   │   │   └── ActiveMark.cs               Which tab is marked as the window in front
 │   │   ├── Grouping/
 │   │   │   └── TabGrouping.cs              Which group a tab is in, and the row's order
 │   │   ├── Layout/
@@ -59,6 +61,7 @@ windows-simple-tasktabbar/
 │           └── UiFonts.cs                  The font of the active language, with a fallback
 └── tests/
     └── WindowsSimpleTaskTabBar.Tests/      Unit tests
+        ├── ActiveMarkTests.cs
         ├── AppSettingsTests.cs
         ├── BarMetricsTests.cs
         ├── BarPaletteTests.cs
@@ -117,6 +120,7 @@ Program.cs
    ↓
 UI/MainForm.cs  ──→  Core/Layout/                (calculations)
    │             ──→  Core/Grouping/              (which tab is in which group)
+   │             ──→  Core/Focus/                 (which tab is marked as in front)
    │             ──→  Core/Localization/          (what every piece of text says)
    ↓
 Services/WindowService.cs                       (window operations)
@@ -150,6 +154,59 @@ the bar is the one failure this application must not have.
 
 An icon-only stage was tried and removed. A row of windows from one application shows the same
 icon over and over, so the text is the only thing that tells them apart.
+
+### Marking the active tab
+
+The tab of the window in the foreground is drawn with an outline and is otherwise exactly the same
+tab as every other one - the same bounds, the same size, the same place for its icon and its title.
+
+Colour could not carry it alone. The active fill against an inactive tab is 1.27 to 1 on the light
+palette and 1.63 to 1 on the dark one, where WCAG asks for 3 to 1 to tell one part of an interface
+from another, and reaching that by fill alone would mean a mid grey tab in a light bar - every
+other tab paying for the one being marked. `BarPalette.TabActiveOutline` carries it instead, and
+`BarPaletteTests` holds it to 3 to 1 against both the fill it surrounds and the bar behind it.
+
+Drawing the active tab taller was tried first and removed. A group's accent runs along the top edge
+of its tabs, and `DrawGroupBand` puts it at the tab's own top so that the accent joins up across
+the row. Raising one tab moved its accent down from the edge it shares with its neighbours and
+squared off the ends the corner radius had rounded, so the band came out of line exactly where a
+group most needs to read as one. Height and the accent cannot both own the top edge.
+
+The outline is drawn before the accent, so a marked tab keeps the full thickness of its band and
+the outline marks it down the sides. Its foot goes one outline width past the bottom of the bar:
+the outline follows a closed path, and a bottom edge left on the last row of pixels would be drawn
+as a line under the tab rather than the open foot a tab standing on the edge of the bar should
+have.
+
+### Which tab the mark goes on
+
+Not simply the foreground window. The bar activates itself when it is clicked, as the section on
+three-step activation explains, so touching the bar at all takes the foreground away from the
+window the user was in. A click hands it back on release, through `ClickTab`. A drag does not: it
+ends with no window to activate, so the bar is still in front when the button comes up, and the
+row would sit unmarked until the user went somewhere else. The fill alone made that easy to miss;
+an outline does not.
+
+So `WindowToMark` asks `Core/Focus/ActiveMark.cs` instead, and a window of this application's own
+never takes the mark - the window that held it keeps it, which is what the Windows taskbar does
+with its own highlight while it is being used. A window the bar does not list cannot hold the mark
+either, so a handle Windows has since given to something else cannot inherit one.
+
+`ActiveMark` is given three booleans rather than window handles, so the rule can be tested on any
+platform while asking Windows which window is which stays in the UI layer. `IsOwnWindow` compares
+process ids rather than handles: the bar is not the only window this application puts on screen,
+and the settings dialog or a menu can be what a click leaves in the foreground.
+
+This also settles a piece of timing. `ClickTab` minimizes a tab that is already in front, and it
+reads `tab.Active` to decide. That flag used to depend on whether the 250 ms refresh happened to
+land between the press and the release; now the mark stays put while the bar is in front, so the
+answer is the same either way.
+
+Giving the active tab a larger share of the width was considered and dropped as well (#9).
+`TabStrip.Measure` returns one width for the whole row and four calculations read it, so two
+widths would mean rebuilding all four. The active tab also changes whenever the user switches
+window, so its width would change with it and move every tab to its right - the opposite of what
+a bar for reaching a window at once should do.
 
 ### Dragging a tab
 
