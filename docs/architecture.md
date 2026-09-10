@@ -405,6 +405,13 @@ already had the application, while a new installation got it. Null means "not ch
 and once for the tray, so two live items exist for every entry and a field could only point at one
 of them. The `Opening` handler is added in `BuildMenu` too, so both copies get it from one place.
 
+**The menu remembers across runs, the notice does not.** `LastNoticedRelease` is read at startup
+and, when it names a release newer than this build, the menu says so before any check has run. The
+check runs at most once a day, so a bar started again the same day runs none; without this the
+menu would fall back to "Check for updates..." while a newer release sat in the settings file. The
+notification is still shown once per release. A check that comes back up to date clears the value,
+so a stale entry cannot survive an answer that contradicts it.
+
 **The time is stored as a string.** `DataContractJsonSerializer` writes a `DateTime` as
 `/Date(1757246400000+0900)/`, which carries a time zone and can be neither read nor typed by a
 person. The settings file is meant to be editable by hand.

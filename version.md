@@ -18,8 +18,9 @@ in [README.md](README.md).
   browser. Nothing is downloaded and nothing is replaced - you download the new executable
   yourself, as you did to install it. The check reads one version number from github.com, sends
   nothing about you, and runs at most once a day. Each release is announced once rather than at
-  every logon. A new box in the settings dialog turns it off, and the menu entry still lets you
-  ask whenever you like.
+  every logon, though the menu entry keeps naming it for as long as you are running an older
+  version, whether or not the day's check has run. A new box in the settings dialog turns it off,
+  and the menu entry still lets you ask whenever you like.
 
 ## v0.5.0
 

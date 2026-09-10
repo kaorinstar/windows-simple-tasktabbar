@@ -135,8 +135,9 @@ public class MainForm : Form
 
     private NotifyIcon _trayIcon;
 
-    // The update check. _updateAvailableTag is empty until a check has found something newer,
-    // and is what both menus read when they open.
+    // The update check. _updateAvailableTag names a release newer than this build, and is what
+    // both menus read when they open. It is seeded from the settings file at startup and set
+    // again by each check; it is empty when nothing newer is known.
     private bool _updateCheckStarted;
     private bool _updateCheckRunning;
     private string _updateAvailableTag = string.Empty;
@@ -175,6 +176,7 @@ public class MainForm : Form
 
         _settings = SettingsStore.Load();
         _text = TextForSettings();
+        _updateAvailableTag = KnownNewerRelease();
 
         ApplyTheme();
 
@@ -518,6 +520,25 @@ public class MainForm : Form
     /// </remarks>
     private const int UpdateCheckDelayTicks = 40;
 
+    /// <summary>
+    /// The release the user was last told about, when it is still newer than this build.
+    /// </summary>
+    /// <remarks>
+    /// The check runs at most once a day, so a bar started again the same day runs none, and
+    /// without this the menu would fall back to "Check for updates..." while a newer release was
+    /// sitting in the settings file. The notice itself is still shown once per release; this is
+    /// only what the menu says.
+    ///
+    /// The comparison is against the running build rather than a plain "is it set" test, because
+    /// the user updates by replacing the executable. The settings file still names the release
+    /// they were told about, and after they act on it that release is the one they are running.
+    /// </remarks>
+    private string KnownNewerRelease()
+    {
+        string told = _settings.LastNoticedRelease;
+        return ReleaseVersion.IsNewer(told, UpdateService.RunningVersion) ? told : string.Empty;
+    }
+
     /// <summary>One entry serves both jobs, so a five-item menu does not become seven.</summary>
     private string UpdateMenuText =>
         _updateAvailableTag.Length > 0
@@ -622,11 +643,19 @@ public class MainForm : Form
                 ShowUpdateNotice(result.LatestTag);
             }
         }
-        else if (report)
+        else
         {
-            MessageBox.Show(this,
-                _text.Format(StringId.UpdateUpToDate, UpdateService.RunningVersion),
-                Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            // GitHub says there is nothing newer, so anything seeded from the settings file at
+            // startup is out of date. Leaving it would keep offering an update to a release this
+            // build already is.
+            _updateAvailableTag = string.Empty;
+
+            if (report)
+            {
+                MessageBox.Show(this,
+                    _text.Format(StringId.UpdateUpToDate, UpdateService.RunningVersion),
+                    Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
 
         // Not ApplySettings: none of this changes the height, the reserved area or the row.

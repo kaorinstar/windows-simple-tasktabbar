@@ -102,7 +102,9 @@ shortly after it starts.
   area says so, and the menu gains **Update available: v0.6.0...**, which opens the release page
   in your browser. You download the new executable and put it in place yourself, exactly as you
   did to install it.
-- **At most once a day**, and each release is announced once rather than at every logon.
+- **At most once a day**, and each release is announced once rather than at every logon. The
+  menu entry keeps naming the new version for as long as you are running an older one, so it is
+  still there the next time you start the bar.
 - **To turn it off**, right-click the bar, choose **Settings...**, and clear the box under
   **Updates**. **Check for updates...** stays in the menu, so you can still ask whenever you
   like.
