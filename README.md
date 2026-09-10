@@ -64,8 +64,7 @@ the top edge of their tabs, with a rule between one group and the next.
 
 The settings:
 
-![The settings window in two columns: language, bar height, colours, window preview and
-updates on the left, tab groups and excluded applications on the right](docs/images/settings.png)
+![The settings window in two columns: language, bar height, colours, window preview and updates on the left, tab groups and excluded applications on the right](docs/images/settings.png)
 
 ## Download
 
