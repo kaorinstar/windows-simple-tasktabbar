@@ -83,6 +83,20 @@ public static class UiStrings
         { StringId.ExclusionsAddCaption, "Add by name:" },
         { StringId.ExclusionsAdd, "Add" },
 
+        { StringId.PriorityGroup, "Tab order" },
+        {
+            StringId.PriorityNote,
+            "The application at the top of the list gets its tabs nearest the left end. An"
+            + " application the list does not name gets its tabs at the right end. Changing the list"
+            + " reorders the row at once, and a tab can still be dragged anywhere afterwards."
+        },
+        { StringId.PriorityCaption, "Order:" },
+        { StringId.PriorityUp, "Up" },
+        { StringId.PriorityDown, "Down" },
+        { StringId.PriorityRemove, "Remove" },
+        { StringId.PriorityAddCaption, "Add an application:" },
+        { StringId.PriorityAdd, "Add" },
+
         { StringId.PreviewGroup, "Window preview" },
         { StringId.PreviewEnable, "Show the window when the pointer rests on a tab" },
         {
@@ -175,6 +189,15 @@ public static class UiStrings
         { StringId.ExclusionsAddCaption, "名前を入力して追加:" },
         { StringId.ExclusionsAdd, "追加" },
 
+        { StringId.PriorityGroup, "タブの並び順" },
+        { StringId.PriorityNote, "一覧の上にあるアプリほど、タブがバーの左側に並びます。一覧にないアプリのタブは右端に付きます。一覧を変えるとすぐに並べ替わり、そのあともタブをドラッグして動かせます。" },
+        { StringId.PriorityCaption, "並び順:" },
+        { StringId.PriorityUp, "上へ" },
+        { StringId.PriorityDown, "下へ" },
+        { StringId.PriorityRemove, "削除" },
+        { StringId.PriorityAddCaption, "アプリを追加:" },
+        { StringId.PriorityAdd, "追加" },
+
         { StringId.PreviewGroup, "ウィンドウのプレビュー" },
         { StringId.PreviewEnable, "タブにポインターを重ねたときにウィンドウを表示する" },
         {
@@ -259,6 +282,15 @@ public static class UiStrings
         { StringId.ExclusionsAddCaption, "按名称添加:" },
         { StringId.ExclusionsAdd, "添加" },
 
+        { StringId.PriorityGroup, "标签顺序" },
+        { StringId.PriorityNote, "列表中越靠上的应用，其标签越靠近左端。列表未列出的应用，其标签排在右端。修改列表会立即重新排列，之后仍可拖动标签。" },
+        { StringId.PriorityCaption, "顺序:" },
+        { StringId.PriorityUp, "上移" },
+        { StringId.PriorityDown, "下移" },
+        { StringId.PriorityRemove, "删除" },
+        { StringId.PriorityAddCaption, "添加应用:" },
+        { StringId.PriorityAdd, "添加" },
+
         { StringId.PreviewGroup, "窗口预览" },
         { StringId.PreviewEnable, "指针停在标签页上时显示窗口" },
         { StringId.PreviewNote, "同一个应用有多个外观相似的窗口时很有用。最小化的窗口没有可显示的画面，改为显示标题。" },
@@ -337,6 +369,15 @@ public static class UiStrings
         { StringId.ExclusionsCaption, "應用程式:" },
         { StringId.ExclusionsAddCaption, "依名稱新增:" },
         { StringId.ExclusionsAdd, "新增" },
+
+        { StringId.PriorityGroup, "分頁順序" },
+        { StringId.PriorityNote, "列表中越靠上的應用程式，其分頁越靠近左端。列表未列出的應用程式，其分頁排在右端。修改列表會立即重新排列，之後仍可拖曳分頁。" },
+        { StringId.PriorityCaption, "順序:" },
+        { StringId.PriorityUp, "上移" },
+        { StringId.PriorityDown, "下移" },
+        { StringId.PriorityRemove, "移除" },
+        { StringId.PriorityAddCaption, "新增應用程式:" },
+        { StringId.PriorityAdd, "新增" },
 
         { StringId.PreviewGroup, "視窗預覽" },
         { StringId.PreviewEnable, "指標停在索引標籤上時顯示視窗" },
@@ -432,6 +473,20 @@ public static class UiStrings
         { StringId.ExclusionsCaption, "Приложения:" },
         { StringId.ExclusionsAddCaption, "Добавить по имени:" },
         { StringId.ExclusionsAdd, "Добавить" },
+
+        { StringId.PriorityGroup, "Порядок вкладок" },
+        {
+            StringId.PriorityNote,
+            "Чем выше приложение в списке, тем левее его вкладки. Приложение, которого нет в"
+            + " списке, получает вкладки у правого края. Изменение списка сразу переставляет ряд, и"
+            + " после этого вкладку по-прежнему можно перетащить."
+        },
+        { StringId.PriorityCaption, "Порядок:" },
+        { StringId.PriorityUp, "Вверх" },
+        { StringId.PriorityDown, "Вниз" },
+        { StringId.PriorityRemove, "Удалить" },
+        { StringId.PriorityAddCaption, "Добавить приложение:" },
+        { StringId.PriorityAdd, "Добавить" },
 
         { StringId.PreviewGroup, "Предпросмотр окна" },
         { StringId.PreviewEnable, "Показывать окно, когда указатель задерживается на вкладке" },
@@ -539,6 +594,21 @@ public static class UiStrings
         { StringId.ExclusionsAddCaption, "Nach Namen hinzufügen:" },
         { StringId.ExclusionsAdd, "Hinzufügen" },
 
+        { StringId.PriorityGroup, "Reihenfolge der Registerkarten" },
+        {
+            StringId.PriorityNote,
+            "Je weiter oben eine Anwendung in der Liste steht, desto weiter links liegen ihre"
+            + " Registerkarten. Eine Anwendung, die nicht in der Liste steht, bekommt ihre"
+            + " Registerkarten am rechten Ende. Eine Änderung der Liste ordnet die Reihe sofort neu;"
+            + " danach lässt sich eine Registerkarte weiterhin verschieben."
+        },
+        { StringId.PriorityCaption, "Reihenfolge:" },
+        { StringId.PriorityUp, "Nach oben" },
+        { StringId.PriorityDown, "Nach unten" },
+        { StringId.PriorityRemove, "Entfernen" },
+        { StringId.PriorityAddCaption, "Anwendung hinzufügen:" },
+        { StringId.PriorityAdd, "Hinzufügen" },
+
         { StringId.PreviewGroup, "Fenstervorschau" },
         { StringId.PreviewEnable, "Das Fenster anzeigen, wenn der Zeiger auf einer Registerkarte ruht" },
         {
@@ -644,6 +714,20 @@ public static class UiStrings
         { StringId.ExclusionsAddCaption, "Ajouter par nom :" },
         { StringId.ExclusionsAdd, "Ajouter" },
 
+        { StringId.PriorityGroup, "Ordre des onglets" },
+        {
+            StringId.PriorityNote,
+            "Plus une application est haut dans la liste, plus ses onglets sont à gauche. Une"
+            + " application absente de la liste place ses onglets à droite. Modifier la liste"
+            + " réorganise la rangée aussitôt ; ensuite, un onglet peut toujours être déplacé."
+        },
+        { StringId.PriorityCaption, "Ordre :" },
+        { StringId.PriorityUp, "Monter" },
+        { StringId.PriorityDown, "Descendre" },
+        { StringId.PriorityRemove, "Supprimer" },
+        { StringId.PriorityAddCaption, "Ajouter une application :" },
+        { StringId.PriorityAdd, "Ajouter" },
+
         { StringId.PreviewGroup, "Aperçu de la fenêtre" },
         { StringId.PreviewEnable, "Afficher la fenêtre lorsque le pointeur s'arrête sur un onglet" },
         {
@@ -747,6 +831,21 @@ public static class UiStrings
         { StringId.ExclusionsCaption, "Aplicaciones:" },
         { StringId.ExclusionsAddCaption, "Añadir por nombre:" },
         { StringId.ExclusionsAdd, "Añadir" },
+
+        { StringId.PriorityGroup, "Orden de las pestañas" },
+        {
+            StringId.PriorityNote,
+            "Cuanto más arriba está una aplicación en la lista, más a la izquierda quedan sus"
+            + " pestañas. Una aplicación que no está en la lista coloca sus pestañas al final. Al"
+            + " cambiar la lista, la fila se reordena de inmediato; después se puede arrastrar una"
+            + " pestaña donde se quiera."
+        },
+        { StringId.PriorityCaption, "Orden:" },
+        { StringId.PriorityUp, "Subir" },
+        { StringId.PriorityDown, "Bajar" },
+        { StringId.PriorityRemove, "Quitar" },
+        { StringId.PriorityAddCaption, "Añadir una aplicación:" },
+        { StringId.PriorityAdd, "Añadir" },
 
         { StringId.PreviewGroup, "Vista previa de la ventana" },
         { StringId.PreviewEnable, "Mostrar la ventana cuando el puntero se detiene en una pestaña" },
@@ -852,6 +951,20 @@ public static class UiStrings
         { StringId.ExclusionsAddCaption, "Adicionar pelo nome:" },
         { StringId.ExclusionsAdd, "Adicionar" },
 
+        { StringId.PriorityGroup, "Ordem das abas" },
+        {
+            StringId.PriorityNote,
+            "Quanto mais acima um aplicativo estiver na lista, mais à esquerda ficam suas abas."
+            + " Um aplicativo fora da lista coloca suas abas à direita. Alterar a lista reordena a"
+            + " fila na hora; depois disso, uma aba ainda pode ser arrastada."
+        },
+        { StringId.PriorityCaption, "Ordem:" },
+        { StringId.PriorityUp, "Para cima" },
+        { StringId.PriorityDown, "Para baixo" },
+        { StringId.PriorityRemove, "Remover" },
+        { StringId.PriorityAddCaption, "Adicionar um aplicativo:" },
+        { StringId.PriorityAdd, "Adicionar" },
+
         { StringId.PreviewGroup, "Visualização da janela" },
         { StringId.PreviewEnable, "Mostrar a janela quando o ponteiro parar sobre uma aba" },
         {
@@ -936,6 +1049,15 @@ public static class UiStrings
         { StringId.ExclusionsCaption, "앱:" },
         { StringId.ExclusionsAddCaption, "이름을 입력해 추가:" },
         { StringId.ExclusionsAdd, "추가" },
+
+        { StringId.PriorityGroup, "탭 순서" },
+        { StringId.PriorityNote, "목록에서 위에 있는 앱일수록 탭이 왼쪽에 놓입니다. 목록에 없는 앱의 탭은 오른쪽 끝에 붙습니다. 목록을 바꾸면 바로 다시 정렬되고, 그 뒤에도 탭을 끌어 옮길 수 있습니다." },
+        { StringId.PriorityCaption, "순서:" },
+        { StringId.PriorityUp, "위로" },
+        { StringId.PriorityDown, "아래로" },
+        { StringId.PriorityRemove, "삭제" },
+        { StringId.PriorityAddCaption, "앱 추가:" },
+        { StringId.PriorityAdd, "추가" },
 
         { StringId.PreviewGroup, "창 미리 보기" },
         { StringId.PreviewEnable, "포인터를 탭에 올려 두면 창을 표시" },
@@ -1039,6 +1161,20 @@ public static class UiStrings
         { StringId.ExclusionsCaption, "Aplikacje:" },
         { StringId.ExclusionsAddCaption, "Dodaj według nazwy:" },
         { StringId.ExclusionsAdd, "Dodaj" },
+
+        { StringId.PriorityGroup, "Kolejność kart" },
+        {
+            StringId.PriorityNote,
+            "Im wyżej aplikacja znajduje się na liście, tym bardziej po lewej stronie są jej"
+            + " karty. Aplikacja spoza listy umieszcza swoje karty na prawym końcu. Zmiana listy od"
+            + " razu porządkuje rząd, a kartę nadal można przeciągnąć."
+        },
+        { StringId.PriorityCaption, "Kolejność:" },
+        { StringId.PriorityUp, "W górę" },
+        { StringId.PriorityDown, "W dół" },
+        { StringId.PriorityRemove, "Usuń" },
+        { StringId.PriorityAddCaption, "Dodaj aplikację:" },
+        { StringId.PriorityAdd, "Dodaj" },
 
         { StringId.PreviewGroup, "Podgląd okna" },
         { StringId.PreviewEnable, "Pokaż okno, gdy wskaźnik zatrzyma się na karcie" },
@@ -1146,6 +1282,21 @@ public static class UiStrings
         { StringId.ExclusionsCaption, "Applicazioni:" },
         { StringId.ExclusionsAddCaption, "Aggiungi per nome:" },
         { StringId.ExclusionsAdd, "Aggiungi" },
+
+        { StringId.PriorityGroup, "Ordine delle schede" },
+        {
+            StringId.PriorityNote,
+            "Più in alto è un'applicazione nell'elenco, più a sinistra stanno le sue schede."
+            + " Un'applicazione non presente nell'elenco mette le sue schede all'estremità destra."
+            + " Modificando l'elenco la fila si riordina subito; in seguito una scheda può ancora"
+            + " essere trascinata."
+        },
+        { StringId.PriorityCaption, "Ordine:" },
+        { StringId.PriorityUp, "Su" },
+        { StringId.PriorityDown, "Giù" },
+        { StringId.PriorityRemove, "Rimuovi" },
+        { StringId.PriorityAddCaption, "Aggiungi un'applicazione:" },
+        { StringId.PriorityAdd, "Aggiungi" },
 
         { StringId.PreviewGroup, "Anteprima della finestra" },
         { StringId.PreviewEnable, "Mostra la finestra quando il puntatore si ferma su una scheda" },

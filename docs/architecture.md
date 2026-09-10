@@ -43,6 +43,8 @@ windows-simple-tasktabbar/
 │   │   │   ├── StringId.cs                 The name of every piece of interface text
 │   │   │   ├── UiStrings.cs                What each one says, in each language
 │   │   │   └── UiText.cs                   The text in one language, as callers read it
+│   │   ├── Ordering/
+│   │   │   └── AppPriority.cs              Where a tab goes, from the user's order
 │   │   ├── Preview/
 │   │   │   └── PreviewPlacement.cs         How big a window preview is, and where it sits
 │   │   ├── Settings/
@@ -71,6 +73,7 @@ windows-simple-tasktabbar/
 └── tests/
     └── WindowsSimpleTaskTabBar.Tests/      Unit tests
         ├── ActiveMarkTests.cs
+        ├── AppPriorityTests.cs
         ├── AppSettingsTests.cs
         ├── BarMetricsTests.cs
         ├── BarPaletteTests.cs
@@ -134,6 +137,7 @@ Program.cs
 UI/MainForm.cs  ──→  Core/Layout/                (calculations)
    │             ──→  Core/Grouping/              (which tab is in which group)
    │             ──→  Core/Filtering/             (which windows are left off the bar)
+   │             ──→  Core/Ordering/              (where a tab goes in the row)
    │             ──→  Core/Focus/                 (which tab is marked as in front)
    │             ──→  Core/Localization/          (what every piece of text says)
    │             ──→  Core/Preview/               (how big a window preview is, and where)
@@ -519,6 +523,42 @@ the row instead, the tick that hid it would have been the last thing the user co
 
 Matching is on the executable's file name, exactly as grouping matches, and carries the same
 cost: two unrelated programs both called `app.exe` are excluded together.
+
+### The order applications are given
+
+A tab used to land wherever its window happened to open. `RefreshTabs` appended every window it
+had not seen before, so the row came out in the order `EnumWindows` answered in. Grouping brings
+the windows of one application together but says nothing about which application comes first, and
+dragging is lost when the application exits.
+
+`AppSettings.ApplicationPriority` is the user's answer: executable names, in the order they should
+appear. **Position in the list is the rank**, which makes it the one list of names that
+normalization does not sort - sorting it would throw the setting away. An executable the list does
+not name ranks last, which is where a new window already went. `Core/Ordering/AppPriority.cs`
+holds the arithmetic, and being strings and no window handles it is unit tested on any platform.
+
+**The order decides where a tab is inserted, not where it is held.** The row is rebuilt four times
+a second, so putting it back into priority order on every pass would undo a drag within 250 ms -
+the same reason this document gives above for not letting a single tab leave its group.
+`RefreshTabs` therefore asks `AppPriority.InsertionIndex` where each newly seen window goes, in
+front of the first tab that ranks below it, and the whole row is put in order at two moments only:
+when the bar starts, and when the user changes the list. `MainForm.PriorityChanged` is what tells
+that change apart from every other settings change, so that changing the colours does not pull a
+dragged tab back.
+
+**One list settles both levels.** The sort runs before grouping, and `TabGrouping.Arrange` puts a
+group where its first window sits, so bringing the highest-ranked window to the front carries its
+whole group with it. The windows inside a group come out in the list's order for the same reason.
+
+`AppPriority.Sort` is an insertion sort rather than `List.Sort`, because it has to be stable.
+Every application the list does not name is of equal rank, so an unstable sort would shuffle the
+tabs of everything the user never mentioned. A row is tens of tabs at the most and this runs twice
+a session, so the cost of the simpler algorithm is not worth measuring.
+
+**Nothing is read while the list is empty.** The executable behind a window costs a process query,
+so the branch that appends is the one the bar has always had, and a bar nobody has ordered reads
+no process here at all - the same bargain grouping and exclusion both make. Once a list is set,
+`ProcessInfoCache` answers each window after the first query.
 
 ### Telling the user a new version exists
 

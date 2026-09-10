@@ -13,6 +13,17 @@ in [README.md](README.md).
 
 ## Unreleased
 
+- Applications can now be put in an order of your own. A tab used to land wherever its window
+  happened to open, and dragging it somewhere else was lost when you exited. Name the
+  applications you want nearest the left end under **Tab order** in the settings, in the order
+  you want them there, and each new window takes its place in the row rather than the end of it.
+- An application the order does not name keeps its tab at the right end, which is what every tab
+  did before, so leaving this setting alone changes nothing.
+- Changing the order rearranges the tabs you are looking at straight away, rather than waiting
+  for the next window to open. After that the order decides where a new tab goes and nothing
+  else: a tab you drag somewhere stays where you put it.
+- With tabs grouped by application, the same list decides both which group comes first and the
+  order of the tabs inside one.
 - An application can now be kept off the bar. A background utility or a chat client you never
   switch to with the bar still took a tab, and there was no way to stop it. Tick anything you
   want left out under **Excluded applications** in the settings, or right-click one of its tabs
@@ -25,10 +36,10 @@ in [README.md](README.md).
   be undone.
 - The shell's own windows - the taskbar, the desktop - are still kept off the bar by a list that
   is built in and cannot be shortened, so nothing here can put them on it.
-- The settings window is now laid out in two columns, with the two boxes that hold lists on the
-  right and everything else on the left. It has always taken whatever height its contents came
-  to, which keeps it fitting its own text at any size and in any language, and with the box above
-  added that came to more than the height of a screen: its own Close button went out of reach.
+- The settings window is now laid out in two columns, with the two tallest boxes on the right and
+  everything else on the left. It has always taken whatever height its contents came to, which
+  keeps it fitting its own text at any size and in any language, and with the boxes above added
+  that came to more than the height of a screen: its own Close button went out of reach.
   Two columns halve the height and use room that was empty at the side, so the whole of it can be
   seen at once again. On a screen too short even for that, the boxes scroll and the Close button
   stays where it is.

@@ -45,7 +45,7 @@ public class AppSettings
     /// The schema this instance was written with. Present from the first release so that a later
     /// version can tell an old file apart from a new one instead of guessing.
     /// </summary>
-    public const int CurrentSchema = 7;
+    public const int CurrentSchema = 8;
 
     /// <summary>How many accents a group can be marked with.</summary>
     public const int AccentCount = 8;
@@ -56,6 +56,9 @@ public class AppSettings
 
     /// <summary>The most applications the user may exclude.</summary>
     private const int MaxExcludedApplications = 256;
+
+    /// <summary>The most applications the user may put in a priority order.</summary>
+    private const int MaxPrioritizedApplications = 256;
 
     public int Schema { get; set; } = CurrentSchema;
 
@@ -109,6 +112,22 @@ public class AppSettings
     /// application.
     /// </summary>
     public List<AppGroup> Groups { get; set; } = new List<AppGroup>();
+
+    /// <summary>
+    /// The executables the user wants nearest the left end of the bar, in lower case and in the
+    /// order they should appear, for example <c>code.exe</c> before <c>chrome.exe</c>. Empty
+    /// until the user names one.
+    /// </summary>
+    /// <remarks>
+    /// Position in the list is the rank, so this one is not sorted the way
+    /// <see cref="ExcludedApplications"/> is: the order is the setting. An executable the list
+    /// does not name ranks last, which is where a new window already went before this setting
+    /// existed.
+    ///
+    /// File names rather than paths, for the reason grouping and exclusion both use one, and
+    /// with the same cost: two unrelated programs both called <c>app.exe</c> share a rank.
+    /// </remarks>
+    public List<string> ApplicationPriority { get; set; } = new List<string>();
 
     /// <summary>
     /// The executables whose windows are kept off the bar, in lower case, for example
@@ -177,6 +196,7 @@ public class AppSettings
             ShowWindowPreview = ShowWindowPreview,
             Language = Languages.Find(Language)?.Code ?? Languages.Automatic,
             Groups = NormalizedGroups(Groups),
+            ApplicationPriority = NormalizedNames(ApplicationPriority, MaxPrioritizedApplications),
             ExcludedApplications = NormalizedExclusions(ExcludedApplications),
             CheckForUpdates = CheckForUpdates ?? true,
             LastUpdateCheckUtc = NormalizedStamp(LastUpdateCheckUtc),
@@ -204,6 +224,7 @@ public class AppSettings
         ShowWindowPreview = tidy.ShowWindowPreview;
         Language = tidy.Language;
         Groups = tidy.Groups;
+        ApplicationPriority = tidy.ApplicationPriority;
         ExcludedApplications = tidy.ExcludedApplications;
         CheckForUpdates = tidy.CheckForUpdates;
         LastUpdateCheckUtc = tidy.LastUpdateCheckUtc;
@@ -310,20 +331,38 @@ public class AppSettings
     /// alongside the applications that are running and sorts the two together, and a settings
     /// file somebody opens to edit reads more easily in order than in the order things happened
     /// to be ticked.
-    ///
-    /// <paramref name="excluded"/> can be null, for the reason given on <see cref="NormalizedGroups"/>:
-    /// a settings file written before this setting existed leaves the property unset.
     /// </remarks>
     private static List<string> NormalizedExclusions(List<string> excluded)
     {
+        List<string> result = NormalizedNames(excluded, MaxExcludedApplications);
+        result.Sort(StringComparer.Ordinal);   // every entry is already lower case
+        return result;
+    }
+
+    /// <summary>
+    /// A list of executable names with every value brought into range: each one a bare file name
+    /// in lower case, none of them empty, no name listed twice, and no more than
+    /// <paramref name="cap"/> of them. The order they were given in is kept.
+    /// </summary>
+    /// <remarks>
+    /// Kept in order because <see cref="ApplicationPriority"/> is an order: sorting it would
+    /// throw the setting away. <see cref="NormalizedExclusions"/> sorts what comes back, because
+    /// that list has no order of its own.
+    ///
+    /// <paramref name="names"/> can be null, for the reason given on <see cref="NormalizedGroups"/>:
+    /// a settings file written before a setting existed leaves its property unset rather than
+    /// empty.
+    /// </remarks>
+    private static List<string> NormalizedNames(List<string> names, int cap)
+    {
         var result = new List<string>();
-        if (excluded == null) return result;
+        if (names == null) return result;
 
         var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (string name in excluded)
+        foreach (string name in names)
         {
-            if (result.Count >= MaxExcludedApplications) break;
+            if (result.Count >= cap) break;
 
             // The same normalization the bar applies to what it reads from a window, so a full
             // path typed into the settings file still matches the window it names.
@@ -334,7 +373,6 @@ public class AppSettings
             result.Add(key);
         }
 
-        result.Sort(StringComparer.Ordinal);   // every entry is already lower case
         return result;
     }
 

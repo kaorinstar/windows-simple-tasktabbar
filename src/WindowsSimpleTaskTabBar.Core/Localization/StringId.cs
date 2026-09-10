@@ -73,6 +73,15 @@ public enum StringId
     ExclusionsAddCaption,
     ExclusionsAdd,
 
+    PriorityGroup,
+    PriorityNote,
+    PriorityCaption,
+    PriorityUp,
+    PriorityDown,
+    PriorityRemove,
+    PriorityAddCaption,
+    PriorityAdd,
+
     PreviewGroup,
     PreviewEnable,
     PreviewNote,

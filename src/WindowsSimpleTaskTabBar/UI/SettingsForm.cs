@@ -125,6 +125,30 @@ internal sealed class SettingsForm : Form
         Justification = "Owned by the Controls collection it is added to.")]
     private Button _addExcluded;
 
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private ListBox _priority;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private ComboBox _priorityName;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private Button _priorityUp;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private Button _priorityDown;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private Button _priorityRemove;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private Button _addPriority;
+
     // The group boxes, and the panel they scroll inside. Held so that FitToScreen can measure
     // the one and size the other; nothing else reads them.
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
@@ -355,13 +379,18 @@ internal sealed class SettingsForm : Form
         // Two columns rather than one. Seven boxes in a single column came to more than the
         // height of a screen, which left the dialog scrolling and no way to see all of it at
         // once - a screenshot of the settings could no longer be taken, and neither could a
-        // glance. The two boxes with lists in them are much the tallest and much the widest, so
-        // they go together on the right and everything else stacks on the left; that halves the
-        // height and uses room that was empty.
+        // glance. Tab groups and excluded applications are much the tallest boxes, so they go
+        // together on the right and everything else stacks on the left; that halves the height
+        // and uses room that was empty.
+        //
+        // Tab order is the third box holding a list and would sit with them by subject, but it
+        // is put on the left instead: the two columns are here to be of a height, and a third
+        // list on the right would put most of the dialog back into one column.
         FlowLayoutPanel left = Column();
         left.Controls.Add(BuildLanguageGroup());
         left.Controls.Add(BuildHeightGroup());
         left.Controls.Add(BuildColourGroup());
+        left.Controls.Add(BuildPriorityGroup());
         left.Controls.Add(BuildPreviewGroup());
         left.Controls.Add(BuildUpdatesGroup());
 
@@ -838,6 +867,140 @@ internal sealed class SettingsForm : Form
     }
 
     /// <summary>
+    /// The order the user wants their applications in: one list, moved with buttons, and a box
+    /// for naming another one.
+    /// </summary>
+    /// <remarks>
+    /// A plain list with Up and Down rather than a list the user drags. A drag inside a list box
+    /// has to be written by hand - there is no such thing to switch on - and it would be a
+    /// second way of reordering tabs beside dragging the tabs themselves, which is what the
+    /// order is really for. The buttons say what they do and work with the keyboard.
+    ///
+    /// The box for naming one is a drop-down that can be typed into: the applications with a
+    /// window open are offered, because those are the ones the user is looking at, and anything
+    /// else can be typed, because an application that is closed cannot be offered.
+    /// </remarks>
+    private GroupBox BuildPriorityGroup()
+    {
+        // The same row height and list width as the boxes in the other column, so every list in
+        // the dialog is the same size whatever the DPI and the text size are.
+        int row = Font.Height;
+        int column = ColumnWidth;
+
+        var explanation = new Label
+        {
+            Text = _text[StringId.PriorityNote],
+            AutoSize = true,
+            MaximumSize = new Size(column * 2, 0),
+            ForeColor = SystemColors.GrayText,
+            Margin = new Padding(4, 0, 4, 6),
+        };
+
+        _priority = new ListBox
+        {
+            Height = row * 5,
+            Width = column,
+            Margin = new Padding(4, 0, 4, 4),
+            IntegralHeight = false,
+        };
+        _priority.SelectedIndexChanged += (_, __) => OnPrioritySelected();
+
+        _priorityUp = new Button
+        {
+            Text = _text[StringId.PriorityUp],
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(4, 0, 4, 4),
+        };
+        _priorityUp.Click += (_, __) => OnPriorityMoved(-1);
+
+        _priorityDown = new Button
+        {
+            Text = _text[StringId.PriorityDown],
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(0, 0, 4, 4),
+        };
+        _priorityDown.Click += (_, __) => OnPriorityMoved(1);
+
+        _priorityRemove = new Button
+        {
+            Text = _text[StringId.PriorityRemove],
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(0, 0, 4, 4),
+        };
+        _priorityRemove.Click += (_, __) => OnRemovePriority();
+
+        var moveRow = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.LeftToRight,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(0),
+        };
+        moveRow.Controls.Add(_priorityUp);
+        moveRow.Controls.Add(_priorityDown);
+        moveRow.Controls.Add(_priorityRemove);
+
+        _priorityName = new ComboBox
+        {
+            DropDownStyle = ComboBoxStyle.DropDown,   // offered, and typed into
+            Width = column,
+            Margin = new Padding(0, 2, 8, 4),
+        };
+
+        // Enter adds the name rather than closing the dialog, which is what the Close button
+        // being the accept button would otherwise make it do.
+        _priorityName.KeyDown += OnPriorityNameKeyDown;
+
+        _addPriority = new Button
+        {
+            Text = _text[StringId.PriorityAdd],
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(0, 0, 4, 4),
+        };
+        _addPriority.Click += (_, __) => OnAddPriority();
+
+        var addRow = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.LeftToRight,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(4, 0, 4, 4),
+        };
+        addRow.Controls.Add(Caption(_text[StringId.PriorityAddCaption]));
+        addRow.Controls.Add(_priorityName);
+        addRow.Controls.Add(_addPriority);
+
+        var content = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.TopDown,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(8, 4, 8, 8),
+            Dock = DockStyle.Fill,    // below the caption; see BuildLanguageGroup
+            WrapContents = false,
+        };
+        content.Controls.Add(explanation);
+        content.Controls.Add(Caption(_text[StringId.PriorityCaption]));
+        content.Controls.Add(_priority);
+        content.Controls.Add(moveRow);
+        content.Controls.Add(addRow);
+
+        var box = new GroupBox
+        {
+            Text = _text[StringId.PriorityGroup],
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(12, 6, 12, 6),
+        };
+        box.Controls.Add(content);
+        return box;
+    }
+
+    /// <summary>
     /// The applications the user keeps off the bar: one list, ticked to exclude, and a box for
     /// naming one that is not running.
     /// </summary>
@@ -1011,6 +1174,7 @@ internal sealed class SettingsForm : Form
         _loading = false;
 
         ReloadGroups(_groups.SelectedIndex);
+        ReloadPriority(_priority.SelectedIndex);
         ReloadExcluded();
     }
 
@@ -1342,6 +1506,161 @@ internal sealed class SettingsForm : Form
 
         _excludedName.Text = string.Empty;
         ApplyExclusions();
+    }
+
+    // ---------------------------------------------------------------
+    // The order applications are given
+    // ---------------------------------------------------------------
+
+    /// <summary>
+    /// Redraws the order from the settings and offers the applications that could join it.
+    /// </summary>
+    /// <remarks>
+    /// From the settings rather than from what was just done, for the reason <see cref="Apply"/>
+    /// gives: normalizing can drop a name or refuse a second copy of one, and the list has to
+    /// show what was kept.
+    /// </remarks>
+    private void ReloadPriority(int selection)
+    {
+        _loading = true;
+        try
+        {
+            _priority.Items.Clear();
+            foreach (string name in _settings.ApplicationPriority) _priority.Items.Add(name);
+
+            if (_priority.Items.Count > 0)
+            {
+                if (selection < 0) selection = 0;
+                if (selection >= _priority.Items.Count) selection = _priority.Items.Count - 1;
+                _priority.SelectedIndex = selection;
+            }
+
+            ReloadPriorityChoices();
+        }
+        finally
+        {
+            _loading = false;
+        }
+
+        // After the guard is lifted, and by hand: an empty list changes no selection, so nothing
+        // would have raised this on its own, and the buttons would be left enabled over nothing.
+        OnPrioritySelected();
+    }
+
+    /// <summary>
+    /// Fills the drop-down with the applications that have a window open and are not in the
+    /// order already.
+    /// </summary>
+    /// <remarks>
+    /// Emptying the list empties the text with it, so what the user had typed is put back. They
+    /// may be halfway through a name that is not running and cannot be offered, which is what
+    /// the box can be typed into for.
+    /// </remarks>
+    private void ReloadPriorityChoices()
+    {
+        string typed = _priorityName.Text;
+
+        _priorityName.Items.Clear();
+        foreach (string name in _runningApplications() ?? new List<string>())
+        {
+            if (!_settings.ApplicationPriority.Contains(name, StringComparer.OrdinalIgnoreCase))
+                _priorityName.Items.Add(name);
+        }
+
+        _priorityName.Text = typed;
+    }
+
+    /// <summary>Reports the change and redraws the order from the settings that were kept.</summary>
+    private void ApplyPriority(int selection)
+    {
+        _onChanged();
+        ReloadPriority(selection);
+    }
+
+    private void OnPrioritySelected()
+    {
+        int index = _priority.SelectedIndex;
+
+        _priorityUp.Enabled = index > 0;
+        _priorityDown.Enabled = index >= 0 && index < _priority.Items.Count - 1;
+        _priorityRemove.Enabled = index >= 0;
+    }
+
+    /// <summary>Moves the selected application one place up or down the order.</summary>
+    /// <remarks>
+    /// The selection follows the application rather than staying where it was, so that pressing
+    /// the same button again moves the same one. A list that kept the position would move a
+    /// different application on every press.
+    /// </remarks>
+    private void OnPriorityMoved(int step)
+    {
+        List<string> priority = _settings.ApplicationPriority;
+
+        int from = _priority.SelectedIndex;
+        int to = from + step;
+
+        if (from < 0 || from >= priority.Count) return;
+        if (to < 0 || to >= priority.Count) return;
+
+        string name = priority[from];
+        priority.RemoveAt(from);
+        priority.Insert(to, name);
+
+        ApplyPriority(to);
+    }
+
+    private void OnRemovePriority()
+    {
+        int index = _priority.SelectedIndex;
+        if (index < 0 || index >= _settings.ApplicationPriority.Count) return;
+
+        _settings.ApplicationPriority.RemoveAt(index);
+
+        // The same position rather than none, so a list being cleared from the middle can be
+        // cleared with one button.
+        ApplyPriority(index);
+    }
+
+    private void OnPriorityNameKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.KeyCode != Keys.Enter) return;
+
+        // Both, so that neither the dialog's accept button nor the beep that follows an
+        // unhandled Enter in a combo box gets the key.
+        e.Handled = true;
+        e.SuppressKeyPress = true;
+
+        OnAddPriority();
+    }
+
+    /// <summary>Puts the application named in the box at the end of the order.</summary>
+    /// <remarks>
+    /// At the end, which is the last of the applications the order names: adding one moves
+    /// nothing that is already there, and Up carries it from where the user can see it landing.
+    /// An application already in the order is not added twice; it is selected instead, which
+    /// says where it already is.
+    ///
+    /// A name with no extension is taken as an executable and given <c>.exe</c>, for the reason
+    /// <see cref="OnAddExcluded"/> gives.
+    /// </remarks>
+    private void OnAddPriority()
+    {
+        string name = TabGrouping.KeyFor(_priorityName.Text);
+        if (name.Length == 0) return;
+
+        if (name.IndexOf('.') < 0) name += ".exe";
+
+        int at = _settings.ApplicationPriority.FindIndex(
+            x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase));
+
+        if (at < 0)
+        {
+            _settings.ApplicationPriority.Add(name);
+            at = _settings.ApplicationPriority.Count - 1;
+        }
+
+        _priorityName.Text = string.Empty;
+        ApplyPriority(at);
     }
 
     private void OnAddGroup()

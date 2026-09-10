@@ -42,6 +42,12 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
   application in one step, and the settings list it beside everything else that is running, so
   the choice can be undone. An application that is not running can be excluded by typing its
   name.
+- **Put your applications in an order** — an option in the settings. Name the applications you
+  want nearest the left end, in the order you want them there, and a new window takes its place
+  in the row rather than the right end of it. An application the list does not name keeps its
+  tab at the right end, which is what every tab did before. Changing the list reorders the row
+  at once, and dragging a tab still moves it wherever you like. With grouping on, one list
+  decides both which group comes first and the order inside one.
 - The tab list updates automatically when windows open, close, change title, or gain focus.
   A two-second timer runs as a safety net.
 - **Choose the colours** — an option in the settings: follow Windows, always light, or always
@@ -64,7 +70,7 @@ the top edge of their tabs, with a rule between one group and the next.
 
 The settings:
 
-![The settings window in two columns: language, bar height, colours, window preview and updates on the left, tab groups and excluded applications on the right](docs/images/settings.png)
+![The settings window in two columns: language, bar height, colours, tab order, window preview and updates on the left, tab groups and excluded applications on the right](docs/images/settings.png)
 
 ## Download
 
