@@ -163,6 +163,14 @@ internal static class NativeMethods
     [DllImport("user32.dll", SetLastError = true)]
     public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
+    /// <summary>
+    /// This application's own process id, to tell its windows from everyone else's. The API
+    /// rather than <c>Process.GetCurrentProcess</c>, which hands back an object to release for
+    /// a number that never changes.
+    /// </summary>
+    [DllImport("kernel32.dll")]
+    public static extern uint GetCurrentProcessId();
+
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool EnumChildWindows(IntPtr hWndParent, EnumWindowsProc lpEnumFunc, IntPtr lParam);

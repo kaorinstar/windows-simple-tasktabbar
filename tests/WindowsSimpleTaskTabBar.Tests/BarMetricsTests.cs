@@ -98,6 +98,19 @@ public class BarMetricsTests
         Assert.Equal((int)System.Math.Round(baseline.FontPixels * (double)scale), scaled.FontPixels);
     }
 
+    [Theory]
+    [InlineData(34, 1.0f)]
+    [InlineData(24, 1.0f)]
+    [InlineData(24, 2.0f)]
+    public void TheActiveTabIsStillOutlinedOnACompactBar(int height, float scale)
+    {
+        BarMetrics m = BarMetrics.For(height, scale);
+
+        // Thick enough to draw, thin enough to leave the fill it surrounds.
+        Assert.True(m.ActiveOutlineWidth >= 1);
+        Assert.True(m.ActiveOutlineWidth < m.CornerRadius);
+    }
+
     [Fact]
     public void TextAndIconsStayLegibleOnAVeryShortBar()
     {
@@ -117,5 +130,7 @@ public class BarMetricsTests
         Assert.True(m.BarHeight >= 1);
         Assert.True(m.IconSize >= 1);
         Assert.True(m.TabMaxWidth >= 1);
+
+        Assert.True(m.ActiveOutlineWidth >= 1);
     }
 }

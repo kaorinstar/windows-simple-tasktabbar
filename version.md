@@ -13,6 +13,16 @@ in [README.md](README.md).
 
 ## Unreleased
 
+- The mark on the tab of the window you are using no longer comes off when you use the bar
+  itself. Dragging a tab to a new place left no tab marked at all, because the bar takes the
+  foreground from your window when you click it and a drag has no window to hand it back to. The
+  mark now stays where it was for as long as the bar is the thing in front, which is what the
+  Windows taskbar does with its own highlight.
+- The tab of the window you are using is easier to pick out. It is now drawn with an outline, so
+  it can be found by its edge instead of by reading titles. Its colour alone was close to the tabs
+  beside it, particularly in the light theme. Nothing else changes: every tab is the same size and
+  in the same place as before, a tab group keeps its unbroken colour along the top of the row, and
+  dragging and scrolling behave as they did.
 - Resting the pointer on a tab can now show a live picture of that window, with its full title
   underneath, which is the quickest way to tell apart several windows of one application whose
   tabs look alike. **It is off until you turn it on**, under Window preview in the settings. The

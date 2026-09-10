@@ -75,6 +75,14 @@ public sealed class BarMetrics
     /// <summary>Thickness of the rule drawn where one group ends and the next begins.</summary>
     public int GroupDividerWidth { get; private set; }
 
+    /// <summary>Thickness of the outline that marks the active tab.</summary>
+    /// <remarks>
+    /// An outline rather than a size: the active tab is drawn exactly as large as every other
+    /// one. Drawing it taller was tried and removed, because the group accent sits along the top
+    /// edge of a tab and a taller tab carried its accent out of line with the tabs beside it.
+    /// </remarks>
+    public int ActiveOutlineWidth { get; private set; }
+
     /// <param name="barHeightLogical">Bar height in logical pixels, before DPI scaling.</param>
     /// <param name="scale">DPI scale, where 1.0 is 96 DPI.</param>
     public static BarMetrics For(int barHeightLogical, float scale)
@@ -103,6 +111,7 @@ public sealed class BarMetrics
             TabMaxWidth = Scaled(220, scale, 1),
             OuterMargin = Scaled(4, scale, 1),
             GroupDividerWidth = Scaled(1, scale, 1),
+            ActiveOutlineWidth = Scaled(1, scale, 1),
         };
 
         // Room for the icon, the padding either side, and the text with its ellipsis. The text is
