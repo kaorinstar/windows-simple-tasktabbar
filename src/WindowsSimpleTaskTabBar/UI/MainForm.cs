@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing.Drawing2D;
 using System.Globalization;
@@ -10,6 +11,7 @@ using WindowsSimpleTaskTabBar.Core.Localization;
 using WindowsSimpleTaskTabBar.Core.Preview;
 using WindowsSimpleTaskTabBar.Core.Settings;
 using WindowsSimpleTaskTabBar.Core.Theme;
+using WindowsSimpleTaskTabBar.Core.Update;
 using WindowsSimpleTaskTabBar.Interop;
 using WindowsSimpleTaskTabBar.Services;
 
@@ -174,6 +176,13 @@ public class MainForm : Form
 
     private NotifyIcon _trayIcon;
 
+    // The update check. _updateAvailableTag names a release newer than this build, and is what
+    // both menus read when they open. It is seeded from the settings file at startup and set
+    // again by each check; it is empty when nothing newer is known.
+    private bool _updateCheckStarted;
+    private bool _updateCheckRunning;
+    private string _updateAvailableTag = string.Empty;
+
     // Only a record of which dialog is open, so a second request can bring it forward. The
     // using statement in ShowSettings owns it, and this field is null again by the time that
     // statement ends.
@@ -209,6 +218,7 @@ public class MainForm : Form
 
         _settings = SettingsStore.Load();
         _text = TextForSettings();
+        _updateAvailableTag = KnownNewerRelease();
 
         ApplyTheme();
 
@@ -244,9 +254,21 @@ public class MainForm : Form
         var menu = new ContextMenuStrip();
         menu.Items.Add(_text[StringId.MenuSettings], null, (_, __) => ShowSettings());
         menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add(UpdateMenuText, null, (_, __) => OnUpdateMenuClicked()).Name = UpdateItemName;
+        menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_text[StringId.MenuRefresh], null, (_, __) => { _dirty = true; RefreshTabs(); });
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_text[StringId.MenuExit], null, (_, __) => Close());
+
+        // What the update entry says depends on state that changes while the menu is closed, and
+        // there are two menus built from here. Setting the text as each one opens keeps them in
+        // step without a field pointing into either of them.
+        menu.Opening += (_, __) =>
+        {
+            ToolStripItem item = menu.Items[UpdateItemName];
+            if (item != null) item.Text = UpdateMenuText;
+        };
+
         return menu;
     }
 
@@ -349,6 +371,8 @@ public class MainForm : Form
             ContextMenuStrip = BuildMenu(),
             Visible = true,
         };
+
+        _trayIcon.BalloonTipClicked += (_, __) => OpenReleasePage();
     }
 
     /// <summary>
@@ -551,6 +575,222 @@ public class MainForm : Form
     }
 
     // ---------------------------------------------------------------
+    // Telling the user a new version exists
+    // ---------------------------------------------------------------
+
+    /// <summary>The name the update entry is found by in both menus.</summary>
+    private const string UpdateItemName = "update";
+
+    /// <summary>
+    /// How long after the bar appears the automatic check runs, in timer ticks of 250 ms.
+    /// </summary>
+    /// <remarks>
+    /// Ten seconds. The bar is usually started at logon, where the network is often not up yet
+    /// when the first window is drawn; checking immediately would fail for a reason that has
+    /// nothing to do with whether a release exists. Waiting also keeps the request off the path
+    /// that puts the bar on screen.
+    /// </remarks>
+    private const int UpdateCheckDelayTicks = 40;
+
+    /// <summary>
+    /// The release the user was last told about, when it is still newer than this build.
+    /// </summary>
+    /// <remarks>
+    /// The check runs at most once a day, so a bar started again the same day runs none, and
+    /// without this the menu would fall back to "Check for updates..." while a newer release was
+    /// sitting in the settings file. The notice itself is still shown once per release; this is
+    /// only what the menu says.
+    ///
+    /// The comparison is against the running build rather than a plain "is it set" test, because
+    /// the user updates by replacing the executable. The settings file still names the release
+    /// they were told about, and after they act on it that release is the one they are running.
+    /// </remarks>
+    private string KnownNewerRelease()
+    {
+        string told = _settings.LastNoticedRelease;
+        return ReleaseVersion.IsNewer(told, UpdateService.RunningVersion) ? told : string.Empty;
+    }
+
+    /// <summary>One entry serves both jobs, so a five-item menu does not become seven.</summary>
+    private string UpdateMenuText =>
+        _updateAvailableTag.Length > 0
+            ? _text.Format(StringId.MenuUpdateAvailable, _updateAvailableTag)
+            : _text[StringId.MenuCheckForUpdates];
+
+    /// <summary>
+    /// Starts the automatic check, once per run of the application.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="_updateCheckStarted"/> is set whatever the answer, including when the check is
+    /// turned off or is not due, so this costs one comparison per tick after the first.
+    /// </remarks>
+    private void StartUpdateCheckOnce()
+    {
+        if (_updateCheckStarted || _tickCount < UpdateCheckDelayTicks) return;
+        _updateCheckStarted = true;
+
+        // Null means the setting was never chosen, which is on. See AppSettings.
+        if (_settings.CheckForUpdates == false) return;
+        if (!UpdateCheckSchedule.IsDue(_settings.LastUpdateCheckUtc, DateTime.UtcNow)) return;
+
+        RunUpdateCheck(report: false);
+    }
+
+    /// <summary>
+    /// Runs a check on a pool thread and brings the answer back to this thread.
+    /// </summary>
+    /// <param name="report">
+    /// True when the user asked for the check from the menu, which is always answered. The
+    /// automatic check passes false and says nothing unless there is something newer.
+    /// </param>
+    private void RunUpdateCheck(bool report)
+    {
+        if (_updateCheckRunning) return;
+        _updateCheckRunning = true;
+
+        // A pool thread is a background thread, so a request still in flight cannot hold up Exit.
+        ThreadPool.QueueUserWorkItem(_ =>
+        {
+            UpdateCheckResult result = UpdateService.Check();
+
+            try
+            {
+                if (IsDisposed || !IsHandleCreated) return;
+                BeginInvoke(new Action(() => OnUpdateChecked(result, report)));
+            }
+            catch (ObjectDisposedException)
+            {
+                // The bar was closed between the test above and the post. Nothing is left to
+                // tell, and _updateCheckRunning goes with the form.
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        });
+    }
+
+    /// <summary>
+    /// Acts on the answer, on the user interface thread.
+    /// </summary>
+    private void OnUpdateChecked(UpdateCheckResult result, bool report)
+    {
+        _updateCheckRunning = false;
+        if (_released) return;
+
+        if (result.Outcome == UpdateCheckOutcome.Failed)
+        {
+            // The time is not recorded: a machine that was offline at logon should try again on
+            // the next start rather than wait another day.
+            if (report)
+            {
+                MessageBox.Show(this, _text[StringId.UpdateCheckFailed],
+                    Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+
+            return;
+        }
+
+        _settings.LastUpdateCheckUtc = UpdateCheckSchedule.Stamp(DateTime.UtcNow);
+
+        if (result.Outcome == UpdateCheckOutcome.UpdateAvailable)
+        {
+            _updateAvailableTag = result.LatestTag;
+
+            bool alreadyTold =
+                ReleaseVersion.IsSameRelease(result.LatestTag, _settings.LastNoticedRelease);
+            _settings.LastNoticedRelease = result.LatestTag;
+
+            if (report)
+            {
+                if (MessageBox.Show(this,
+                        _text.Format(StringId.UpdateAvailableAsk, result.LatestTag),
+                        Text, MessageBoxButtons.YesNo, MessageBoxIcon.Information)
+                    == DialogResult.Yes)
+                {
+                    OpenReleasePage();
+                }
+            }
+            else if (!alreadyTold)
+            {
+                ShowUpdateNotice(result.LatestTag);
+            }
+        }
+        else
+        {
+            // GitHub says there is nothing newer, so anything seeded from the settings file at
+            // startup is out of date. Leaving it would keep offering an update to a release this
+            // build already is.
+            _updateAvailableTag = string.Empty;
+
+            if (report)
+            {
+                MessageBox.Show(this,
+                    _text.Format(StringId.UpdateUpToDate, UpdateService.RunningVersion),
+                    Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        // Not ApplySettings: none of this changes the height, the reserved area or the row.
+        SettingsStore.Save(_settings);
+    }
+
+    /// <summary>
+    /// Shows the notice for a release the user has not been told about.
+    /// </summary>
+    /// <remarks>
+    /// A notification rather than a dialog. The automatic check lands while the user is starting
+    /// their day, and a modal window in front of that is worse than the news is good. Windows may
+    /// hold the notification back entirely - a focus assist rule, or notifications turned off for
+    /// this application - which is why the menu entry, not this, is what the feature relies on.
+    /// </remarks>
+    private void ShowUpdateNotice(string tag)
+    {
+        if (_trayIcon == null) return;
+
+        _trayIcon.ShowBalloonTip(10000, Text,
+            _text.Format(StringId.UpdateNotice, tag), ToolTipIcon.Info);
+    }
+
+    /// <summary>
+    /// Opens the release page, or runs a check when nothing is known yet.
+    /// </summary>
+    private void OnUpdateMenuClicked()
+    {
+        if (_updateAvailableTag.Length > 0) OpenReleasePage();
+        else RunUpdateCheck(report: true);
+    }
+
+    /// <summary>
+    /// Opens the releases page in the user's browser.
+    /// </summary>
+    /// <remarks>
+    /// The address is a constant in <see cref="UpdateService"/> and never a string the network
+    /// answered with: this hands it to the shell, which would open whatever it was given.
+    ///
+    /// <c>UseShellExecute</c> is set rather than left alone. It defaults to true on .NET
+    /// Framework and false on .NET, where a URL is not an executable and the call fails, so
+    /// setting it serves both targets without a second code path.
+    /// </remarks>
+    private static void OpenReleasePage()
+    {
+        try
+        {
+            // The process is frequently null, because the shell handed the address to a browser
+            // that was already running. Disposed all the same: the build treats an object created
+            // and then dropped as an error.
+            using (Process.Start(
+                new ProcessStartInfo(UpdateService.LatestReleaseUrl) { UseShellExecute = true }))
+            {
+            }
+        }
+        catch
+        {
+            // No default browser, or the shell refused. There is nothing useful to say about it,
+            // and the user asked to read a page, not to be told about a failure to open one.
+        }
+    }
+
+    // ---------------------------------------------------------------
     // AppBar registration and positioning
     // ---------------------------------------------------------------
     private void RegisterAppBar()
@@ -693,6 +933,8 @@ public class MainForm : Form
             _dirty = false;
             RefreshTabs();
         }
+
+        StartUpdateCheckOnce();
     }
 
     // ---------------------------------------------------------------

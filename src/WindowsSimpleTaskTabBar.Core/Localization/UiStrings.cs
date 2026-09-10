@@ -21,6 +21,13 @@ public static class UiStrings
         { StringId.MenuRefresh, "Refresh" },
         { StringId.MenuExit, "Exit" },
 
+        { StringId.MenuCheckForUpdates, "Check for updates..." },
+        { StringId.MenuUpdateAvailable, "Update available: {0}..." },
+        { StringId.UpdateCheckFailed, "Could not reach GitHub to check for a new version." },
+        { StringId.UpdateAvailableAsk, "{0} is available. Open the release page?" },
+        { StringId.UpdateUpToDate, "This is the newest version ({0})." },
+        { StringId.UpdateNotice, "{0} is available. Click here to open the release page." },
+
         { StringId.TabMenuClose, "Close" },
         { StringId.TabMenuCloseOthers, "Close other tabs" },
         { StringId.TabMenuCloseLeft, "Close tabs to the left" },
@@ -72,6 +79,16 @@ public static class UiStrings
             + " no picture to show and keeps its title instead."
         },
 
+        { StringId.UpdatesGroup, "Updates" },
+        { StringId.UpdatesEnable, "Look for a new version when the bar starts" },
+        {
+            StringId.UpdatesNote,
+            "At most once a day, the version number of the newest release is read from"
+            + " github.com. Nothing about you is sent, and nothing is downloaded or installed: if"
+            + " there is a newer one, the notification area says so and the menu opens its page"
+            + " for you."
+        },
+
         { StringId.AccentAutomatic, "Automatic" },
         { StringId.AccentBlue, "Blue" },
         { StringId.AccentRed, "Red" },
@@ -88,6 +105,13 @@ public static class UiStrings
         { StringId.MenuSettings, "設定..." },
         { StringId.MenuRefresh, "更新" },
         { StringId.MenuExit, "終了" },
+
+        { StringId.MenuCheckForUpdates, "更新を確認..." },
+        { StringId.MenuUpdateAvailable, "新しい版があります: {0}..." },
+        { StringId.UpdateCheckFailed, "GitHub に接続できず、新しい版を確認できませんでした。" },
+        { StringId.UpdateAvailableAsk, "{0} が公開されています。リリースページを開きますか。" },
+        { StringId.UpdateUpToDate, "お使いの版が最新です ({0})。" },
+        { StringId.UpdateNotice, "{0} が公開されています。ここをクリックするとリリースページを開きます。" },
 
         { StringId.TabMenuClose, "閉じる" },
         { StringId.TabMenuCloseOthers, "他のタブを閉じる" },
@@ -140,6 +164,14 @@ public static class UiStrings
             + "最小化したウィンドウには表示できる画面がないため、題名だけを表示します。"
         },
 
+        { StringId.UpdatesGroup, "更新の確認" },
+        { StringId.UpdatesEnable, "起動時に新しい版があるか確認する" },
+        {
+            StringId.UpdatesNote,
+            "1日1回まで、github.com から最新の版番号だけを読み取ります。利用者の情報は送信せず、ダウンロードや導入も行いません。"
+            + "新しい版があれば通知領域でお知らせし、メニューからリリースページを開けます。"
+        },
+
         { StringId.AccentAutomatic, "自動" },
         { StringId.AccentBlue, "青" },
         { StringId.AccentRed, "赤" },
@@ -157,6 +189,13 @@ public static class UiStrings
         { StringId.MenuSettings, "设置..." },
         { StringId.MenuRefresh, "刷新" },
         { StringId.MenuExit, "退出" },
+
+        { StringId.MenuCheckForUpdates, "检查更新..." },
+        { StringId.MenuUpdateAvailable, "有新版本：{0}..." },
+        { StringId.UpdateCheckFailed, "无法连接 GitHub，未能检查新版本。" },
+        { StringId.UpdateAvailableAsk, "{0} 已发布。要打开发布页面吗？" },
+        { StringId.UpdateUpToDate, "这已是最新版本（{0}）。" },
+        { StringId.UpdateNotice, "{0} 已发布。点击此处打开发布页面。" },
 
         { StringId.TabMenuClose, "关闭" },
         { StringId.TabMenuCloseOthers, "关闭其他标签页" },
@@ -198,6 +237,13 @@ public static class UiStrings
         { StringId.PreviewEnable, "指针停在标签页上时显示窗口" },
         { StringId.PreviewNote, "同一个应用有多个外观相似的窗口时很有用。最小化的窗口没有可显示的画面，改为显示标题。" },
 
+        { StringId.UpdatesGroup, "更新" },
+        { StringId.UpdatesEnable, "启动时检查是否有新版本" },
+        {
+            StringId.UpdatesNote,
+            "每天最多一次，从 github.com 读取最新的版本号。不会发送您的任何信息，也不会下载或安装任何内容：如果有更新，通知区域会提示，菜单可为您打开对应页面。"
+        },
+
         { StringId.AccentAutomatic, "自动" },
         { StringId.AccentBlue, "蓝色" },
         { StringId.AccentRed, "红色" },
@@ -215,6 +261,13 @@ public static class UiStrings
         { StringId.MenuSettings, "設定..." },
         { StringId.MenuRefresh, "重新整理" },
         { StringId.MenuExit, "結束" },
+
+        { StringId.MenuCheckForUpdates, "檢查更新..." },
+        { StringId.MenuUpdateAvailable, "有新版本：{0}..." },
+        { StringId.UpdateCheckFailed, "無法連線 GitHub，未能檢查新版本。" },
+        { StringId.UpdateAvailableAsk, "{0} 已發布。要開啟發布頁面嗎？" },
+        { StringId.UpdateUpToDate, "這已是最新版本（{0}）。" },
+        { StringId.UpdateNotice, "{0} 已發布。點選這裡開啟發布頁面。" },
 
         { StringId.TabMenuClose, "關閉" },
         { StringId.TabMenuCloseOthers, "關閉其他索引標籤" },
@@ -256,6 +309,13 @@ public static class UiStrings
         { StringId.PreviewEnable, "指標停在索引標籤上時顯示視窗" },
         { StringId.PreviewNote, "同一個應用程式有多個外觀相似的視窗時很有用。最小化的視窗沒有可顯示的畫面，改為顯示標題。" },
 
+        { StringId.UpdatesGroup, "更新" },
+        { StringId.UpdatesEnable, "啟動時檢查是否有新版本" },
+        {
+            StringId.UpdatesNote,
+            "每天最多一次，從 github.com 讀取最新的版本號。不會傳送您的任何資訊，也不會下載或安裝任何內容：如果有更新，通知區域會提示，選單可為您開啟對應頁面。"
+        },
+
         { StringId.AccentAutomatic, "自動" },
         { StringId.AccentBlue, "藍色" },
         { StringId.AccentRed, "紅色" },
@@ -273,6 +333,16 @@ public static class UiStrings
         { StringId.MenuSettings, "Параметры..." },
         { StringId.MenuRefresh, "Обновить" },
         { StringId.MenuExit, "Выход" },
+
+        { StringId.MenuCheckForUpdates, "Проверить обновления..." },
+        { StringId.MenuUpdateAvailable, "Доступно обновление: {0}..." },
+        { StringId.UpdateCheckFailed, "Не удалось связаться с GitHub и проверить новую версию." },
+        { StringId.UpdateAvailableAsk, "Доступна версия {0}. Открыть страницу выпуска?" },
+        { StringId.UpdateUpToDate, "Это самая новая версия ({0})." },
+        {
+            StringId.UpdateNotice,
+            "Доступна версия {0}. Нажмите здесь, чтобы открыть страницу выпуска."
+        },
 
         { StringId.TabMenuClose, "Закрыть" },
         { StringId.TabMenuCloseOthers, "Закрыть другие вкладки" },
@@ -326,6 +396,16 @@ public static class UiStrings
             + " окна нет изображения, поэтому показывается его заголовок."
         },
 
+        { StringId.UpdatesGroup, "Обновления" },
+        { StringId.UpdatesEnable, "Проверять новую версию при запуске панели" },
+        {
+            StringId.UpdatesNote,
+            "Не чаще одного раза в день с github.com считывается только номер последней версии."
+            + " Никакие ваши данные не отправляются, ничего не загружается и не устанавливается:"
+            + " если версия новее, об этом сообщит область уведомлений, а меню откроет её"
+            + " страницу."
+        },
+
         { StringId.AccentAutomatic, "Автоматически" },
         { StringId.AccentBlue, "Синий" },
         { StringId.AccentRed, "Красный" },
@@ -343,6 +423,20 @@ public static class UiStrings
         { StringId.MenuSettings, "Einstellungen..." },
         { StringId.MenuRefresh, "Aktualisieren" },
         { StringId.MenuExit, "Beenden" },
+
+        { StringId.MenuCheckForUpdates, "Nach Updates suchen..." },
+        { StringId.MenuUpdateAvailable, "Update verfügbar: {0}..." },
+        {
+            StringId.UpdateCheckFailed,
+            "GitHub war nicht erreichbar, die Suche nach einer neuen Version ist"
+            + " fehlgeschlagen."
+        },
+        { StringId.UpdateAvailableAsk, "{0} ist verfügbar. Die Release-Seite öffnen?" },
+        { StringId.UpdateUpToDate, "Dies ist die neueste Version ({0})." },
+        {
+            StringId.UpdateNotice,
+            "{0} ist verfügbar. Hier klicken, um die Release-Seite zu öffnen."
+        },
 
         { StringId.TabMenuClose, "Schließen" },
         { StringId.TabMenuCloseOthers, "Andere Tabs schließen" },
@@ -396,6 +490,16 @@ public static class UiStrings
             + " Fenster hat kein Bild und zeigt stattdessen seinen Titel."
         },
 
+        { StringId.UpdatesGroup, "Updates" },
+        { StringId.UpdatesEnable, "Beim Start der Leiste nach einer neuen Version suchen" },
+        {
+            StringId.UpdatesNote,
+            "Höchstens einmal am Tag wird von github.com nur die Nummer der neuesten Version"
+            + " gelesen. Es wird nichts über Sie gesendet und nichts heruntergeladen oder"
+            + " installiert: Gibt es eine neuere, meldet es der Infobereich, und das Menü öffnet"
+            + " die zugehörige Seite."
+        },
+
         { StringId.AccentAutomatic, "Automatisch" },
         { StringId.AccentBlue, "Blau" },
         { StringId.AccentRed, "Rot" },
@@ -413,6 +517,19 @@ public static class UiStrings
         { StringId.MenuSettings, "Paramètres..." },
         { StringId.MenuRefresh, "Actualiser" },
         { StringId.MenuExit, "Quitter" },
+
+        { StringId.MenuCheckForUpdates, "Rechercher des mises à jour..." },
+        { StringId.MenuUpdateAvailable, "Mise à jour disponible : {0}..." },
+        {
+            StringId.UpdateCheckFailed,
+            "Impossible de contacter GitHub pour rechercher une nouvelle version."
+        },
+        { StringId.UpdateAvailableAsk, "{0} est disponible. Ouvrir la page de la version ?" },
+        { StringId.UpdateUpToDate, "Il s'agit de la version la plus récente ({0})." },
+        {
+            StringId.UpdateNotice,
+            "{0} est disponible. Cliquez ici pour ouvrir la page de la version."
+        },
 
         { StringId.TabMenuClose, "Fermer" },
         { StringId.TabMenuCloseOthers, "Fermer les autres onglets" },
@@ -466,6 +583,16 @@ public static class UiStrings
             + " réduite n'a pas d'image à montrer et affiche son titre à la place."
         },
 
+        { StringId.UpdatesGroup, "Mises à jour" },
+        { StringId.UpdatesEnable, "Rechercher une nouvelle version au démarrage de la barre" },
+        {
+            StringId.UpdatesNote,
+            "Une fois par jour au plus, seul le numéro de la dernière version est lu sur"
+            + " github.com. Rien vous concernant n'est envoyé, et rien n'est téléchargé ni"
+            + " installé : s'il en existe une plus récente, la zone de notification le signale et"
+            + " le menu en ouvre la page."
+        },
+
         { StringId.AccentAutomatic, "Automatique" },
         { StringId.AccentBlue, "Bleu" },
         { StringId.AccentRed, "Rouge" },
@@ -483,6 +610,19 @@ public static class UiStrings
         { StringId.MenuSettings, "Configuración..." },
         { StringId.MenuRefresh, "Actualizar" },
         { StringId.MenuExit, "Salir" },
+
+        { StringId.MenuCheckForUpdates, "Buscar actualizaciones..." },
+        { StringId.MenuUpdateAvailable, "Actualización disponible: {0}..." },
+        {
+            StringId.UpdateCheckFailed,
+            "No se pudo conectar con GitHub para buscar una versión nueva."
+        },
+        { StringId.UpdateAvailableAsk, "{0} está disponible. ¿Abrir la página de la versión?" },
+        { StringId.UpdateUpToDate, "Esta es la versión más reciente ({0})." },
+        {
+            StringId.UpdateNotice,
+            "{0} está disponible. Haga clic aquí para abrir la página de la versión."
+        },
 
         { StringId.TabMenuClose, "Cerrar" },
         { StringId.TabMenuCloseOthers, "Cerrar las demás pestañas" },
@@ -535,6 +675,15 @@ public static class UiStrings
             + " minimizada no tiene imagen que mostrar y muestra su título en su lugar."
         },
 
+        { StringId.UpdatesGroup, "Actualizaciones" },
+        { StringId.UpdatesEnable, "Buscar una versión nueva al iniciar la barra" },
+        {
+            StringId.UpdatesNote,
+            "Como máximo una vez al día se lee de github.com solo el número de la versión más"
+            + " reciente. No se envía nada sobre usted ni se descarga o instala nada: si hay una"
+            + " más nueva, el área de notificación lo indica y el menú abre su página."
+        },
+
         { StringId.AccentAutomatic, "Automático" },
         { StringId.AccentBlue, "Azul" },
         { StringId.AccentRed, "Rojo" },
@@ -552,6 +701,19 @@ public static class UiStrings
         { StringId.MenuSettings, "Configurações..." },
         { StringId.MenuRefresh, "Atualizar" },
         { StringId.MenuExit, "Sair" },
+
+        { StringId.MenuCheckForUpdates, "Procurar atualizações..." },
+        { StringId.MenuUpdateAvailable, "Atualização disponível: {0}..." },
+        {
+            StringId.UpdateCheckFailed,
+            "Não foi possível acessar o GitHub para procurar uma versão nova."
+        },
+        { StringId.UpdateAvailableAsk, "{0} está disponível. Abrir a página da versão?" },
+        { StringId.UpdateUpToDate, "Esta é a versão mais recente ({0})." },
+        {
+            StringId.UpdateNotice,
+            "{0} está disponível. Clique aqui para abrir a página da versão."
+        },
 
         { StringId.TabMenuClose, "Fechar" },
         { StringId.TabMenuCloseOthers, "Fechar as outras abas" },
@@ -605,6 +767,15 @@ public static class UiStrings
             + " não tem imagem para mostrar e exibe o título no lugar."
         },
 
+        { StringId.UpdatesGroup, "Atualizações" },
+        { StringId.UpdatesEnable, "Procurar uma versão nova quando a barra iniciar" },
+        {
+            StringId.UpdatesNote,
+            "No máximo uma vez por dia, apenas o número da versão mais recente é lido do"
+            + " github.com. Nada sobre você é enviado e nada é baixado ou instalado: se houver uma"
+            + " versão mais nova, a área de notificação avisa e o menu abre a página dela."
+        },
+
         { StringId.AccentAutomatic, "Automático" },
         { StringId.AccentBlue, "Azul" },
         { StringId.AccentRed, "Vermelho" },
@@ -622,6 +793,13 @@ public static class UiStrings
         { StringId.MenuSettings, "설정..." },
         { StringId.MenuRefresh, "새로 고침" },
         { StringId.MenuExit, "끝내기" },
+
+        { StringId.MenuCheckForUpdates, "업데이트 확인..." },
+        { StringId.MenuUpdateAvailable, "새 버전 있음: {0}..." },
+        { StringId.UpdateCheckFailed, "GitHub에 연결하지 못해 새 버전을 확인할 수 없습니다." },
+        { StringId.UpdateAvailableAsk, "{0}이(가) 나왔습니다. 릴리스 페이지를 여시겠습니까?" },
+        { StringId.UpdateUpToDate, "현재 최신 버전입니다({0})." },
+        { StringId.UpdateNotice, "{0}이(가) 나왔습니다. 여기를 클릭하면 릴리스 페이지가 열립니다." },
 
         { StringId.TabMenuClose, "닫기" },
         { StringId.TabMenuCloseOthers, "다른 탭 닫기" },
@@ -667,6 +845,14 @@ public static class UiStrings
             + " 최소화된 창은 보여 줄 화면이 없어 제목을 대신 표시합니다."
         },
 
+        { StringId.UpdatesGroup, "업데이트" },
+        { StringId.UpdatesEnable, "막대를 시작할 때 새 버전 확인" },
+        {
+            StringId.UpdatesNote,
+            "하루에 한 번까지 github.com에서 최신 버전 번호만 읽습니다. 사용자에 대한 정보는 보내지 않으며, 내려받거나 설치하지도 않습니다. 새"
+            + " 버전이 있으면 알림 영역에 표시되고 메뉴에서 해당 페이지를 열 수 있습니다."
+        },
+
         { StringId.AccentAutomatic, "자동" },
         { StringId.AccentBlue, "파랑" },
         { StringId.AccentRed, "빨강" },
@@ -684,6 +870,19 @@ public static class UiStrings
         { StringId.MenuSettings, "Ustawienia..." },
         { StringId.MenuRefresh, "Odśwież" },
         { StringId.MenuExit, "Zakończ" },
+
+        { StringId.MenuCheckForUpdates, "Sprawdź aktualizacje..." },
+        { StringId.MenuUpdateAvailable, "Dostępna aktualizacja: {0}..." },
+        {
+            StringId.UpdateCheckFailed,
+            "Nie udało się połączyć z GitHub, aby sprawdzić nową wersję."
+        },
+        { StringId.UpdateAvailableAsk, "Wersja {0} jest dostępna. Otworzyć stronę wydania?" },
+        { StringId.UpdateUpToDate, "To jest najnowsza wersja ({0})." },
+        {
+            StringId.UpdateNotice,
+            "Wersja {0} jest dostępna. Kliknij tutaj, aby otworzyć stronę wydania."
+        },
 
         { StringId.TabMenuClose, "Zamknij" },
         { StringId.TabMenuCloseOthers, "Zamknij pozostałe karty" },
@@ -737,6 +936,15 @@ public static class UiStrings
             + " okno nie ma obrazu do pokazania i wyświetla swój tytuł."
         },
 
+        { StringId.UpdatesGroup, "Aktualizacje" },
+        { StringId.UpdatesEnable, "Sprawdzaj nową wersję przy uruchamianiu paska" },
+        {
+            StringId.UpdatesNote,
+            "Najwyżej raz dziennie z github.com odczytywany jest tylko numer najnowszej wersji."
+            + " Nic o Tobie nie jest wysyłane i nic nie jest pobierane ani instalowane: jeśli jest"
+            + " nowsza wersja, obszar powiadomień o tym informuje, a menu otwiera jej stronę."
+        },
+
         { StringId.AccentAutomatic, "Automatycznie" },
         { StringId.AccentBlue, "Niebieski" },
         { StringId.AccentRed, "Czerwony" },
@@ -754,6 +962,19 @@ public static class UiStrings
         { StringId.MenuSettings, "Impostazioni..." },
         { StringId.MenuRefresh, "Aggiorna" },
         { StringId.MenuExit, "Esci" },
+
+        { StringId.MenuCheckForUpdates, "Cerca aggiornamenti..." },
+        { StringId.MenuUpdateAvailable, "Aggiornamento disponibile: {0}..." },
+        {
+            StringId.UpdateCheckFailed,
+            "Non è stato possibile contattare GitHub per cercare una nuova versione."
+        },
+        { StringId.UpdateAvailableAsk, "{0} è disponibile. Aprire la pagina della versione?" },
+        { StringId.UpdateUpToDate, "Questa è la versione più recente ({0})." },
+        {
+            StringId.UpdateNotice,
+            "{0} è disponibile. Fare clic qui per aprire la pagina della versione."
+        },
 
         { StringId.TabMenuClose, "Chiudi" },
         { StringId.TabMenuCloseOthers, "Chiudi le altre schede" },
@@ -808,6 +1029,16 @@ public static class UiStrings
             StringId.PreviewNote,
             "Utile quando più finestre della stessa applicazione si somigliano. Una finestra"
             + " ridotta a icona non ha un'immagine da mostrare e mostra il suo titolo."
+        },
+
+        { StringId.UpdatesGroup, "Aggiornamenti" },
+        { StringId.UpdatesEnable, "Cercare una nuova versione all'avvio della barra" },
+        {
+            StringId.UpdatesNote,
+            "Al massimo una volta al giorno viene letto da github.com solo il numero della"
+            + " versione più recente. Non viene inviato nulla su di te e non viene scaricato né"
+            + " installato nulla: se ne esiste una più recente, l'area di notifica lo segnala e il"
+            + " menu ne apre la pagina."
         },
 
         { StringId.AccentAutomatic, "Automatica" },

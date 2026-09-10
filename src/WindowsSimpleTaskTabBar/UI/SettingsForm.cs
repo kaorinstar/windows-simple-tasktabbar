@@ -109,6 +109,10 @@ internal sealed class SettingsForm : Form
         Justification = "Owned by the Controls collection it is added to.")]
     private Button _removeGroup;
 
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private CheckBox _checkForUpdates;
+
     /// <param name="settings">The live settings object, edited in place.</param>
     /// <param name="onChanged">Called after every change, to apply and save it.</param>
     /// <param name="runningApplications">
@@ -234,6 +238,7 @@ internal sealed class SettingsForm : Form
         root.Controls.Add(BuildColourGroup());
         root.Controls.Add(BuildGroupingGroup());
         root.Controls.Add(BuildPreviewGroup());
+        root.Controls.Add(BuildUpdatesGroup());
 
         var note = new Label
         {
@@ -658,6 +663,55 @@ internal sealed class SettingsForm : Form
         return box;
     }
 
+    /// <remarks>
+    /// The application is one file that the user copied into a folder of their own, so there is
+    /// nothing else that would tell them a new version exists. The note says what the check does
+    /// on the network, because a bar that had never spoken to anything now does.
+    /// </remarks>
+    private GroupBox BuildUpdatesGroup()
+    {
+        _checkForUpdates = new CheckBox
+        {
+            Text = _text[StringId.UpdatesEnable],
+            AutoSize = true,
+            Margin = new Padding(4, 4, 4, 2),
+        };
+        _checkForUpdates.CheckedChanged += (_, __) => OnUpdateCheckToggled();
+
+        // The same width as the group above, worked out the same way, so the two boxes line up
+        // whatever the DPI and the text size are.
+        int column = TextRenderer.MeasureText("chromium-browser.exe", Font).Width + Font.Height * 2;
+
+        var explanation = new Label
+        {
+            Text = _text[StringId.UpdatesNote],
+            AutoSize = true,
+            MaximumSize = new Size(column * 2, 0),
+            ForeColor = SystemColors.GrayText,
+            Margin = new Padding(22, 0, 4, 6),
+        };
+
+        var content = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.TopDown,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(8, 4, 8, 8),
+        };
+        content.Controls.Add(_checkForUpdates);
+        content.Controls.Add(explanation);
+
+        var box = new GroupBox
+        {
+            Text = _text[StringId.UpdatesGroup],
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(12, 6, 12, 6),
+        };
+        box.Controls.Add(content);
+        return box;
+    }
+
     private static Label Caption(string text)
     {
         return new Label
@@ -682,6 +736,9 @@ internal sealed class SettingsForm : Form
         _groupByApplication.Checked = _settings.GroupByApplication;
         _showWindowPreview.Checked = _settings.ShowWindowPreview;
         _groupDetail.Enabled = _settings.GroupByApplication;
+
+        // Null means the setting was never chosen, which is on. See AppSettings.
+        _checkForUpdates.Checked = _settings.CheckForUpdates != false;
         _loading = false;
 
         ReloadGroups(_groups.SelectedIndex);
@@ -880,6 +937,14 @@ internal sealed class SettingsForm : Form
         if (_loading) return;
 
         _settings.ShowWindowPreview = _showWindowPreview.Checked;
+        _onChanged();
+    }
+
+    private void OnUpdateCheckToggled()
+    {
+        if (_loading) return;
+
+        _settings.CheckForUpdates = _checkForUpdates.Checked;
         _onChanged();
     }
 

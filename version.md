@@ -32,6 +32,14 @@ in [README.md](README.md).
   Windows has no picture of at all is shown as its icon and its title.
 - The preview can be pointed at. Resting on a title that was too long to fit shows the whole of
   it, so a name cut short in the middle is still readable.
+- The bar now looks for a newer release when it starts, and tells you when there is one: a
+  notification names the version, and the menu gains an entry that opens the release page in your
+  browser. Nothing is downloaded and nothing is replaced - you download the new executable
+  yourself, as you did to install it. The check reads one version number from github.com, sends
+  nothing about you, and runs at most once a day. Each release is announced once rather than at
+  every logon, though the menu entry keeps naming it for as long as you are running an older
+  version, whether or not the day's check has run. A new box in the settings dialog turns it off,
+  and the menu entry still lets you ask whenever you like.
 
 ## v0.5.0
 

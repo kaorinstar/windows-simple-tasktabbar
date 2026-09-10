@@ -18,6 +18,15 @@ public enum StringId
     MenuRefresh,
     MenuExit,
 
+    // Looking for a newer release. One menu entry does both jobs: it asks when nothing is known
+    // yet, and opens the release page once a newer version has been found.
+    MenuCheckForUpdates,
+    MenuUpdateAvailable,
+    UpdateCheckFailed,
+    UpdateAvailableAsk,
+    UpdateUpToDate,
+    UpdateNotice,
+
     // The menu shown on a single tab.
     TabMenuClose,
     TabMenuCloseOthers,
@@ -60,6 +69,10 @@ public enum StringId
     PreviewGroup,
     PreviewEnable,
     PreviewNote,
+
+    UpdatesGroup,
+    UpdatesEnable,
+    UpdatesNote,
 
     // The colours a tab group can be marked with, as named in the settings dialog.
     AccentAutomatic,

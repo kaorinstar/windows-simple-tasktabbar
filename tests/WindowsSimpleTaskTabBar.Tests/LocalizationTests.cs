@@ -72,6 +72,30 @@ public class LocalizationTests
 
     [Theory]
     [MemberData(nameof(AllLanguages))]
+    public void EveryTextThatTakesAValueKeepsItsPlaceholder(string code)
+    {
+        // A translation that dropped {0} would leave the version number, the bar height or the
+        // group number out of what the user reads, and nothing else would notice.
+        StringId[] takeAValue =
+        {
+            StringId.SettingsTitle,
+            StringId.HeightStandard,
+            StringId.HeightCompact,
+            StringId.GroupsDefaultName,
+            StringId.MenuUpdateAvailable,
+            StringId.UpdateAvailableAsk,
+            StringId.UpdateUpToDate,
+            StringId.UpdateNotice,
+        };
+
+        IReadOnlyDictionary<StringId, string> table = UiStrings.Table(code);
+
+        foreach (StringId id in takeAValue)
+            Assert.Contains("{0}", table[id]);
+    }
+
+    [Theory]
+    [MemberData(nameof(AllLanguages))]
     public void EveryLanguageNamesAFont(string code)
     {
         Assert.False(string.IsNullOrWhiteSpace(Languages.FontFamilyFor(code)));
