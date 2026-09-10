@@ -64,6 +64,14 @@ public static class UiStrings
         { StringId.GroupsColour, "Colour:" },
         { StringId.GroupsDefaultName, "Group {0}" },
 
+        { StringId.PreviewGroup, "Window preview" },
+        { StringId.PreviewEnable, "Show the window when the pointer rests on a tab" },
+        {
+            StringId.PreviewNote,
+            "Useful when several windows of one application look alike. A minimized window has"
+            + " no picture to show and keeps its title instead."
+        },
+
         { StringId.AccentAutomatic, "Automatic" },
         { StringId.AccentBlue, "Blue" },
         { StringId.AccentRed, "Red" },
@@ -124,6 +132,14 @@ public static class UiStrings
         { StringId.GroupsColour, "色:" },
         { StringId.GroupsDefaultName, "グループ {0}" },
 
+        { StringId.PreviewGroup, "ウィンドウのプレビュー" },
+        { StringId.PreviewEnable, "タブにポインターを重ねたときにウィンドウを表示する" },
+        {
+            StringId.PreviewNote,
+            "同じアプリのウィンドウが複数あるときに役立ちます。"
+            + "最小化したウィンドウには表示できる画面がないため、題名だけを表示します。"
+        },
+
         { StringId.AccentAutomatic, "自動" },
         { StringId.AccentBlue, "青" },
         { StringId.AccentRed, "赤" },
@@ -178,6 +194,10 @@ public static class UiStrings
         { StringId.GroupsColour, "颜色:" },
         { StringId.GroupsDefaultName, "分组 {0}" },
 
+        { StringId.PreviewGroup, "窗口预览" },
+        { StringId.PreviewEnable, "指针停在标签页上时显示窗口" },
+        { StringId.PreviewNote, "同一个应用有多个外观相似的窗口时很有用。最小化的窗口没有可显示的画面，改为显示标题。" },
+
         { StringId.AccentAutomatic, "自动" },
         { StringId.AccentBlue, "蓝色" },
         { StringId.AccentRed, "红色" },
@@ -231,6 +251,10 @@ public static class UiStrings
         { StringId.GroupsName, "名稱:" },
         { StringId.GroupsColour, "色彩:" },
         { StringId.GroupsDefaultName, "群組 {0}" },
+
+        { StringId.PreviewGroup, "視窗預覽" },
+        { StringId.PreviewEnable, "指標停在索引標籤上時顯示視窗" },
+        { StringId.PreviewNote, "同一個應用程式有多個外觀相似的視窗時很有用。最小化的視窗沒有可顯示的畫面，改為顯示標題。" },
 
         { StringId.AccentAutomatic, "自動" },
         { StringId.AccentBlue, "藍色" },
@@ -294,6 +318,14 @@ public static class UiStrings
         { StringId.GroupsColour, "Цвет:" },
         { StringId.GroupsDefaultName, "Группа {0}" },
 
+        { StringId.PreviewGroup, "Предпросмотр окна" },
+        { StringId.PreviewEnable, "Показывать окно, когда указатель задерживается на вкладке" },
+        {
+            StringId.PreviewNote,
+            "Помогает, когда несколько окон одного приложения выглядят одинаково. У свёрнутого"
+            + " окна нет изображения, поэтому показывается его заголовок."
+        },
+
         { StringId.AccentAutomatic, "Автоматически" },
         { StringId.AccentBlue, "Синий" },
         { StringId.AccentRed, "Красный" },
@@ -355,6 +387,14 @@ public static class UiStrings
         { StringId.GroupsName, "Name:" },
         { StringId.GroupsColour, "Farbe:" },
         { StringId.GroupsDefaultName, "Gruppe {0}" },
+
+        { StringId.PreviewGroup, "Fenstervorschau" },
+        { StringId.PreviewEnable, "Das Fenster anzeigen, wenn der Zeiger auf einer Registerkarte ruht" },
+        {
+            StringId.PreviewNote,
+            "Hilfreich, wenn mehrere Fenster einer Anwendung gleich aussehen. Ein minimiertes"
+            + " Fenster hat kein Bild und zeigt stattdessen seinen Titel."
+        },
 
         { StringId.AccentAutomatic, "Automatisch" },
         { StringId.AccentBlue, "Blau" },
@@ -418,6 +458,14 @@ public static class UiStrings
         { StringId.GroupsColour, "Couleur :" },
         { StringId.GroupsDefaultName, "Groupe {0}" },
 
+        { StringId.PreviewGroup, "Aperçu de la fenêtre" },
+        { StringId.PreviewEnable, "Afficher la fenêtre lorsque le pointeur s'arrête sur un onglet" },
+        {
+            StringId.PreviewNote,
+            "Utile lorsque plusieurs fenêtres d'une même application se ressemblent. Une fenêtre"
+            + " réduite n'a pas d'image à montrer et affiche son titre à la place."
+        },
+
         { StringId.AccentAutomatic, "Automatique" },
         { StringId.AccentBlue, "Bleu" },
         { StringId.AccentRed, "Rouge" },
@@ -478,6 +526,14 @@ public static class UiStrings
         { StringId.GroupsName, "Nombre:" },
         { StringId.GroupsColour, "Color:" },
         { StringId.GroupsDefaultName, "Grupo {0}" },
+
+        { StringId.PreviewGroup, "Vista previa de la ventana" },
+        { StringId.PreviewEnable, "Mostrar la ventana cuando el puntero se detiene en una pestaña" },
+        {
+            StringId.PreviewNote,
+            "Útil cuando varias ventanas de una misma aplicación se parecen. Una ventana"
+            + " minimizada no tiene imagen que mostrar y muestra su título en su lugar."
+        },
 
         { StringId.AccentAutomatic, "Automático" },
         { StringId.AccentBlue, "Azul" },
@@ -541,6 +597,14 @@ public static class UiStrings
         { StringId.GroupsColour, "Cor:" },
         { StringId.GroupsDefaultName, "Grupo {0}" },
 
+        { StringId.PreviewGroup, "Visualização da janela" },
+        { StringId.PreviewEnable, "Mostrar a janela quando o ponteiro parar sobre uma aba" },
+        {
+            StringId.PreviewNote,
+            "Útil quando várias janelas de um mesmo aplicativo se parecem. Uma janela minimizada"
+            + " não tem imagem para mostrar e exibe o título no lugar."
+        },
+
         { StringId.AccentAutomatic, "Automático" },
         { StringId.AccentBlue, "Azul" },
         { StringId.AccentRed, "Vermelho" },
@@ -594,6 +658,14 @@ public static class UiStrings
         { StringId.GroupsName, "이름:" },
         { StringId.GroupsColour, "색:" },
         { StringId.GroupsDefaultName, "그룹 {0}" },
+
+        { StringId.PreviewGroup, "창 미리 보기" },
+        { StringId.PreviewEnable, "포인터를 탭에 올려 두면 창을 표시" },
+        {
+            StringId.PreviewNote,
+            "같은 앱의 창이 여러 개이고 비슷해 보일 때 유용합니다."
+            + " 최소화된 창은 보여 줄 화면이 없어 제목을 대신 표시합니다."
+        },
 
         { StringId.AccentAutomatic, "자동" },
         { StringId.AccentBlue, "파랑" },
@@ -656,6 +728,14 @@ public static class UiStrings
         { StringId.GroupsName, "Nazwa:" },
         { StringId.GroupsColour, "Kolor:" },
         { StringId.GroupsDefaultName, "Grupa {0}" },
+
+        { StringId.PreviewGroup, "Podgląd okna" },
+        { StringId.PreviewEnable, "Pokaż okno, gdy wskaźnik zatrzyma się na karcie" },
+        {
+            StringId.PreviewNote,
+            "Przydatne, gdy kilka okien tej samej aplikacji wygląda podobnie. Zminimalizowane"
+            + " okno nie ma obrazu do pokazania i wyświetla swój tytuł."
+        },
 
         { StringId.AccentAutomatic, "Automatycznie" },
         { StringId.AccentBlue, "Niebieski" },
@@ -721,6 +801,14 @@ public static class UiStrings
         { StringId.GroupsName, "Nome:" },
         { StringId.GroupsColour, "Colore:" },
         { StringId.GroupsDefaultName, "Gruppo {0}" },
+
+        { StringId.PreviewGroup, "Anteprima della finestra" },
+        { StringId.PreviewEnable, "Mostra la finestra quando il puntatore si ferma su una scheda" },
+        {
+            StringId.PreviewNote,
+            "Utile quando più finestre della stessa applicazione si somigliano. Una finestra"
+            + " ridotta a icona non ha un'immagine da mostrare e mostra il suo titolo."
+        },
 
         { StringId.AccentAutomatic, "Automatica" },
         { StringId.AccentBlue, "Blu" },

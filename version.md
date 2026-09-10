@@ -23,6 +23,15 @@ in [README.md](README.md).
   beside it, particularly in the light theme. Nothing else changes: every tab is the same size and
   in the same place as before, a tab group keeps its unbroken colour along the top of the row, and
   dragging and scrolling behave as they did.
+- Resting the pointer on a tab can now show a live picture of that window, with its full title
+  underneath, which is the quickest way to tell apart several windows of one application whose
+  tabs look alike. **It is off until you turn it on**, under Window preview in the settings. The
+  tooltip does not appear alongside it, because the preview already says the title. The title
+  carries the window's icon in front of it, as the taskbar's does.
+- A minimized window gets a preview too, and it shows the window itself, not a stand-in. A window
+  Windows has no picture of at all is shown as its icon and its title.
+- The preview can be pointed at. Resting on a title that was too long to fit shows the whole of
+  it, so a name cut short in the middle is still readable.
 
 ## v0.5.0
 

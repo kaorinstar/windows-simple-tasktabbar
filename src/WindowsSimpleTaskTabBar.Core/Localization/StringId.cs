@@ -57,6 +57,10 @@ public enum StringId
     GroupsColour,
     GroupsDefaultName,
 
+    PreviewGroup,
+    PreviewEnable,
+    PreviewNote,
+
     // The colours a tab group can be marked with, as named in the settings dialog.
     AccentAutomatic,
     AccentBlue,
