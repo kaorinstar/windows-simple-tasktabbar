@@ -71,6 +71,14 @@ public static class UiStrings
         { StringId.GroupsColour, "Colour:" },
         { StringId.GroupsDefaultName, "Group {0}" },
 
+        { StringId.PreviewGroup, "Window preview" },
+        { StringId.PreviewEnable, "Show the window when the pointer rests on a tab" },
+        {
+            StringId.PreviewNote,
+            "Useful when several windows of one application look alike. A minimized window has"
+            + " no picture to show and keeps its title instead."
+        },
+
         { StringId.UpdatesGroup, "Updates" },
         { StringId.UpdatesEnable, "Look for a new version when the bar starts" },
         {
@@ -148,6 +156,14 @@ public static class UiStrings
         { StringId.GroupsColour, "色:" },
         { StringId.GroupsDefaultName, "グループ {0}" },
 
+        { StringId.PreviewGroup, "ウィンドウのプレビュー" },
+        { StringId.PreviewEnable, "タブにポインターを重ねたときにウィンドウを表示する" },
+        {
+            StringId.PreviewNote,
+            "同じアプリのウィンドウが複数あるときに役立ちます。"
+            + "最小化したウィンドウには表示できる画面がないため、題名だけを表示します。"
+        },
+
         { StringId.UpdatesGroup, "更新の確認" },
         { StringId.UpdatesEnable, "起動時に新しい版があるか確認する" },
         {
@@ -217,6 +233,10 @@ public static class UiStrings
         { StringId.GroupsColour, "颜色:" },
         { StringId.GroupsDefaultName, "分组 {0}" },
 
+        { StringId.PreviewGroup, "窗口预览" },
+        { StringId.PreviewEnable, "指针停在标签页上时显示窗口" },
+        { StringId.PreviewNote, "同一个应用有多个外观相似的窗口时很有用。最小化的窗口没有可显示的画面，改为显示标题。" },
+
         { StringId.UpdatesGroup, "更新" },
         { StringId.UpdatesEnable, "启动时检查是否有新版本" },
         {
@@ -284,6 +304,10 @@ public static class UiStrings
         { StringId.GroupsName, "名稱:" },
         { StringId.GroupsColour, "色彩:" },
         { StringId.GroupsDefaultName, "群組 {0}" },
+
+        { StringId.PreviewGroup, "視窗預覽" },
+        { StringId.PreviewEnable, "指標停在索引標籤上時顯示視窗" },
+        { StringId.PreviewNote, "同一個應用程式有多個外觀相似的視窗時很有用。最小化的視窗沒有可顯示的畫面，改為顯示標題。" },
 
         { StringId.UpdatesGroup, "更新" },
         { StringId.UpdatesEnable, "啟動時檢查是否有新版本" },
@@ -363,6 +387,14 @@ public static class UiStrings
         { StringId.GroupsName, "Имя:" },
         { StringId.GroupsColour, "Цвет:" },
         { StringId.GroupsDefaultName, "Группа {0}" },
+
+        { StringId.PreviewGroup, "Предпросмотр окна" },
+        { StringId.PreviewEnable, "Показывать окно, когда указатель задерживается на вкладке" },
+        {
+            StringId.PreviewNote,
+            "Помогает, когда несколько окон одного приложения выглядят одинаково. У свёрнутого"
+            + " окна нет изображения, поэтому показывается его заголовок."
+        },
 
         { StringId.UpdatesGroup, "Обновления" },
         { StringId.UpdatesEnable, "Проверять новую версию при запуске панели" },
@@ -450,6 +482,14 @@ public static class UiStrings
         { StringId.GroupsColour, "Farbe:" },
         { StringId.GroupsDefaultName, "Gruppe {0}" },
 
+        { StringId.PreviewGroup, "Fenstervorschau" },
+        { StringId.PreviewEnable, "Das Fenster anzeigen, wenn der Zeiger auf einer Registerkarte ruht" },
+        {
+            StringId.PreviewNote,
+            "Hilfreich, wenn mehrere Fenster einer Anwendung gleich aussehen. Ein minimiertes"
+            + " Fenster hat kein Bild und zeigt stattdessen seinen Titel."
+        },
+
         { StringId.UpdatesGroup, "Updates" },
         { StringId.UpdatesEnable, "Beim Start der Leiste nach einer neuen Version suchen" },
         {
@@ -535,6 +575,14 @@ public static class UiStrings
         { StringId.GroupsColour, "Couleur :" },
         { StringId.GroupsDefaultName, "Groupe {0}" },
 
+        { StringId.PreviewGroup, "Aperçu de la fenêtre" },
+        { StringId.PreviewEnable, "Afficher la fenêtre lorsque le pointeur s'arrête sur un onglet" },
+        {
+            StringId.PreviewNote,
+            "Utile lorsque plusieurs fenêtres d'une même application se ressemblent. Une fenêtre"
+            + " réduite n'a pas d'image à montrer et affiche son titre à la place."
+        },
+
         { StringId.UpdatesGroup, "Mises à jour" },
         { StringId.UpdatesEnable, "Rechercher une nouvelle version au démarrage de la barre" },
         {
@@ -618,6 +666,14 @@ public static class UiStrings
         { StringId.GroupsName, "Nombre:" },
         { StringId.GroupsColour, "Color:" },
         { StringId.GroupsDefaultName, "Grupo {0}" },
+
+        { StringId.PreviewGroup, "Vista previa de la ventana" },
+        { StringId.PreviewEnable, "Mostrar la ventana cuando el puntero se detiene en una pestaña" },
+        {
+            StringId.PreviewNote,
+            "Útil cuando varias ventanas de una misma aplicación se parecen. Una ventana"
+            + " minimizada no tiene imagen que mostrar y muestra su título en su lugar."
+        },
 
         { StringId.UpdatesGroup, "Actualizaciones" },
         { StringId.UpdatesEnable, "Buscar una versión nueva al iniciar la barra" },
@@ -703,6 +759,14 @@ public static class UiStrings
         { StringId.GroupsColour, "Cor:" },
         { StringId.GroupsDefaultName, "Grupo {0}" },
 
+        { StringId.PreviewGroup, "Visualização da janela" },
+        { StringId.PreviewEnable, "Mostrar a janela quando o ponteiro parar sobre uma aba" },
+        {
+            StringId.PreviewNote,
+            "Útil quando várias janelas de um mesmo aplicativo se parecem. Uma janela minimizada"
+            + " não tem imagem para mostrar e exibe o título no lugar."
+        },
+
         { StringId.UpdatesGroup, "Atualizações" },
         { StringId.UpdatesEnable, "Procurar uma versão nova quando a barra iniciar" },
         {
@@ -772,6 +836,14 @@ public static class UiStrings
         { StringId.GroupsName, "이름:" },
         { StringId.GroupsColour, "색:" },
         { StringId.GroupsDefaultName, "그룹 {0}" },
+
+        { StringId.PreviewGroup, "창 미리 보기" },
+        { StringId.PreviewEnable, "포인터를 탭에 올려 두면 창을 표시" },
+        {
+            StringId.PreviewNote,
+            "같은 앱의 창이 여러 개이고 비슷해 보일 때 유용합니다."
+            + " 최소화된 창은 보여 줄 화면이 없어 제목을 대신 표시합니다."
+        },
 
         { StringId.UpdatesGroup, "업데이트" },
         { StringId.UpdatesEnable, "막대를 시작할 때 새 버전 확인" },
@@ -855,6 +927,14 @@ public static class UiStrings
         { StringId.GroupsName, "Nazwa:" },
         { StringId.GroupsColour, "Kolor:" },
         { StringId.GroupsDefaultName, "Grupa {0}" },
+
+        { StringId.PreviewGroup, "Podgląd okna" },
+        { StringId.PreviewEnable, "Pokaż okno, gdy wskaźnik zatrzyma się na karcie" },
+        {
+            StringId.PreviewNote,
+            "Przydatne, gdy kilka okien tej samej aplikacji wygląda podobnie. Zminimalizowane"
+            + " okno nie ma obrazu do pokazania i wyświetla swój tytuł."
+        },
 
         { StringId.UpdatesGroup, "Aktualizacje" },
         { StringId.UpdatesEnable, "Sprawdzaj nową wersję przy uruchamianiu paska" },
@@ -942,6 +1022,14 @@ public static class UiStrings
         { StringId.GroupsName, "Nome:" },
         { StringId.GroupsColour, "Colore:" },
         { StringId.GroupsDefaultName, "Gruppo {0}" },
+
+        { StringId.PreviewGroup, "Anteprima della finestra" },
+        { StringId.PreviewEnable, "Mostra la finestra quando il puntatore si ferma su una scheda" },
+        {
+            StringId.PreviewNote,
+            "Utile quando più finestre della stessa applicazione si somigliano. Una finestra"
+            + " ridotta a icona non ha un'immagine da mostrare e mostra il suo titolo."
+        },
 
         { StringId.UpdatesGroup, "Aggiornamenti" },
         { StringId.UpdatesEnable, "Cercare una nuova versione all'avvio della barra" },

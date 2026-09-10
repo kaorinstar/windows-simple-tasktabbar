@@ -125,6 +125,29 @@ public class AppSettingsTests
     }
 
     [Fact]
+    public void ThePreviewIsOffUntilItIsAskedFor()
+    {
+        // Off for a new installation and, because the serializer does not run the constructor,
+        // for a settings file written before the setting existed. Both read as false, which is
+        // why this one needs no nullable property to tell "not chosen" from "turned off".
+        var settings = new AppSettings();
+
+        Assert.False(settings.ShowWindowPreview);
+        Assert.False(settings.Normalized().ShowWindowPreview);
+    }
+
+    [Fact]
+    public void NormalizingKeepsThePreviewSetting()
+    {
+        var settings = new AppSettings { ShowWindowPreview = true };
+
+        Assert.True(settings.Normalized().ShowWindowPreview);
+
+        settings.Normalize();
+        Assert.True(settings.ShowWindowPreview);
+    }
+
+    [Fact]
     public void GroupingIsOffUntilItIsAskedFor()
     {
         var settings = new AppSettings();

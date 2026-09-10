@@ -66,6 +66,10 @@ public enum StringId
     GroupsColour,
     GroupsDefaultName,
 
+    PreviewGroup,
+    PreviewEnable,
+    PreviewNote,
+
     UpdatesGroup,
     UpdatesEnable,
     UpdatesNote,

@@ -41,6 +41,8 @@ windows-simple-tasktabbar/
 │   │   │   ├── StringId.cs                 The name of every piece of interface text
 │   │   │   ├── UiStrings.cs                What each one says, in each language
 │   │   │   └── UiText.cs                   The text in one language, as callers read it
+│   │   ├── Preview/
+│   │   │   └── PreviewPlacement.cs         How big a window preview is, and where it sits
 │   │   ├── Settings/
 │   │   │   ├── AppGroup.cs                 One group the user defined by hand
 │   │   │   └── AppSettings.cs              The settings and their defaults
@@ -61,6 +63,7 @@ windows-simple-tasktabbar/
 │       └── UI/
 │           ├── AccentPalette.cs            The square of colour shown beside each accent
 │           ├── MainForm.cs                 AppBar registration, painting, input
+│           ├── PreviewWindow.cs            The window a live preview is drawn in
 │           ├── SettingsForm.cs             The settings dialog
 │           └── UiFonts.cs                  The font of the active language, with a fallback
 └── tests/
@@ -70,6 +73,7 @@ windows-simple-tasktabbar/
         ├── BarMetricsTests.cs
         ├── BarPaletteTests.cs
         ├── LocalizationTests.cs
+        ├── PreviewPlacementTests.cs
         ├── ReleaseVersionTests.cs
         ├── TabGroupingTests.cs
         ├── TabStripTests.cs
@@ -128,6 +132,7 @@ UI/MainForm.cs  ──→  Core/Layout/                (calculations)
    │             ──→  Core/Grouping/              (which tab is in which group)
    │             ──→  Core/Focus/                 (which tab is marked as in front)
    │             ──→  Core/Localization/          (what every piece of text says)
+   │             ──→  Core/Preview/               (how big a window preview is, and where)
    ↓
 Services/WindowService.cs                       (window operations)
    ↓
@@ -214,6 +219,78 @@ widths would mean rebuilding all four. The active tab also changes whenever the 
 window, so its width would change with it and move every tab to its right - the opposite of what
 a bar for reaching a window at once should do.
 
+### Previewing a window
+
+Resting the pointer on a tab can show a live picture of that window, which is how two windows of
+one application are told apart when their icons and the first few characters of their titles are
+the same. It is a setting, and it is off until it is asked for: a preview holds a window and a
+registration with the desktop compositor, which draws the source window a second time for as long
+as the pointer rests. Nobody's bar starts doing that because they updated.
+
+The picture is not taken and drawn by this application. `DwmRegisterThumbnail` asks the compositor
+to draw one window inside another, so what appears is the window as it is now, and it costs
+nothing to keep current. `UI/PreviewWindow.cs` owns the registration and releases it in the same
+call that hides the window: a registration outlives the call that made it and belongs to no window
+on its own, so hiding without releasing would leave the compositor drawing for nobody.
+
+**The window's title is drawn under the picture, and the tooltip stands down while it is.** The
+two answer different questions - which window this is, and what it is called - and both are worth
+having, but a picture above and a tooltip below arriving together are harder to read than either
+alone. The picture cannot carry the title itself: a 1920 pixel window drawn 280 wide is at 15 per
+cent, which puts its title bar text at about two pixels. So the preview carries both, the way the
+Windows taskbar does with its own thumbnails, and `UpdateToolTip` answers with nothing while a
+preview is on screen. Every place that recomputes the hovered tab therefore calls `UpdatePreview`
+before `UpdateToolTip`, so the tooltip is asked after the old preview has gone rather than before.
+
+The title comes out of the same room above the bar as the picture, so `PreviewWindow.TitleHeight`
+is read before the picture is measured and the two are placed as one panel.
+
+**The preview window must never take the foreground.** The bar activates itself when it is
+clicked, and the three-step activation depends on that being the bar rather than anything else
+this application owns. `WS_EX_NOACTIVATE` and `ShowWithoutActivation` are what keep it out of the
+way, and `WS_EX_TOOLWINDOW` keeps it out of Alt+Tab.
+
+`Core/Preview/PreviewPlacement.cs` holds the two decisions that are easy to get wrong and need no
+screen to check: `Fit` gives the size, keeping the window's own shape and never enlarging it, and
+`Place` centres it over its tab and brings it back onto the screen at either end. `Fit` is handed
+the room above the bar as its maximum height, which is why `Place` has nothing to bring down from
+the top.
+
+One instance of the window is kept for the life of the bar rather than one per preview: the
+pointer crossing a row of tabs would otherwise create and destroy one for each. It is created on
+the first preview, so a bar left on the default setting never makes it at all.
+
+A minimized window needs no special case. It was expected to be the one that did - the compositor
+draws what is on screen, and a minimized window is not - but Windows keeps enough of one that
+`DwmRegisterThumbnail` shows it like any other, which hand testing on Windows settled after the
+code had been written the other way round. Nothing anywhere asks whether the source is minimized.
+
+The panel draws the window's icon in the picture area first and lets the compositor draw over it,
+so a window it has no picture of still says which application it belongs to. That was written as
+the answer for minimized windows and is the fallback for whatever else turns out to have none - a
+window that has never been shown, for one. Either way there is no empty box.
+
+The icon is drawn at the size it actually is rather than filled to the area. A window usually
+answers `WM_GETICON` with 16 pixels, and stretched across a preview that is a blur; small and
+sharp says which application this is, and the title beneath says which window.
+
+The pointer can move onto the panel and read the title there, which is why it sits against the top
+of the bar with nothing in between: a gap is desktop, and the bar would clear its hover the moment
+the pointer touched it. `MainForm.PointerIsAtPreview` is what keeps the hover while the pointer is
+on the panel, in `RecomputeHover`, `OnMouseMove` and `OnMouseLeave`, and
+`PreviewWindow.PointerLeft` is what takes the panel down once the pointer has left it without
+landing back on the bar.
+
+Touching the bar is not the whole of it. The strip the bar leaves above the tabs, `TopOffset` tall,
+belongs to no tab: the panel covers its top row and the tabs start below it, so a couple of pixels
+in between are on the bar and on nothing at all. `PointerIsAtPreview` counts those as being at the
+panel, or the hover clears there and the preview goes as the user reaches for it. A pointer moving
+quickly crosses them within one mouse message and never notices; a slow one lands in them every
+time, which is how this was found.
+
+The panel has a tooltip of its own for a title it had to cut short, shown over the title alone.
+Over the picture it would cover what the pointer came to look at, and a title already shown in
+full has nothing to add.
 ### Dragging a tab
 
 A left press on a tab does nothing on its own. The window is activated on release, and only if

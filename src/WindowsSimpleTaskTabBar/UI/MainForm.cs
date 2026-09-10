@@ -8,6 +8,7 @@ using WindowsSimpleTaskTabBar.Core.Focus;
 using WindowsSimpleTaskTabBar.Core.Grouping;
 using WindowsSimpleTaskTabBar.Core.Layout;
 using WindowsSimpleTaskTabBar.Core.Localization;
+using WindowsSimpleTaskTabBar.Core.Preview;
 using WindowsSimpleTaskTabBar.Core.Settings;
 using WindowsSimpleTaskTabBar.Core.Theme;
 using WindowsSimpleTaskTabBar.Core.Update;
@@ -117,6 +118,38 @@ public class MainForm : Form
     private readonly ToolTip _toolTip = new();
     private string _toolTipText = string.Empty;
 
+    // A live picture of the hovered window, when the setting asks for one. The tooltip answers
+    // "what is this window called"; this answers "which of these identical ones is it".
+    //
+    // Created on the first preview rather than at startup, so a bar left on the default setting
+    // never makes the window at all. PreviewWindow says why one is kept rather than one per tab.
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Disposed in ReleaseResources, which Dispose and OnFormClosing call.")]
+    private PreviewWindow _preview;
+
+    // The window the preview is showing, or is about to show once the delay is up. Zero when
+    // there is neither.
+    private IntPtr _previewHwnd;
+
+    private readonly System.Windows.Forms.Timer _previewTimer = new();
+
+    /// <summary>
+    /// How long the pointer rests on a tab before its window is drawn.
+    /// </summary>
+    /// <remarks>
+    /// Longer than the tooltip's delay would make the preview feel slow, and shorter would put a
+    /// picture on screen for every tab the pointer crosses on its way somewhere else. This is a
+    /// little under the tooltip's 500 ms, so the two do not arrive together.
+    /// </remarks>
+    private const int PreviewDelayMs = 400;
+
+    /// <summary>Widest and tallest a preview is drawn, in logical pixels.</summary>
+    /// <remarks>
+    /// A box rather than a width alone, so a tall window gives a tall preview rather than a
+    /// strip up the side of the screen. What is drawn inside keeps the window's own shape.
+    /// </remarks>
+    private const int PreviewMaxLogical = 280;
+
     // Two menus for the bar: one for a tab, one for the space around the tabs. Neither is
     // assigned to the ContextMenuStrip property, because which one to show depends on where
     // the click landed, and that property would always show the same one.
@@ -191,6 +224,9 @@ public class MainForm : Form
 
         _timer.Interval = 250;
         _timer.Tick += (_, __) => OnTimerTick();
+
+        _previewTimer.Interval = PreviewDelayMs;
+        _previewTimer.Tick += (_, __) => OnPreviewDue();
 
         // Titles are drawn with an ellipsis, so the tooltip is the only way to read a
         // long one. ShowAlways is required because the bar is usually not the active window.
@@ -408,6 +444,27 @@ public class MainForm : Form
 
         _font?.Dispose();
         _font = UiFonts.Create(_text.FontFamily, _metrics.FontPixels, GraphicsUnit.Pixel);
+
+        DiscardPreview();
+    }
+
+    /// <summary>
+    /// Throws the preview window away, so the next one is built with the sizes and colours in
+    /// use now.
+    /// </summary>
+    /// <remarks>
+    /// Its border is a scaled size in a palette colour, and both are settled when the window is
+    /// made. Building a new one is less to keep in step than reaching into the old one, and it
+    /// happens only when the DPI, the bar height or the colours change. The pointer resting on a
+    /// tab through one of those brings the preview back after the usual wait.
+    /// </remarks>
+    private void DiscardPreview()
+    {
+        _previewTimer.Stop();
+        _previewHwnd = IntPtr.Zero;
+
+        _preview?.Dispose();
+        _preview = null;
     }
 
     /// <summary>The interface text in the language the settings ask for.</summary>
@@ -507,6 +564,12 @@ public class MainForm : Form
         // refresh rather than on this call. The dialog says changes apply straight away, so the
         // refresh is asked for here instead of waiting up to two seconds for the safety net.
         RefreshTabs();
+
+        // After the refresh, which recomputes the hover the preview follows. Turning the setting
+        // off is what this is here for: the preview on screen goes now rather than when the
+        // pointer next moves.
+        UpdatePreview();
+        UpdateToolTip();
 
         SettingsStore.Save(_settings);
     }
@@ -983,6 +1046,7 @@ public class MainForm : Form
         // The tab list has just been rebuilt, so a stored hover index would now point at
         // a different window. Take it from where the pointer actually is.
         RecomputeHover();
+        UpdatePreview();
         UpdateToolTip();
 
         Invalidate();
@@ -1236,6 +1300,7 @@ public class MainForm : Form
         _scroll = scrolled;
         LayoutTabs();
         RecomputeHover();
+        UpdatePreview();
         UpdateToolTip();
         Invalidate();
     }
@@ -1268,6 +1333,9 @@ public class MainForm : Form
             _accents[i] = FromRgb(palette.Accents[i]);
 
         BackColor = _cBack;
+
+        // The preview's border is drawn in _cLine, which has just changed.
+        DiscardPreview();
     }
 
     /// <summary>Turns one of Core's 0xRRGGBB numbers into an opaque colour.</summary>
@@ -1613,6 +1681,17 @@ public class MainForm : Form
             return;
         }
 
+        // The pointer may be reading the preview, which is off the bar. The tab it belongs to
+        // stays hovered until the pointer leaves the preview as well - found by window rather
+        // than by index, because the row may have been rebuilt while the pointer sat there. A
+        // window that closed meanwhile answers -1, and the preview goes with it.
+        if (PointerIsAtPreview)
+        {
+            _hoverIndex = _tabs.FindIndex(t => t.Hwnd == _previewHwnd);
+            _hoverClose = false;
+            return;
+        }
+
         Point p = PointToClient(MousePosition);
 
         if (ClientRectangle.Contains(p))
@@ -1632,6 +1711,10 @@ public class MainForm : Form
 
         _hoverIndex = index;
         _hoverClose = onClose;
+
+        // The preview first: it is what the tooltip stands down for, so the tooltip has to be
+        // asked after the old preview has gone rather than before.
+        UpdatePreview();
         UpdateToolTip();
         Invalidate();
     }
@@ -1642,7 +1725,9 @@ public class MainForm : Form
     /// </summary>
     private void UpdateToolTip()
     {
-        string text = _hoverIndex >= 0 && _hoverIndex < _tabs.Count
+        // Nothing while a preview is on screen: it draws the same title under its picture, and
+        // two answers arriving at once are harder to read than either alone.
+        string text = _hoverIndex >= 0 && _hoverIndex < _tabs.Count && !PreviewIsShowing
             ? _tabs[_hoverIndex].Title
             : string.Empty;
 
@@ -1651,6 +1736,158 @@ public class MainForm : Form
 
         _toolTipText = text;
         _toolTip.SetToolTip(this, text);
+    }
+
+    /// <summary>
+    /// Brings the preview into line with the tab under the pointer: starts the wait for a new
+    /// one, and takes down the one showing as soon as the pointer is somewhere else.
+    /// </summary>
+    /// <remarks>
+    /// Called from everywhere the hovered tab can change, and from the settings, so that turning
+    /// the preview off closes the one on screen rather than leaving it until the pointer moves.
+    /// </remarks>
+    private bool PreviewIsShowing => _preview != null && _preview.Visible;
+
+    private void UpdatePreview()
+    {
+        IntPtr wanted = PreviewTarget();
+        if (wanted == _previewHwnd) return;
+
+        _previewHwnd = wanted;
+        _previewTimer.Stop();
+        _preview?.HidePreview();
+
+        if (wanted != IntPtr.Zero) _previewTimer.Start();
+    }
+
+
+    /// <summary>
+    /// The window a preview should be showing, or zero for none.
+    /// </summary>
+    /// <remarks>
+    /// A minimized window is not left out, and needs no special case: Windows keeps enough of one
+    /// that the compositor draws it like any other. The panel draws the window's icon behind the
+    /// picture regardless, which covers whatever it has no picture of.
+    /// </remarks>
+    private IntPtr PreviewTarget()
+    {
+        if (_released || !_settings.ShowWindowPreview || _dragging) return IntPtr.Zero;
+        if (_hoverIndex < 0 || _hoverIndex >= _tabs.Count) return IntPtr.Zero;
+
+        TabItem tab = _tabs[_hoverIndex];
+        return IsTabVisible(tab) ? tab.Hwnd : IntPtr.Zero;
+    }
+
+    /// <summary>
+    /// Whether the pointer is on the preview, or on the way between it and the tab below.
+    /// </summary>
+    /// <remarks>
+    /// The preview is a window of its own, so the pointer moving onto it leaves the bar. Without
+    /// this the bar would clear its hover as the pointer arrived, and the preview would take
+    /// itself down at the moment the user reached for it.
+    ///
+    /// The way between them is the strip the bar leaves above the tabs, <see cref="BarMetrics.
+    /// TopOffset"/> tall, which belongs to no tab: the preview covers the top row of it and the
+    /// tabs start below it, so a couple of pixels in between are on the bar and on nothing. A
+    /// pointer moving fast crosses them in one message and a slow one lands in them, which is
+    /// what made this show up as "it disappears if I move slowly".
+    /// </remarks>
+    private bool PointerIsAtPreview
+    {
+        get
+        {
+            if (_preview == null || !_preview.Visible) return false;
+            if (_preview.Bounds.Contains(MousePosition)) return true;
+
+            Point p = PointToClient(MousePosition);
+            return ClientRectangle.Contains(p) && p.Y < _metrics.TopOffset;
+        }
+    }
+
+    /// <summary>
+    /// The pointer has left the preview. It goes unless the bar has it back, in which case the
+    /// bar's own mouse events settle where the hover is.
+    /// </summary>
+    private void OnPreviewPointerLeft()
+    {
+        if (_released) return;
+        if (ClientRectangle.Contains(PointToClient(MousePosition))) return;
+
+        SetHover(-1, false);
+    }
+
+    /// <summary>Shows the preview, once the pointer has rested long enough for it.</summary>
+    private void OnPreviewDue()
+    {
+        _previewTimer.Stop();
+
+        // The pointer may have moved on, or the window closed, while the delay ran.
+        IntPtr hwnd = _previewHwnd;
+        if (hwnd == IntPtr.Zero || PreviewTarget() != hwnd) return;
+
+        ShowPreview(hwnd);
+    }
+
+    private void ShowPreview(IntPtr hwnd)
+    {
+        int index = _tabs.FindIndex(t => t.Hwnd == hwnd);
+        if (index < 0) return;
+
+        int border = Scaled(1);
+
+        if (_preview == null)
+        {
+            _preview = new PreviewWindow(border, _cBack, _cLine, _cText,
+                                         _text.FontFamily, _metrics.FontPixels);
+            _preview.PointerLeft += (_, __) => OnPreviewPointerLeft();
+        }
+
+        if (!_preview.Register(hwnd, out int sourceWidth, out int sourceHeight))
+        {
+            _preview.HidePreview();
+            return;
+        }
+
+        Rectangle tab = RectangleToScreen(_tabs[index].Bounds);
+        Rectangle screen = Screen.FromControl(this).Bounds;
+
+        // No gap. The panel sits on the bar's top edge so the pointer can travel from the tab
+        // onto it without crossing anything in between: a gap is desktop, and the moment the
+        // pointer touched it the bar would lose its hover and take the preview down. The
+        // taskbar's own thumbnails sit against it for the same reason.
+        const int gap = 0;
+
+        // As large as the box allows, and never taller than the room above the bar, which the
+        // title and the frame are taken out of first. Fit is what keeps the whole panel inside
+        // that room, so Place has nothing to bring back down from the top.
+        int max = Scaled(PreviewMaxLogical);
+        int room = Top - screen.Top - border * 2 - _preview.TitleHeight;
+        int maxHeight = max < room ? max : room;
+
+        PreviewPlacement.Fit(sourceWidth, sourceHeight, max, maxHeight,
+                             out int width, out int height);
+
+        if (width <= 0 || height <= 0)
+        {
+            _preview.HidePreview();
+            return;
+        }
+
+        // The title travels with the picture, so it is part of what is being placed.
+        PreviewBox content = PreviewPlacement.Place(width, height + _preview.TitleHeight,
+            tab.Left, tab.Width, Top, screen.Left, screen.Right, gap);
+
+        _preview.Present(content, _tabs[index].Title, _tabs[index].Icon);
+
+        // The preview now says the title itself, so the tooltip stops saying it too.
+        UpdateToolTip();
+    }
+
+    /// <summary>A logical size in device pixels, for the sizes the preview is built from.</summary>
+    private int Scaled(int logical)
+    {
+        int value = (int)Math.Round(logical * (double)_scale);
+        return value < 1 ? 1 : value;
     }
 
     protected override void OnMouseMove(MouseEventArgs e)
@@ -1679,6 +1916,11 @@ public class MainForm : Form
         }
 
         int index = HitTest(e.Location, out bool onClose);
+
+        // On nothing, between the tabs and the preview above them. The hover is left where it
+        // was so the preview survives the crossing; PointerIsAtPreview says why.
+        if (index < 0 && PointerIsAtPreview) return;
+
         SetHover(index, onClose);
     }
 
@@ -1691,6 +1933,10 @@ public class MainForm : Form
             _hoverButton = -1;
             Invalidate();
         }
+
+        // Onto the preview rather than away from the bar: the preview stays, and takes itself
+        // down when the pointer leaves it.
+        if (PointerIsAtPreview) return;
 
         SetHover(-1, false);
     }
@@ -1799,6 +2045,7 @@ public class MainForm : Form
         _lastDragScroll = Environment.TickCount;
 
         SetHover(-1, false);
+        UpdatePreview();   // SetHover says nothing when the hover was already clear
         UpdateDrag(x);
     }
 
@@ -1913,6 +2160,7 @@ public class MainForm : Form
 
         LayoutTabs();
         RecomputeHover();
+        UpdatePreview();
         UpdateToolTip();
         Invalidate();
     }
@@ -2000,6 +2248,13 @@ public class MainForm : Form
         foreach (IntPtr hook in _hooks)
             NativeMethods.UnhookWinEvent(hook);
         _hooks.Clear();
+
+        // Before the icons: the preview draws one of them, borrowed from this cache.
+        _previewTimer.Stop();
+        _previewTimer.Dispose();
+        _preview?.Dispose();
+        _preview = null;
+        _previewHwnd = IntPtr.Zero;
 
         foreach (CachedIcon cached in _iconCache.Values)
             cached.Icon?.Dispose();
