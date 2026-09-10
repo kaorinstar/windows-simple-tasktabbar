@@ -288,9 +288,10 @@ heading and set the version together.
 Each entry in `version.md` quotes the size of that release's executable. Take it from the "Show
 the size of the net48 build" step of `build.yml`, which prints it on every run, rather than
 copying the entry above it: the figure sat at 23 KB while the application grew to more than twice
-that, and it reached a published release that way. The READMEs say only "under 150 KB" and point
+that, and it reached a published release that way. The READMEs say only "under 200 KB" and point
 at `version.md`, so there is one number to keep right rather than five. Raise that bound when a
-release passes it, as v0.5.0 did, rather than quoting the size itself in two more files.
+release passes it, as v0.5.0 and v0.7.0 did, rather than quoting the size itself in two more
+files.
 
 That step is the one thing `build.yml` does that `release.yml` does not. It is there because the
 number is needed while a release is being prepared, which happens in a pull request, and pull
