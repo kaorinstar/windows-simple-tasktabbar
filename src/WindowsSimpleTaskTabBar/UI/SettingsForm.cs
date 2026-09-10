@@ -125,6 +125,16 @@ internal sealed class SettingsForm : Form
         Justification = "Owned by the Controls collection it is added to.")]
     private Button _addExcluded;
 
+    // The group boxes, and the panel they scroll inside. Held so that FitToScreen can measure
+    // the one and size the other; nothing else reads them.
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private FlowLayoutPanel _boxes;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private Panel _scroller;
+
     /// <param name="settings">The live settings object, edited in place.</param>
     /// <param name="onChanged">Called after every change, to apply and save it.</param>
     /// <param name="runningApplications">
@@ -153,11 +163,6 @@ internal sealed class SettingsForm : Form
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
-        // The dialog sizes itself to its contents, and the contents grow with every setting
-        // added. Without this it grew past the screen and the Close button went with it. See
-        // FitToScreen.
-        AutoScroll = true;
-
         Build();
     }
 
@@ -176,21 +181,29 @@ internal sealed class SettingsForm : Form
     }
 
     /// <summary>
-    /// Stops the dialog growing taller than the screen, and lets it scroll when its contents
-    /// no longer fit.
+    /// Stops the dialog growing taller than the screen: the boxes scroll instead, and the note
+    /// and the Close button below them stay where they are.
     /// </summary>
     /// <remarks>
-    /// The dialog has no size of its own: it is drawn from layout panels and takes whatever
+    /// The dialog has no size of its own. It is drawn from layout panels and takes whatever
     /// height its contents come to, so that it still fits its text at a high DPI and in a
     /// language whose labels are longer. That works until the contents are taller than the
-    /// screen, and then there is nothing to stop it - the title bar goes off the top, or the
-    /// Close button off the bottom, and neither can be reached.
+    /// screen, and then nothing stops it: the Close button goes below the bottom edge, where it
+    /// cannot be reached. Every setting added makes that more likely rather than less, so the
+    /// answer is a bound rather than a smaller control somewhere.
     ///
-    /// Every setting added makes that more likely rather than less, so the answer is a bound
-    /// rather than a smaller control somewhere. <c>MaximumSize</c> with a zero width leaves the
-    /// width alone and caps only the height, and <c>AutoScroll</c>, set in the constructor,
-    /// turns what does not fit into a scrollbar. Below the bound nothing changes: the dialog is
-    /// exactly the size it was.
+    /// The bound is put on the panel holding the boxes, not on the form. Capping the form and
+    /// letting it scroll was tried and is wrong twice over: a form that scrolls carries its own
+    /// Close button out of sight along with everything else, and <c>AutoScroll</c> on a form
+    /// that also sizes itself to its contents leaves it doing neither - it stops measuring the
+    /// children it can scroll to, and the dialog comes up as a narrow column with every label
+    /// cut off.
+    ///
+    /// So the panel is the only control here given a size. It starts at the height of the boxes,
+    /// which is the dialog as it was; when that puts the form over the screen, the overshoot is
+    /// taken off the panel and <c>AutoScroll</c> turns it into a scrollbar. The overshoot is
+    /// measured rather than estimated, so nothing here has to know how tall a title bar, a note
+    /// or a button is.
     ///
     /// The work area rather than the screen, because it is what is left after the taskbar and
     /// this application's own bar, which is an AppBar and reserves its strip. The primary
@@ -202,22 +215,43 @@ internal sealed class SettingsForm : Form
         Screen screen = Screen.PrimaryScreen;
         if (screen == null) return;
 
+        // The full height of the boxes: the dialog as it was before it had enough of them to
+        // overflow.
+        _scroller.Size = _boxes.PreferredSize;
+
         int cap = screen.WorkingArea.Height;
 
-        // Cleared before measuring. PreferredSize is brought inside MaximumSize before it is
-        // answered, so a bound left over from the last language would report a dialog that fits
-        // whether or not it does, and this runs again on every language change.
-        MaximumSize = Size.Empty;
-        Padding = new Padding(0);
+        // A floor, so that a screen too short for the note and the button as well cannot leave
+        // the panel with no height at all.
+        int floor = Font.Height * 6;
 
-        bool scrolls = PreferredSize.Height > cap;
+        // Measured and corrected rather than calculated. Nothing here works out how tall a
+        // title bar, a note or a button is: the overshoot is read off the form and taken off
+        // the panel, and the next pass settles whatever that moved. The third pass is only ever
+        // a stop.
+        //
+        // Both measurements, because this runs before the dialog is shown. Height is the whole
+        // window once the form has sized itself and the default 300 until it has; PreferredSize
+        // answers from the layout either way. The larger is the one to trust.
+        for (int pass = 0; pass < 3; pass++)
+        {
+            PerformLayout();
 
-        MaximumSize = new Size(0, cap);
+            int overshoot = Math.Max(Height, PreferredSize.Height) - cap;
+            if (overshoot <= 0) break;
 
-        // A vertical scrollbar takes its width out of the client area. Unaccounted for, it
-        // would cover the right-hand edge of the widest box and raise a horizontal scrollbar
-        // under it, which is two scrollbars for one problem.
-        Padding = new Padding(0, 0, scrolls ? SystemInformation.VerticalScrollBarWidth : 0, 0);
+            int height = Math.Max(floor, _scroller.Height - overshoot);
+            if (height == _scroller.Height) break;
+
+            // A vertical scrollbar takes its width out of the panel. Unaccounted for, it would
+            // cover the right-hand edge of the widest box and raise a horizontal scrollbar under
+            // it, which is two scrollbars for one problem. Added once, on the pass that first
+            // makes the panel shorter than the boxes inside it.
+            if (_scroller.Height == _boxes.PreferredSize.Height)
+                _scroller.Width += SystemInformation.VerticalScrollBarWidth;
+
+            _scroller.Height = height;
+        }
     }
 
     /// <summary>
@@ -291,27 +325,42 @@ internal sealed class SettingsForm : Form
 
     private void BuildControls()
     {
+        _boxes = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.TopDown,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            WrapContents = false,
+            Margin = new Padding(0),
+        };
+        _boxes.Controls.Add(BuildLanguageGroup());
+        _boxes.Controls.Add(BuildHeightGroup());
+        _boxes.Controls.Add(BuildColourGroup());
+        _boxes.Controls.Add(BuildGroupingGroup());
+        _boxes.Controls.Add(BuildExclusionsGroup());
+        _boxes.Controls.Add(BuildPreviewGroup());
+        _boxes.Controls.Add(BuildUpdatesGroup());
+
+        // The one control in this dialog given a size rather than taking one: FitToScreen
+        // measures the boxes and sets it. Scrolling has to happen here rather than on the form,
+        // so that the note and the Close button below stay in view, and so that the form keeps
+        // sizing itself to its contents as it always has.
+        _scroller = new Panel
+        {
+            AutoScroll = true,
+            Margin = new Padding(0),
+        };
+        _scroller.Controls.Add(_boxes);
+
         var root = new FlowLayoutPanel
         {
             FlowDirection = FlowDirection.TopDown,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-
-            // Not docked, unlike the panel inside each group box. A docked panel is given the
-            // client area whatever its contents come to, which is the one thing that would stop
-            // the scrolling in FitToScreen from ever happening: the form would have nothing
-            // sticking out of it to scroll to. Sized to its contents and left at the top left,
-            // it is taller than the form when the form is capped, and that is what raises the
-            // scrollbar. The form still sizes itself to this panel while it fits.
+            Dock = DockStyle.Fill,
             WrapContents = false,
         };
-        root.Controls.Add(BuildLanguageGroup());
-        root.Controls.Add(BuildHeightGroup());
-        root.Controls.Add(BuildColourGroup());
-        root.Controls.Add(BuildGroupingGroup());
-        root.Controls.Add(BuildExclusionsGroup());
-        root.Controls.Add(BuildPreviewGroup());
-        root.Controls.Add(BuildUpdatesGroup());
+        root.Controls.Add(_scroller);
 
         var note = new Label
         {
