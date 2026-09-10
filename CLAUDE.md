@@ -160,11 +160,15 @@ restriction.
 The list of planned work lives in the issue tracker, not here, so that there is one copy of it to
 keep current. Take priorities from there.
 
-Three tracking issues hold most of it, each with its sub-issues in priority order: #1 for the tab
-strip, #2 for the settings, and #90 for being findable outside this repository. #17, a bar on the
-left or right edge, is marked low priority and is not scheduled. What sits under none of the three
-is listed on its own: #62 multi-monitor support, #21 the installer and the portable package, #35
-the translated interface.
+Two tracking issues hold most of it, each with its sub-issues in priority order: #2 for the
+settings and #90 for being findable outside this repository. #17, a bar on the left or right edge,
+is marked low priority and is not scheduled. What sits under neither is listed on its own: #62
+multi-monitor support, #21 the installer and the portable package, #71 the warning a browser shows
+on the unsigned download.
+
+**Check the tracker before naming an issue here.** #1, the tab strip, and #35, the translated
+interface, were both named in this paragraph after they had been closed and their work finished, so
+the file said the bulk of the work sat where none of it was left.
 
 **Do not write the list out again, here or in the roadmap sections of `README.md` and
 `README.ja.md`.** It stood in all three files at once, beside the issues that already tracked it,
@@ -219,8 +223,15 @@ the value in `Directory.Build.props`.
 Both check the dependencies for known vulnerabilities before building, with
 `dotnet list package --vulnerable --include-transitive`. That command exits 0 whether or not it
 finds anything, so the step reads its output and fails explicitly. Do not replace it with a NuGet
-package: the check comes with the SDK. It covers other people's code only; analysing this
-project's own code needs CodeQL, which is free on public repositories alone (#26).
+package: the check comes with the SDK. It covers other people's code only, so the code written here
+is analysed separately.
+
+A fourth file, `.github/workflows/codeql.yml`, is that analysis. CodeQL reads this project's own C#
+on every push to `main`, on every pull request, and weekly, because GitHub updates its queries and a
+run over unchanged code can find what the run before it could not. It analyses without a build, so
+it neither needs Windows nor puts a third copy of the build steps in this repository, and
+`security-events: write` is granted to its job alone. Code scanning is free on public repositories
+alone, which is why the file arrived when the repository was published (#26).
 
 Every action is pinned to a full commit SHA, with its version in a comment beside it. A tag is a
 pointer its owner can move, and `softprops/action-gh-release` is a third-party action that runs
