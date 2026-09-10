@@ -11,7 +11,7 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
-## Unreleased
+## v0.6.0
 
 - The mark on the tab of the window you are using no longer comes off when you use the bar
   itself. Dragging a tab to a new place left no tab marked at all, because the bar takes the
@@ -40,6 +40,7 @@ in [README.md](README.md).
   every logon, though the menu entry keeps naming it for as long as you are running an older
   version, whether or not the day's check has run. A new box in the settings dialog turns it off,
   and the menu entry still lets you ask whenever you like.
+- The executable is 146,432 bytes, against 111,104 in v0.5.0.
 
 ## v0.5.0
 
