@@ -25,11 +25,16 @@ in [README.md](README.md).
   be undone.
 - The shell's own windows - the taskbar, the desktop - are still kept off the bar by a list that
   is built in and cannot be shortened, so nothing here can put them on it.
-- The settings window no longer grows taller than the screen. It has always taken whatever height
-  its contents came to, which kept it fitting its own text at any size and in any language, and
-  with the box above added it passed the height of a screen and put its own Close button out of
-  reach. It now stops at the height of the screen and scrolls, and below that height it is
-  exactly the window it was.
+- The settings window is now laid out in two columns, with the two boxes that hold lists on the
+  right and everything else on the left. It has always taken whatever height its contents came
+  to, which keeps it fitting its own text at any size and in any language, and with the box above
+  added that came to more than the height of a screen: its own Close button went out of reach.
+  Two columns halve the height and use room that was empty at the side, so the whole of it can be
+  seen at once again. On a screen too short even for that, the boxes scroll and the Close button
+  stays where it is.
+- The note under Window preview no longer runs off the side of the settings window. It was the
+  one note in the dialog that was never wrapped, and being the longest sentence in it, it decided
+  how wide the window was: every box sat well short of the right-hand edge.
 
 ## v0.6.0
 

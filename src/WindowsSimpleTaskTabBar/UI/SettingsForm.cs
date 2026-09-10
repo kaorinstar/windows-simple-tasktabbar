@@ -129,7 +129,7 @@ internal sealed class SettingsForm : Form
     // the one and size the other; nothing else reads them.
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
         Justification = "Owned by the Controls collection it is added to.")]
-    private FlowLayoutPanel _boxes;
+    private TableLayoutPanel _boxes;
 
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
         Justification = "Owned by the Controls collection it is added to.")]
@@ -323,9 +323,24 @@ internal sealed class SettingsForm : Form
         _uiFont = null;
     }
 
-    private void BuildControls()
+    /// <summary>
+    /// The width of one list of application names, and the unit the boxes are laid out in.
+    /// </summary>
+    /// <remarks>
+    /// Measured from the longest executable name likely to be listed rather than written in
+    /// pixels, so it follows the DPI and the user's text size without this file knowing what
+    /// either of them is. Four boxes size a list or wrap a note against it, so it is worked out
+    /// in one place rather than four.
+    /// </remarks>
+    private int ColumnWidth =>
+        TextRenderer.MeasureText("chromium-browser.exe", Font).Width + Font.Height * 2;
+
+    /// <summary>
+    /// One column of group boxes, laid out top to bottom.
+    /// </summary>
+    private static FlowLayoutPanel Column()
     {
-        _boxes = new FlowLayoutPanel
+        return new FlowLayoutPanel
         {
             FlowDirection = FlowDirection.TopDown,
             AutoSize = true,
@@ -333,13 +348,44 @@ internal sealed class SettingsForm : Form
             WrapContents = false,
             Margin = new Padding(0),
         };
-        _boxes.Controls.Add(BuildLanguageGroup());
-        _boxes.Controls.Add(BuildHeightGroup());
-        _boxes.Controls.Add(BuildColourGroup());
-        _boxes.Controls.Add(BuildGroupingGroup());
-        _boxes.Controls.Add(BuildExclusionsGroup());
-        _boxes.Controls.Add(BuildPreviewGroup());
-        _boxes.Controls.Add(BuildUpdatesGroup());
+    }
+
+    private void BuildControls()
+    {
+        // Two columns rather than one. Seven boxes in a single column came to more than the
+        // height of a screen, which left the dialog scrolling and no way to see all of it at
+        // once - a screenshot of the settings could no longer be taken, and neither could a
+        // glance. The two boxes with lists in them are much the tallest and much the widest, so
+        // they go together on the right and everything else stacks on the left; that halves the
+        // height and uses room that was empty.
+        FlowLayoutPanel left = Column();
+        left.Controls.Add(BuildLanguageGroup());
+        left.Controls.Add(BuildHeightGroup());
+        left.Controls.Add(BuildColourGroup());
+        left.Controls.Add(BuildPreviewGroup());
+        left.Controls.Add(BuildUpdatesGroup());
+
+        FlowLayoutPanel right = Column();
+        right.Controls.Add(BuildGroupingGroup());
+        right.Controls.Add(BuildExclusionsGroup());
+
+        _boxes = new TableLayoutPanel
+        {
+            ColumnCount = 2,
+            RowCount = 1,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(0),
+        };
+
+        // Both columns as wide and as tall as their contents. Without these the table splits
+        // itself evenly and the narrow column is given room the wide one needs.
+        _boxes.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        _boxes.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        _boxes.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        _boxes.Controls.Add(left, 0, 0);
+        _boxes.Controls.Add(right, 1, 0);
 
         // The one control in this dialog given a size rather than taking one: FitToScreen
         // measures the boxes and sets it. Scrolling has to happen here rather than on the form,
@@ -526,6 +572,12 @@ internal sealed class SettingsForm : Form
         {
             Text = _text[StringId.PreviewNote],
             AutoSize = true,
+
+            // Wrapped, like every other note. Left to itself this one laid out as a single
+            // line, and being the longest sentence in the dialog it decided how wide the whole
+            // dialog was: every box sat well short of the right-hand edge with the label
+            // running past them, unseen at the bottom.
+            MaximumSize = new Size(ColumnWidth * 2, 0),
             ForeColor = SystemColors.GrayText,
             Margin = new Padding(4, 0, 4, 4),
         };
@@ -629,7 +681,7 @@ internal sealed class SettingsForm : Form
     private GroupBox BuildGroupingGroup()
     {
         int row = Font.Height;
-        int column = TextRenderer.MeasureText("chromium-browser.exe", Font).Width + row * 2;
+        int column = ColumnWidth;
 
         _groupByApplication = new CheckBox
         {
@@ -803,7 +855,7 @@ internal sealed class SettingsForm : Form
         // The same row height and column width as the grouping box above, so the lists in the
         // two boxes are the same size whatever the DPI and the text size are.
         int row = Font.Height;
-        int column = TextRenderer.MeasureText("chromium-browser.exe", Font).Width + row * 2;
+        int column = ColumnWidth;
 
         var explanation = new Label
         {
@@ -894,9 +946,8 @@ internal sealed class SettingsForm : Form
         };
         _checkForUpdates.CheckedChanged += (_, __) => OnUpdateCheckToggled();
 
-        // The same width as the group above, worked out the same way, so the two boxes line up
-        // whatever the DPI and the text size are.
-        int column = TextRenderer.MeasureText("chromium-browser.exe", Font).Width + Font.Height * 2;
+        // The same width as the boxes with lists in them, so a note is never wider than one.
+        int column = ColumnWidth;
 
         var explanation = new Label
         {
