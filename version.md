@@ -11,7 +11,7 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
-## Unreleased
+## v0.7.0
 
 - Applications can now be put in an order of your own. A tab used to land wherever its window
   happened to open, and dragging it somewhere else was lost when you exited. Name the
@@ -49,6 +49,7 @@ in [README.md](README.md).
 - The box that holds the update setting has its heading back. Its contents were placed over the
   heading rather than below it, hiding the word Updates and leaving an empty strip along the
   bottom of the box instead. Every other box in the dialog was already laid out the right way.
+- The executable is 169,472 bytes, against 146,432 in v0.6.0.
 
 ## v0.6.0
 
