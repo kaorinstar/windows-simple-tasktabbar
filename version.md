@@ -35,6 +35,9 @@ in [README.md](README.md).
 - The note under Window preview no longer runs off the side of the settings window. It was the
   one note in the dialog that was never wrapped, and being the longest sentence in it, it decided
   how wide the window was: every box sat well short of the right-hand edge.
+- The box that holds the update setting has its heading back. Its contents were placed over the
+  heading rather than below it, hiding the word Updates and leaving an empty strip along the
+  bottom of the box instead. Every other box in the dialog was already laid out the right way.
 
 ## v0.6.0
 

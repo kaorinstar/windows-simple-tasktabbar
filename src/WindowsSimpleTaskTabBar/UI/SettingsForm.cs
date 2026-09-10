@@ -964,6 +964,8 @@ internal sealed class SettingsForm : Form
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Padding = new Padding(8, 4, 8, 8),
+            Dock = DockStyle.Fill,    // below the caption; see BuildLanguageGroup
+            WrapContents = false,
         };
         content.Controls.Add(_checkForUpdates);
         content.Controls.Add(explanation);
