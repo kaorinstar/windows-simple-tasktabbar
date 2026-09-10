@@ -158,25 +158,29 @@ restriction.
 ## Not yet implemented
 
 The list of planned work lives in the issue tracker, not here, so that there is one copy of it to
-keep current. Take priorities from there.
+keep current. Take priorities from there:
 
-Two tracking issues hold most of it, each with its sub-issues in priority order: #2 for the
-settings and #90 for being findable outside this repository. #17, a bar on the left or right edge,
-is marked low priority and is not scheduled. What sits under neither is listed on its own: #62
-multi-monitor support, #21 the installer and the portable package, #71 the warning a browser shows
-on the unsigned download.
+https://github.com/kaorinstar/windows-simple-tasktabbar/issues
 
-**Check the tracker before naming an issue here.** #1, the tab strip, and #35, the translated
-interface, were both named in this paragraph after they had been closed and their work finished, so
-the file said the bulk of the work sat where none of it was left.
+The open issues that have sub-issues are the tracking issues, and each one lists its sub-issues in
+priority order. Read those first; what sits under none of them stands on its own in the same list.
 
 **Do not write the list out again, here or in the roadmap sections of `README.md` and
 `README.ja.md`.** It stood in all three files at once, beside the issues that already tracked it,
 and had drifted from them by the time it was replaced with this pointer (#23): one item had been
 absorbed into another issue and another had no issue at all. Planned work becomes an issue, and
-finishing it then means closing that issue rather than editing three files. Keep the same rule for
-the known limitations below: the entry stays, and it links to its issue instead of describing the
-plan.
+finishing it then means closing that issue rather than editing three files.
+
+**Naming the issues drifts the same way, so do not name them either.** A shorter copy is still a
+copy: this section called #1 one of the tracking issues holding most of the work, and listed #35 as
+still to do, when both had been closed and their work finished. A number written here has to be
+checked against the tracker before it can be trusted, which is the work the pointer removes. Issue
+numbers elsewhere in this file point at a decision already taken and closed, which is why they do
+not go stale.
+
+The known limitations below are the one exception, and they follow their own rule: the entry stays
+and links to its issue rather than describing the plan, because the entry describes what the
+application does today and disappears when the issue is closed.
 
 ## Known limitations
 
