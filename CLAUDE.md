@@ -133,6 +133,38 @@ Program.cs → UI/MainForm.cs → Services/WindowService.cs → Interop/NativeMe
   with `#if NETFRAMEWORK`. **Do not break the net48 target.** Running on the .NET Framework 4.8
   that ships with Windows 10 and 11 is a hard distribution requirement.
 
+## Working while other sessions are open
+
+Several sessions are usually writing on this repository at the same time, so `main` moves while a
+branch is being written. A branch that meets `main` only at the end meets every one of those
+changes at once, in a single conflict, and the session that wrote them has finished by then.
+
+Merge `main` in **while the work is still in progress** rather than once at the end:
+
+- At the start of a session.
+- Whenever `main` has moved and those commits touch a file this branch also touches.
+- Before pushing. That one is not optional.
+
+`/sync-main` is the whole sequence: fetch, merge, resolve, then build and test the merged result,
+because two changes that are each correct can still be wrong together. Two kinds of conflict there
+are conflicts by addition rather than by disagreement, and both sides are kept: a string added to
+`Localization/UiStrings.cs` by each side, and an entry added under `## Unreleased` in `version.md`
+and `version.ja.md` by each side.
+
+`.claude/hooks/check-main.sh` is the check on its own. It fetches `main`, reports how many commits
+this branch is behind and which of the files they changed this branch has also changed, and merges
+nothing. Run it at any time with `sh .claude/hooks/check-main.sh`; it prints nothing when there is
+nothing to say.
+
+`.claude/settings.json` runs it at the start of a session, and again before a `Bash` call at most
+once every fifteen minutes. Before a `git push` it runs every time and refuses the push while
+`main` is unmerged, because a push is the point at which the branch becomes something another
+session can build on. Hooks are read when a session starts, so a change to either file takes effect
+in the next session rather than in the one that made it.
+
+**Merge `main` into the branch; never rebase the branch onto `main`.** The branch is usually
+already pushed, and rewriting it invalidates the copy anyone else is working from.
+
 ## Things that look redundant but are not
 
 ### The three-step activation in `Services/WindowService.cs`
