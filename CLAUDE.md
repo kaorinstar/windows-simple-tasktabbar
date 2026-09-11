@@ -159,8 +159,18 @@ nothing to say.
 `.claude/settings.json` runs it at the start of a session, and again before a `Bash` call at most
 once every fifteen minutes. Before a `git push` it runs every time and refuses the push while
 `main` is unmerged, because a push is the point at which the branch becomes something another
-session can build on. Hooks are read when a session starts, so a change to either file takes effect
-in the next session rather than in the one that made it.
+session can build on. A branch deletion, a tag push and a dry run are exempt, because none of them
+carries the branch's work. Hooks are read when a session starts, so a change to either file takes
+effect in the next session rather than in the one that made it.
+
+`.claude/hooks/check-main.test.sh` is the test for it. Run it with
+`sh .claude/hooks/check-main.test.sh`; it builds its own repositories under a temporary directory
+and needs no network. It lists every form of `git push` that has a reason to be typed, with what
+the check should do about each. **Four of those cases are there because the check refused work it
+had no business refusing** — deleting a branch, a dry run, a search whose pattern contained the
+words, and a command whose name merely starts with them. A check that stops work it was never
+guarding against teaches whoever meets it to route around the check. Add the next form to that
+list before changing the detection.
 
 **Merge `main` into the branch; never rebase the branch onto `main`.** The branch is usually
 already pushed, and rewriting it invalidates the copy anyone else is working from.
