@@ -31,20 +31,42 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
 [ "$BRANCH" = "$BASE_BRANCH" ] && exit 0
 [ "$BRANCH" = "HEAD" ] && exit 0
 
+# The hook is handed its input as JSON on standard input. jq is not on every machine
+# this runs on, so fall back to reading the one field that is needed.
+extract_command() {
+    if command -v jq >/dev/null 2>&1; then
+        OUT=$(printf '%s' "$1" | jq -r '.tool_input.command // empty' 2>/dev/null)
+        if [ -n "$OUT" ]; then
+            printf '%s' "$OUT"
+            return
+        fi
+    fi
+    printf '%s' "$1" | sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
+}
+
+# Only a command that runs git push counts. A command that merely mentions the words -
+# a search for them, a message about them - is not a push, and refusing it stops work
+# that was never the risk. Each command in a chain is looked at on its own.
+is_push() {
+    printf '%s' "$1" \
+        | awk '{ gsub(/[;|&]/, "\n"); print }' \
+        | grep -Eq '^[[:space:]]*git[[:space:]]+push([^a-zA-Z0-9_-]|$)'
+}
+
 # A push is the point after which another session sees the branch, so it is checked every
 # time rather than on the interval.
 PUSHING=no
 if [ "$EVENT" = "PreToolUse" ]; then
     INPUT=$(cat)
-    case "$INPUT" in
-        *"git push"*) PUSHING=yes ;;
-    esac
-    # Deleting a branch and pushing a tag both carry none of this branch's work, so
-    # neither is the push this check is for. Refusing them stops work that is not the
-    # thing being guarded against.
+    COMMAND=$(extract_command "$INPUT")
+    if is_push "$COMMAND"; then
+        PUSHING=yes
+    fi
+    # Deleting a branch, pushing a tag and a dry run all carry none of this branch's
+    # work to the remote, so none of them is the push this check is for.
     if [ "$PUSHING" = "yes" ]; then
-        case "$INPUT" in
-            *--delete* | *--tags* | *" -d "* | *"origin :"*) PUSHING=no ;;
+        case "$COMMAND" in
+            *--delete* | *--tags* | *--dry-run* | *" -d "* | *" :"*) PUSHING=no ;;
         esac
     fi
 fi
