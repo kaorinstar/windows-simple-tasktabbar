@@ -39,6 +39,14 @@ if [ "$EVENT" = "PreToolUse" ]; then
     case "$INPUT" in
         *"git push"*) PUSHING=yes ;;
     esac
+    # Deleting a branch and pushing a tag both carry none of this branch's work, so
+    # neither is the push this check is for. Refusing them stops work that is not the
+    # thing being guarded against.
+    if [ "$PUSHING" = "yes" ]; then
+        case "$INPUT" in
+            *--delete* | *--tags* | *" -d "* | *"origin :"*) PUSHING=no ;;
+        esac
+    fi
 fi
 
 NOW=$(date +%s 2>/dev/null) || exit 0
