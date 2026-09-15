@@ -370,3 +370,21 @@ beside them.
 The initial design and implementation were produced in a chat session with Claude running on
 Linux. The `net48` build was verified there, but the application has not been exercised on
 Windows from that environment.
+
+## Choosing a model for subagents
+
+**When calling the Agent tool, name the `model` explicitly. Default to a light model
+(`sonnet` or `haiku`).**
+
+| Model | Work to send there |
+|---|---|
+| `haiku` / `sonnet` | Locating files, grep-style enumeration, mechanical checks, routine work |
+| `opus` | Cross-cutting contradiction hunts, design judgement, anything hard to undo |
+
+- **Explore defaults to a light model** — its job is to find where things are.
+- **Use Opus when you judge it necessary.** This is not an instruction to economise; it is an
+  instruction not to spend Opus on work a light model already handles.
+- **Do not take a light model's answer on trust.** If the output is shallow or looks like it
+  missed something, send it again on Opus rather than building on it.
+
+Each subagent call consumes its own context, so the number of calls is what drives the cost.
