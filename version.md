@@ -17,11 +17,9 @@ in [README.md](README.md).
   the application in place, adds a Start menu entry and an uninstaller, and offers an
   **Automatically start WindowsSimpleTaskTabBar** checkbox. Until now, having the bar at every
   logon meant opening `shell:startup` and putting a shortcut there by hand.
-- The installer speaks ten of the twelve languages the bar does: English, Japanese, Russian,
-  German, French, Spanish, Portuguese (Brazil), Korean, Polish and Italian. Simplified and
-  Traditional Chinese are the two left out, because no translation of the installer's own text
-  comes with the tool that builds it. Those two see the installer in English and the bar itself
-  in Chinese.
+- The installer speaks the same twelve languages as the bar, and picks the one Windows is set
+  to. Its own words are the translations that come with the tool that builds it, rather than
+  anything written for this application.
 - The installer asks for no administrator rights. It installs for your account alone, into
   `%LOCALAPPDATA%\Programs\WindowsSimpleTaskTabBar`, so the file it writes is one you can
   replace yourself when the bar tells you a newer release exists.

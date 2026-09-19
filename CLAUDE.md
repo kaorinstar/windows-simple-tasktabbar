@@ -287,11 +287,12 @@ repository.
   administrator rights; its **Automatically start WindowsSimpleTaskTabBar** checkbox is a shortcut
   in `shell:startup` and nothing else, which is why uninstalling takes it away again.
 
-  The wizard is offered in the ten languages that the bar has a table for and Inno Setup ships a
-  file for, and every word it says is Inno Setup's own. Keep it that way: a sentence written into
-  the script has to be translated ten times by whoever adds the eleventh language, and this
-  project translates nothing it cannot read. Simplified and Traditional Chinese are the two the
-  bar has and the wizard does not, because no file for either comes with Inno Setup.
+  The wizard is offered in the same twelve languages as the bar, from the files Inno Setup
+  installs, and every word it says is Inno Setup's own. Keep it that way: a sentence written into
+  the script would have to be translated twelve times by whoever adds the thirteenth language.
+  A language file named in the script that the installed Inno Setup does not have fails the
+  compile, so that step is what proves the list; a language Inno Setup has no file for would
+  simply see the wizard in English.
 
 A third file, `.github/workflows/report-build-status.yml`, is called by both once their build job
 finishes, and only for pushes. On a failure it opens an issue labelled `ci-failure`, or comments on

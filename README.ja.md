@@ -76,7 +76,7 @@ Windows は、前面にないアプリが自分を前面へ出すことを制限
 
 - **`WindowsSimpleTaskTabBar-Setup-<バージョン>.exe`** — インストーラーです。スタートメニューの
   項目と削除用の項目を作り、「WindowsSimpleTaskTabBar を自動的に起動する」の選択肢を出します。
-  画面の言語は、バーが対応する12言語のうち10言語に対応しています。
+  画面の言語は、バーと同じ12言語に対応しています。
 - **`WindowsSimpleTaskTabBar-<バージョン>.zip`** — 持ち運び用です。実行ファイル・`LICENSE`・
   英語と日本語のREADMEが入っています。インストーラーを使えない場合や使いたくない場合にお使いください。
 - **`WindowsSimpleTaskTabBar.exe`** — 実行ファイル単体で、200KB未満です。各版の正確なサイズは

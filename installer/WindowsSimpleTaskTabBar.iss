@@ -82,18 +82,18 @@ CloseApplications=yes
 RestartApplications=no
 
 ; The wizard's own text comes from the language files that ship with Inno Setup, not from
-; Localization/UiStrings.cs. Nothing here is translated by this project, so the list is the
-; languages the bar is written in and Inno Setup carries a file for, in the order
-; Localization/Languages.cs lists them.
+; Localization/UiStrings.cs. The list is the twelve languages of Localization/Languages.cs, in
+; the order it gives them, and every one of them is a file Inno Setup installs. Nothing here is
+; translated by this project, so a thirteenth language costs one line if Inno Setup carries it
+; and nothing at all if it does not: an unmatched language sees the wizard in English.
 ;
-; Simplified and Traditional Chinese are the two the bar has and this list does not. Inno Setup
-; ships no file for either, and the translations that exist for them are maintained elsewhere.
-; Taking a copy of one would mean carrying wizard text nobody here can read, against the rule
-; that a language is corrected by someone who reads it. Those two see the wizard in English and
-; the bar itself in Chinese.
+; A file named here that the installed Inno Setup does not have fails the compile, so the
+; "Build the installer" step of release.yml is what proves this list.
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
+Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "chinesetraditional"; MessagesFile: "compiler:Languages\ChineseTraditional.isl"
 Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 Name: "french"; MessagesFile: "compiler:Languages\French.isl"
@@ -105,7 +105,7 @@ Name: "italian"; MessagesFile: "compiler:Languages\Italian.isl"
 
 ; Both messages are Inno Setup's own, so the checkbox and the heading above it arrive translated
 ; in every language listed above. A sentence written here instead would have to be translated
-; ten times by whoever added the eleventh language.
+; twelve times by whoever added the thirteenth language.
 [Tasks]
 Name: "startupicon"; Description: "{cm:AutoStartProgram,{#AppName}}"; GroupDescription: "{cm:AutoStartProgramGroupDescription}"
 

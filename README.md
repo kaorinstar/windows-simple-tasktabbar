@@ -80,7 +80,7 @@ same build. Take whichever suits you.
 
 - **`WindowsSimpleTaskTabBar-Setup-<version>.exe`** — the installer. It adds a Start menu entry
   and an uninstaller, and offers an **Automatically start WindowsSimpleTaskTabBar** checkbox. It
-  speaks ten of the twelve languages the bar does.
+  speaks the same twelve languages as the bar.
 - **`WindowsSimpleTaskTabBar-<version>.zip`** — portable. The executable, `LICENSE` and both
   READMEs, for anyone who cannot or would rather not run an installer.
 - **`WindowsSimpleTaskTabBar.exe`** — the executable on its own, under 200 KB. Each release entry
