@@ -203,6 +203,24 @@ restriction.
 
 `SetWinEventHook` occasionally misses events. The periodic refresh covers that case.
 
+### `shellexec` and `AppMutex` in `installer/WindowsSimpleTaskTabBar.iss`
+
+Setup still has `unins000.dat`, the uninstall log, open while its last page offers to start the
+bar, and a program it starts as its own child can be handed that open file along with it. The bar
+then holds the log for as long as it runs, and the next uninstall stops before it has begun,
+reporting that a file is in use by another process and naming a file the user has never heard of.
+Exiting the bar is the only way out of it, and nothing on screen says so. `shellexec` starts the
+bar through the shell instead, with nothing of Setup's passed on.
+
+`AppMutex` names the mutex `Program.cs` already creates to keep a second bar from starting. It
+makes Setup and the uninstaller say "close it now, then click OK" while the bar is running, which
+is the same sentence in every language Inno Setup ships. It costs the automatic close that
+`CloseApplications` alone gave on an upgrade, and it is worth that: the user is told what to do in
+words they can act on, at the one moment it matters.
+
+Both lines were written after an uninstall failed this way on a real machine (#107). Neither can
+be dropped on the grounds that the installer works without it.
+
 ## Not yet implemented
 
 The list of planned work lives in the issue tracker, not here, so that there is one copy of it to

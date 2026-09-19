@@ -20,10 +20,10 @@ in [README.md](README.md).
 - The installer asks for no administrator rights. It installs for your account alone, into
   `%LOCALAPPDATA%\Programs\WindowsSimpleTaskTabBar`, so the file it writes is one you can
   replace yourself when the bar tells you a newer release exists.
-- Installing a newer version over an older one closes the running bar for you, so there is
-  nothing to exit first. Uninstalling takes the Start menu entry and the startup shortcut with
-  it. Your settings stay where they are, in `%APPDATA%`, so installing again keeps your language,
-  colours, groups and tab order.
+- Installing a newer version over an older one, and uninstalling, both ask you to exit a bar
+  that is running before they go on, and say so in as many words. Uninstalling takes the Start
+  menu entry and the startup shortcut with it. Your settings stay where they are, in `%APPDATA%`,
+  so installing again keeps your language, colours, groups and tab order.
 - A portable package, `WindowsSimpleTaskTabBar-<version>.zip`, is attached as well: the
   executable with `LICENSE` and both READMEs beside it, for anyone who cannot or would rather not
   run an installer.
