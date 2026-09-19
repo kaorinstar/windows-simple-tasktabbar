@@ -14,6 +14,12 @@ end_of_line = crlf
 [*.{json,yml,yaml,xml,csproj,props,targets}]
 indent_size = 2
 
+# The Inno Setup compiler reads a script as Unicode only when it starts with a byte order mark.
+# Without one, the Japanese message in the installer arrives as whatever the machine's own code
+# page makes of those bytes.
+[*.iss]
+charset = utf-8-bom
+
 [*.md]
 trim_trailing_whitespace = false
 

@@ -38,11 +38,15 @@ dotnet test -c Release
 
 Warnings are treated as errors. Do not call a task finished while a warning remains.
 
-Producing the package that is actually distributed:
+Producing the executable that is actually distributed:
 
 ```
 dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48 -o artifacts
 ```
+
+A release carries that executable three ways: on its own, inside a portable ZIP, and inside an
+installer built from `installer/WindowsSimpleTaskTabBar.iss` by Inno Setup, which runs on Windows
+only. `release.yml` assembles all three; there is nothing to build here for the other two.
 
 ## Verification
 
@@ -81,7 +85,9 @@ reader choose between them without saying which one you mean.
 2. **Run workflow** → Branch: the branch to test → **Run workflow**. There are no other inputs.
 3. When the run finishes, open it and download the artifact named `WindowsSimpleTaskTabBar`
    from the Artifacts section at the bottom of the page.
-4. Unzip it. `WindowsSimpleTaskTabBar.exe` is the net48 build, which is the one that ships.
+4. Unzip it. It holds the three files a release carries: `WindowsSimpleTaskTabBar.exe`, which is
+   the net48 build and the one that ships, the installer, and the portable ZIP. To test the
+   application itself, run the executable.
 
 A manual run publishes nothing. It stamps the version from `Directory.Build.props` and creates
 no release; only pushing a `v*` tag does that.
@@ -251,8 +257,17 @@ repository.
 - `.github/workflows/build.yml` builds and tests for every push to `main` and every pull
   request. It packages nothing and runs with `contents: read`.
 - `.github/workflows/release.yml` builds, tests and packages. Pushing a tag such as `v0.1.0`
-  publishes a release with the net48 package attached. Starting it by hand produces the same
-  package as a build artifact and creates no release. Only this workflow gets `contents: write`.
+  publishes a release with three files attached: the installer, the portable ZIP and the net48
+  executable. Starting it by hand produces the same three as a build artifact and creates no
+  release, which is the only way to try a change to the packaging before a tag exists, since
+  `build.yml` packages nothing. Only this workflow gets `contents: write`.
+
+  The installer is Inno Setup reading `installer/WindowsSimpleTaskTabBar.iss`, installed onto the
+  runner with Chocolatey because the image does not carry it. The script takes its version on the
+  command line and refuses to compile without one, so the tag stays the single place a version is
+  written. It installs for the current user, under `%LOCALAPPDATA%\Programs`, and asks for no
+  administrator rights; its **Start the bar when Windows starts** checkbox is a shortcut in
+  `shell:startup` and nothing else, which is why uninstalling takes it away again.
 
 A third file, `.github/workflows/report-build-status.yml`, is called by both once their build job
 finishes, and only for pushes. On a failure it opens an issue labelled `ci-failure`, or comments on
@@ -286,9 +301,10 @@ not mean going stale, and its pull requests run `build.yml` like any other. Depe
 own branches (`dependabot/...`), which is outside the naming convention above and cannot be
 changed.
 
-The net48 package is the only one distributed: .NET Framework 4.8 ships with every supported
-version of Windows, and the build is AnyCPU, so it covers ARM as well. The net8 target is still
-built and tested on every run, as a second compiler over the same source.
+The net48 build is the only one distributed, and all three packages carry it: .NET Framework 4.8
+ships with every supported version of Windows, and the build is AnyCPU, so it covers ARM as well.
+The net8 target is still built and tested on every run, as a second compiler over the same
+source.
 
 ## Releasing
 

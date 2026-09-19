@@ -74,46 +74,65 @@ The settings:
 
 ## Download
 
-One file is attached to each [release](https://github.com/kaorinstar/windows-simple-tasktabbar/releases):
-`WindowsSimpleTaskTabBar.exe`, under 200 KB. Each release entry in
-[version.md](version.md) gives the size of that release.
+Three files are attached to each
+[release](https://github.com/kaorinstar/windows-simple-tasktabbar/releases), all carrying the
+same build. Take whichever suits you.
+
+- **`WindowsSimpleTaskTabBar-Setup-<version>.exe`** — the installer. It adds a Start menu entry
+  and an uninstaller, and offers a **Start the bar when Windows starts** checkbox.
+- **`WindowsSimpleTaskTabBar-<version>.zip`** — portable. The executable, `LICENSE` and both
+  READMEs, for anyone who cannot or would rather not run an installer.
+- **`WindowsSimpleTaskTabBar.exe`** — the executable on its own, under 200 KB. Each release entry
+  in [version.md](version.md) gives the size of that release.
 
 It targets .NET Framework 4.8, which ships with Windows 10 version 1903 and later and with
 Windows 11, so nothing has to be installed. It is a single file with no configuration file
 beside it, and it is built AnyCPU, so it also runs on ARM versions of Windows without
 emulating x64.
 
-Only this one package is published. A build carrying its own copy of .NET 8 would be about
+Only this one build is published. A build carrying its own copy of .NET 8 would be about
 69 MB and x64 only, and would help solely on versions of Windows that are themselves out of
 support.
 
 ## Install
 
-There is no installer.
+**With the installer**
+
+1. Run `WindowsSimpleTaskTabBar-Setup-<version>.exe`.
+2. Tick **Start the bar when Windows starts** if you want the bar there at every logon.
+3. The last page starts the bar.
+
+It installs into `%LOCALAPPDATA%\Programs\WindowsSimpleTaskTabBar` for your account alone, so it
+never asks for administrator rights. Installing a newer version over an older one closes the
+running bar for you, so there is nothing to exit first. Uninstalling is done from
+**Settings > Apps**, and takes the Start menu entry and the startup shortcut with it. Your
+settings stay in `%APPDATA%\WindowsSimpleTaskTabBar\settings.json`, so installing again keeps
+them.
+
+**Without the installer**
 
 1. Put the executable in any folder, for example `C:\Tools\WindowsSimpleTaskTabBar\`.
 2. Double-click it.
+3. To start it with Windows, press `Windows` + `R`, enter `shell:startup`, and place a shortcut
+   to the executable in the folder that opens.
 
-The executable is not code-signed, so SmartScreen shows a warning the first time. Choose
-**More info** and then **Run anyway**.
+Neither the installer nor the executable is code-signed, so SmartScreen shows a warning the
+first time each of them is run. Choose **More info** and then **Run anyway**.
 
 To exit, right-click the bar and choose **Exit**.
 
-To start it with Windows, press `Windows` + `R`, enter `shell:startup`, and place a shortcut
-to the executable in the folder that opens.
-
 ## Updates
 
-There is no installer and no package manager, so nothing else would tell you that a new version
-exists. The bar therefore reads the version number of the newest release from `github.com`
-shortly after it starts.
+Neither the installer nor the executable replaces itself, and there is no package manager entry,
+so nothing else would tell you that a new version exists. The bar therefore reads the version
+number of the newest release from `github.com` shortly after it starts.
 
 - **It reads one number.** Nothing about you or your machine is sent, and nothing is stored
   anywhere but on your own computer.
 - **Nothing is downloaded and nothing is replaced.** If a newer release exists, the notification
   area says so, and the menu gains **Update available: v0.6.0...**, which opens the release page
-  in your browser. You download the new executable and put it in place yourself, exactly as you
-  did to install it.
+  in your browser. You download the new release and put it in place yourself, exactly as you did
+  to install it: run the new installer over the old copy, or replace the executable.
 - **At most once a day**, and each release is announced once rather than at every logon. The
   menu entry keeps naming the new version for as long as you are running an older one, so it is
   still there the next time you start the bar.
@@ -135,10 +154,18 @@ dotnet build -c Release
 dotnet test -c Release
 ```
 
-Producing the distributable packages:
+Producing the executable that is distributed:
 
 ```
 dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48 -o artifacts
+```
+
+The installer is built from that executable with [Inno Setup](https://jrsoftware.org/isinfo.php),
+which runs on Windows only. The version is passed in on the command line, and the script refuses
+to compile without it:
+
+```
+ISCC /DAppVersion=0.7.0 installer\WindowsSimpleTaskTabBar.iss
 ```
 
 ## Repository layout
@@ -150,6 +177,7 @@ dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Rel
 ├── tests/
 │   └── WindowsSimpleTaskTabBar.Tests/   Unit tests
 ├── docs/                                Design notes
+├── installer/                           The Inno Setup script for the installer
 └── .github/workflows/                   Continuous integration
 ```
 
@@ -164,10 +192,10 @@ tests. Warnings are treated as errors, so a warning fails the build. The depende
 against the list of known vulnerabilities first, and a match fails the build too. Nothing is
 packaged, and the run has read-only access to the repository.
 
-`release.yml` distributes. Pushing a tag such as `v0.1.0` builds, tests, packages, and creates
-a release with the net48 package attached. Starting the same workflow by hand produces the
-package as a downloadable build artifact and creates no release, so a change to it can be
-tried out before a tag is pushed.
+`release.yml` distributes. Pushing a tag such as `v0.1.0` builds, tests, packages, and creates a
+release with the installer, the portable ZIP and the executable attached. Starting the same
+workflow by hand produces the same three files as a downloadable build artifact and creates no
+release, so a change to it can be tried out before a tag is pushed.
 
 The net8 target is built and tested on every run as well, as a second compiler over the same
 source, but it is not published.
@@ -190,9 +218,10 @@ changed, and the patch number when something is only fixed.
    git push origin v0.1.0
    ```
 
-The release workflow then builds, tests, packages the executable and creates the release, using
+The release workflow then builds, tests, packages the three files and creates the release, using
 that section of `version.md` as the release notes. The executable is stamped with the version from
-the tag, so its file properties in Windows say which release it came from. A tag in the wrong
+the tag, so its file properties in Windows say which release it came from, and the installer and
+the ZIP carry that same number in their names. A tag in the wrong
 format, or one with no section in `version.md`, fails the workflow before anything is built, so no
 half-finished release is published.
 
