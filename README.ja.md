@@ -75,7 +75,8 @@ Windows は、前面にないアプリが自分を前面へ出すことを制限
 中身のビルドはどれも同じです。使いやすいものをお選びください。
 
 - **`WindowsSimpleTaskTabBar-Setup-<バージョン>.exe`** — インストーラーです。スタートメニューの
-  項目と削除用の項目を作り、「Windows の起動時にバーを開始する」の選択肢を出します。
+  項目と削除用の項目を作り、「WindowsSimpleTaskTabBar を自動的に起動する」の選択肢を出します。
+  画面の言語は、バーが対応する12言語のうち10言語に対応しています。
 - **`WindowsSimpleTaskTabBar-<バージョン>.zip`** — 持ち運び用です。実行ファイル・`LICENSE`・
   英語と日本語のREADMEが入っています。インストーラーを使えない場合や使いたくない場合にお使いください。
 - **`WindowsSimpleTaskTabBar.exe`** — 実行ファイル単体で、200KB未満です。各版の正確なサイズは
@@ -93,7 +94,8 @@ AnyCPUのため ARM版Windows でも x64エミュレーションなしで動き�
 **インストーラーを使う場合**
 
 1. `WindowsSimpleTaskTabBar-Setup-<バージョン>.exe` を実行します。
-2. ログオンのたびにバーを出す場合は、「Windows の起動時にバーを開始する」にチェックを入れます。
+2. ログオンのたびにバーを出す場合は、「WindowsSimpleTaskTabBar を自動的に起動する」に
+   チェックを入れます。
 3. 最後の画面でバーが起動します。
 
 導入先は `%LOCALAPPDATA%\Programs\WindowsSimpleTaskTabBar` で、お使いのアカウント専用です。

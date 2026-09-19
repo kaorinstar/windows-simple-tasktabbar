@@ -284,8 +284,14 @@ repository.
   runner with Chocolatey because the image does not carry it. The script takes its version on the
   command line and refuses to compile without one, so the tag stays the single place a version is
   written. It installs for the current user, under `%LOCALAPPDATA%\Programs`, and asks for no
-  administrator rights; its **Start the bar when Windows starts** checkbox is a shortcut in
-  `shell:startup` and nothing else, which is why uninstalling takes it away again.
+  administrator rights; its **Automatically start WindowsSimpleTaskTabBar** checkbox is a shortcut
+  in `shell:startup` and nothing else, which is why uninstalling takes it away again.
+
+  The wizard is offered in the ten languages that the bar has a table for and Inno Setup ships a
+  file for, and every word it says is Inno Setup's own. Keep it that way: a sentence written into
+  the script has to be translated ten times by whoever adds the eleventh language, and this
+  project translates nothing it cannot read. Simplified and Traditional Chinese are the two the
+  bar has and the wizard does not, because no file for either comes with Inno Setup.
 
 A third file, `.github/workflows/report-build-status.yml`, is called by both once their build job
 finishes, and only for pushes. On a failure it opens an issue labelled `ci-failure`, or comments on
