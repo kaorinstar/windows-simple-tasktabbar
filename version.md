@@ -13,6 +13,13 @@ in [README.md](README.md).
 
 ## Unreleased
 
+- The interface reads better in the ten languages other than English and Japanese. Each table now
+  uses the words Windows itself uses for the same thing, rather than a literal rendering of the
+  English: the bar's height was headed "toolbar height" in both Chinese tables, Brazilian
+  Portuguese called a tab an "aba" where Windows, Edge and Chrome all say "guia", Spanish offered
+  "Añadir" where Windows says "Agregar", and the setting that follows Windows is now worded as
+  Windows' own applications word it in German, French and Korean. Nothing moved and nothing
+  changed what it does; only the words did.
 - Each release now carries an installer, `WindowsSimpleTaskTabBar-Setup-<version>.exe`. It puts
   the application in place, adds a Start menu entry and an uninstaller, and offers an
   **Automatically start WindowsSimpleTaskTabBar** checkbox. Until now, having the bar at every

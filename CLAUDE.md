@@ -25,8 +25,13 @@ decision.
   fails the tests, so a string added to one table is added to all of them in the same commit.
 - The interface is written in the twelve languages of #35. A thirteenth costs one table in
   `UiStrings.cs` and one row in `Languages.All`, and nothing else. Keep that property.
-- English and Japanese are the two that have been read by someone who knows them. Do not rewrite
-  another language's table on your own judgement; a correction comes from someone who reads it.
+- **A translation follows the words the platform already uses.** Before writing or changing a
+  table, look up what the same thing is called in that language by Windows 11's own settings,
+  File Explorer and the taskbar menus, and by Edge and Chrome for anything to do with tabs. The
+  term already on the user's screen beats a literal rendering of the English, and "nobody here
+  reads that language" is a reason to go and look it up rather than a reason to leave it. English
+  and Japanese are the two anyone here reads, so every other table is checked against those
+  sources; a correction from someone who reads the language settles it over any of this.
 
 ## Build and test
 
