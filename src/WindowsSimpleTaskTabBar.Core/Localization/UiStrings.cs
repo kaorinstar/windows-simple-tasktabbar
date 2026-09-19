@@ -252,7 +252,7 @@ public static class UiStrings
         { StringId.SettingsChangesApply, "更改会立即生效。" },
         { StringId.SettingsClose, "关闭" },
 
-        { StringId.HeightGroup, "工具栏高度" },
+        { StringId.HeightGroup, "标签栏高度" },
         { StringId.HeightStandard, "标准 ({0} px)" },
         { StringId.HeightCompact, "紧凑 ({0} px) - 把这部分高度还给窗口" },
 
@@ -282,8 +282,8 @@ public static class UiStrings
         { StringId.ExclusionsAddCaption, "按名称添加:" },
         { StringId.ExclusionsAdd, "添加" },
 
-        { StringId.PriorityGroup, "标签顺序" },
-        { StringId.PriorityNote, "列表中越靠上的应用，其标签越靠近左端。列表未列出的应用，其标签排在右端。修改列表会立即重新排列，之后仍可拖动标签。" },
+        { StringId.PriorityGroup, "标签页顺序" },
+        { StringId.PriorityNote, "列表中越靠上的应用，其标签页越靠近左端。列表未列出的应用，其标签页排在右端。修改列表会立即重新排列，之后仍可拖动标签页。" },
         { StringId.PriorityCaption, "顺序:" },
         { StringId.PriorityUp, "上移" },
         { StringId.PriorityDown, "下移" },
@@ -340,7 +340,7 @@ public static class UiStrings
         { StringId.SettingsChangesApply, "變更會立即生效。" },
         { StringId.SettingsClose, "關閉" },
 
-        { StringId.HeightGroup, "工具列高度" },
+        { StringId.HeightGroup, "索引標籤列高度" },
         { StringId.HeightStandard, "標準 ({0} px)" },
         { StringId.HeightCompact, "精簡 ({0} px) - 把這部分高度還給視窗" },
 
@@ -370,8 +370,8 @@ public static class UiStrings
         { StringId.ExclusionsAddCaption, "依名稱新增:" },
         { StringId.ExclusionsAdd, "新增" },
 
-        { StringId.PriorityGroup, "分頁順序" },
-        { StringId.PriorityNote, "列表中越靠上的應用程式，其分頁越靠近左端。列表未列出的應用程式，其分頁排在右端。修改列表會立即重新排列，之後仍可拖曳分頁。" },
+        { StringId.PriorityGroup, "索引標籤順序" },
+        { StringId.PriorityNote, "列表中越靠上的應用程式，其索引標籤越靠近左端。列表未列出的應用程式，其索引標籤排在右端。修改列表會立即重新排列，之後仍可拖曳索引標籤。" },
         { StringId.PriorityCaption, "順序:" },
         { StringId.PriorityUp, "上移" },
         { StringId.PriorityDown, "下移" },
@@ -408,7 +408,7 @@ public static class UiStrings
         { StringId.MenuRefresh, "Обновить" },
         { StringId.MenuExit, "Выход" },
 
-        { StringId.MenuCheckForUpdates, "Проверить обновления..." },
+        { StringId.MenuCheckForUpdates, "Проверить наличие обновлений..." },
         { StringId.MenuUpdateAvailable, "Доступно обновление: {0}..." },
         { StringId.UpdateCheckFailed, "Не удалось связаться с GitHub и проверить новую версию." },
         { StringId.UpdateAvailableAsk, "Доступна версия {0}. Открыть страницу выпуска?" },
@@ -556,7 +556,7 @@ public static class UiStrings
         { StringId.HeightCompact, "Kompakt ({0} px) - gibt die Höhe an Ihre Fenster zurück" },
 
         { StringId.ColourGroup, "Farben" },
-        { StringId.ColourFollowWindows, "Wie in Windows" },
+        { StringId.ColourFollowWindows, "Systemstandard" },
         { StringId.ColourLight, "Hell" },
         { StringId.ColourDark, "Dunkel" },
         {
@@ -566,7 +566,7 @@ public static class UiStrings
         },
 
         { StringId.LanguageGroup, "Sprache" },
-        { StringId.LanguageAutomatic, "Automatisch (wie in Windows)" },
+        { StringId.LanguageAutomatic, "Automatisch (Systemsprache)" },
 
         { StringId.GroupsGroup, "Tabgruppen" },
         { StringId.GroupsEnable, "Tabs nach Anwendung gruppieren" },
@@ -676,7 +676,7 @@ public static class UiStrings
         { StringId.HeightCompact, "Compacte ({0} px) - rend la hauteur à vos fenêtres" },
 
         { StringId.ColourGroup, "Couleurs" },
-        { StringId.ColourFollowWindows, "Suivre Windows" },
+        { StringId.ColourFollowWindows, "Utiliser le thème Windows" },
         { StringId.ColourLight, "Clair" },
         { StringId.ColourDark, "Sombre" },
         {
@@ -829,8 +829,8 @@ public static class UiStrings
             + " derecho en una pestaña hace lo mismo."
         },
         { StringId.ExclusionsCaption, "Aplicaciones:" },
-        { StringId.ExclusionsAddCaption, "Añadir por nombre:" },
-        { StringId.ExclusionsAdd, "Añadir" },
+        { StringId.ExclusionsAddCaption, "Agregar por nombre:" },
+        { StringId.ExclusionsAdd, "Agregar" },
 
         { StringId.PriorityGroup, "Orden de las pestañas" },
         {
@@ -844,8 +844,8 @@ public static class UiStrings
         { StringId.PriorityUp, "Subir" },
         { StringId.PriorityDown, "Bajar" },
         { StringId.PriorityRemove, "Quitar" },
-        { StringId.PriorityAddCaption, "Añadir una aplicación:" },
-        { StringId.PriorityAdd, "Añadir" },
+        { StringId.PriorityAddCaption, "Agregar una aplicación:" },
+        { StringId.PriorityAdd, "Agregar" },
 
         { StringId.PreviewGroup, "Vista previa de la ventana" },
         { StringId.PreviewEnable, "Mostrar la ventana cuando el puntero se detiene en una pestaña" },
@@ -882,7 +882,7 @@ public static class UiStrings
         { StringId.MenuRefresh, "Atualizar" },
         { StringId.MenuExit, "Sair" },
 
-        { StringId.MenuCheckForUpdates, "Procurar atualizações..." },
+        { StringId.MenuCheckForUpdates, "Verificar atualizações..." },
         { StringId.MenuUpdateAvailable, "Atualização disponível: {0}..." },
         {
             StringId.UpdateCheckFailed,
@@ -896,9 +896,9 @@ public static class UiStrings
         },
 
         { StringId.TabMenuClose, "Fechar" },
-        { StringId.TabMenuCloseOthers, "Fechar as outras abas" },
-        { StringId.TabMenuCloseLeft, "Fechar as abas à esquerda" },
-        { StringId.TabMenuCloseRight, "Fechar as abas à direita" },
+        { StringId.TabMenuCloseOthers, "Fechar as outras guias" },
+        { StringId.TabMenuCloseLeft, "Fechar as guias à esquerda" },
+        { StringId.TabMenuCloseRight, "Fechar as guias à direita" },
         { StringId.TabMenuMinimize, "Minimizar" },
         { StringId.TabMenuExclude, "Excluir este aplicativo" },
 
@@ -925,12 +925,12 @@ public static class UiStrings
         { StringId.LanguageGroup, "Idioma" },
         { StringId.LanguageAutomatic, "Automático (seguir o Windows)" },
 
-        { StringId.GroupsGroup, "Grupos de abas" },
-        { StringId.GroupsEnable, "Agrupar as abas por aplicativo" },
+        { StringId.GroupsGroup, "Grupos de guias" },
+        { StringId.GroupsEnable, "Agrupar as guias por aplicativo" },
         {
             StringId.GroupsNote,
             "As janelas de um mesmo aplicativo ficam juntas e levam uma mesma cor. Arrastar uma"
-            + " aba para além de outro grupo move o grupo inteiro."
+            + " guia para além de outro grupo move o grupo inteiro."
         },
         { StringId.GroupsCaption, "Grupos:" },
         { StringId.GroupsApplicationsCaption, "Aplicativos do grupo selecionado:" },
@@ -944,19 +944,19 @@ public static class UiStrings
         {
             StringId.ExclusionsNote,
             "As janelas de um aplicativo marcado não aparecem na barra. Nada é fechado: as janelas"
-            + " continuam abertas e apenas as abas somem. Clicar com o botão direito em uma aba faz o"
+            + " continuam abertas e apenas as guias somem. Clicar com o botão direito em uma guia faz o"
             + " mesmo."
         },
         { StringId.ExclusionsCaption, "Aplicativos:" },
         { StringId.ExclusionsAddCaption, "Adicionar pelo nome:" },
         { StringId.ExclusionsAdd, "Adicionar" },
 
-        { StringId.PriorityGroup, "Ordem das abas" },
+        { StringId.PriorityGroup, "Ordem das guias" },
         {
             StringId.PriorityNote,
-            "Quanto mais acima um aplicativo estiver na lista, mais à esquerda ficam suas abas."
-            + " Um aplicativo fora da lista coloca suas abas à direita. Alterar a lista reordena a"
-            + " fila na hora; depois disso, uma aba ainda pode ser arrastada."
+            "Quanto mais acima um aplicativo estiver na lista, mais à esquerda ficam suas guias."
+            + " Um aplicativo fora da lista coloca suas guias à direita. Alterar a lista reordena a"
+            + " fila na hora; depois disso, uma guia ainda pode ser arrastada."
         },
         { StringId.PriorityCaption, "Ordem:" },
         { StringId.PriorityUp, "Para cima" },
@@ -966,7 +966,7 @@ public static class UiStrings
         { StringId.PriorityAdd, "Adicionar" },
 
         { StringId.PreviewGroup, "Visualização da janela" },
-        { StringId.PreviewEnable, "Mostrar a janela quando o ponteiro parar sobre uma aba" },
+        { StringId.PreviewEnable, "Mostrar a janela quando o ponteiro parar sobre uma guia" },
         {
             StringId.PreviewNote,
             "Útil quando várias janelas de um mesmo aplicativo se parecem. Uma janela minimizada"
@@ -1020,18 +1020,18 @@ public static class UiStrings
         { StringId.SettingsChangesApply, "변경 내용은 바로 적용됩니다." },
         { StringId.SettingsClose, "닫기" },
 
-        { StringId.HeightGroup, "막대 높이" },
+        { StringId.HeightGroup, "표시줄 높이" },
         { StringId.HeightStandard, "표준 ({0} px)" },
         { StringId.HeightCompact, "좁게 ({0} px) - 그만큼 창을 넓게 사용합니다" },
 
         { StringId.ColourGroup, "색" },
-        { StringId.ColourFollowWindows, "Windows 설정 따르기" },
+        { StringId.ColourFollowWindows, "시스템 설정 사용" },
         { StringId.ColourLight, "밝게" },
         { StringId.ColourDark, "어둡게" },
         { StringId.ColourNote, "밝게와 어둡게는 Windows 설정이 바뀌어도 그대로 유지됩니다." },
 
         { StringId.LanguageGroup, "언어" },
-        { StringId.LanguageAutomatic, "자동 (Windows 설정 따르기)" },
+        { StringId.LanguageAutomatic, "자동 (시스템 설정 사용)" },
 
         { StringId.GroupsGroup, "탭 그룹" },
         { StringId.GroupsEnable, "앱별로 탭 묶기" },
@@ -1039,13 +1039,13 @@ public static class UiStrings
         { StringId.GroupsCaption, "그룹:" },
         { StringId.GroupsApplicationsCaption, "선택한 그룹의 앱:" },
         { StringId.GroupsNew, "새 그룹" },
-        { StringId.GroupsRemove, "삭제" },
+        { StringId.GroupsRemove, "제거" },
         { StringId.GroupsName, "이름:" },
         { StringId.GroupsColour, "색:" },
         { StringId.GroupsDefaultName, "그룹 {0}" },
 
         { StringId.ExclusionsGroup, "제외한 앱" },
-        { StringId.ExclusionsNote, "체크한 앱의 창은 막대에 표시되지 않습니다. 창은 닫히지 않고 탭만 사라집니다. 탭을 마우스 오른쪽 버튼으로 클릭해도 같은 동작을 합니다." },
+        { StringId.ExclusionsNote, "체크한 앱의 창은 표시줄에 표시되지 않습니다. 창은 닫히지 않고 탭만 사라집니다. 탭을 마우스 오른쪽 버튼으로 클릭해도 같은 동작을 합니다." },
         { StringId.ExclusionsCaption, "앱:" },
         { StringId.ExclusionsAddCaption, "이름을 입력해 추가:" },
         { StringId.ExclusionsAdd, "추가" },
@@ -1055,7 +1055,7 @@ public static class UiStrings
         { StringId.PriorityCaption, "순서:" },
         { StringId.PriorityUp, "위로" },
         { StringId.PriorityDown, "아래로" },
-        { StringId.PriorityRemove, "삭제" },
+        { StringId.PriorityRemove, "제거" },
         { StringId.PriorityAddCaption, "앱 추가:" },
         { StringId.PriorityAdd, "추가" },
 
@@ -1068,7 +1068,7 @@ public static class UiStrings
         },
 
         { StringId.UpdatesGroup, "업데이트" },
-        { StringId.UpdatesEnable, "막대를 시작할 때 새 버전 확인" },
+        { StringId.UpdatesEnable, "표시줄을 시작할 때 새 버전 확인" },
         {
             StringId.UpdatesNote,
             "하루에 한 번까지 github.com에서 최신 버전 번호만 읽습니다. 사용자에 대한 정보는 보내지 않으며, 내려받거나 설치하지도 않습니다. 새"
@@ -1107,7 +1107,7 @@ public static class UiStrings
         },
 
         { StringId.TabMenuClose, "Zamknij" },
-        { StringId.TabMenuCloseOthers, "Zamknij pozostałe karty" },
+        { StringId.TabMenuCloseOthers, "Zamknij inne karty" },
         { StringId.TabMenuCloseLeft, "Zamknij karty po lewej" },
         { StringId.TabMenuCloseRight, "Zamknij karty po prawej" },
         { StringId.TabMenuMinimize, "Minimalizuj" },
@@ -1316,7 +1316,7 @@ public static class UiStrings
             + " menu ne apre la pagina."
         },
 
-        { StringId.AccentAutomatic, "Automatica" },
+        { StringId.AccentAutomatic, "Automatico" },
         { StringId.AccentBlue, "Blu" },
         { StringId.AccentRed, "Rosso" },
         { StringId.AccentYellow, "Giallo" },
