@@ -22,9 +22,12 @@ in [README.md](README.md).
   changed what it does; only the words did.
 
 - Each release now carries an installer, `WindowsSimpleTaskTabBar-Setup-<version>.exe`. It puts
-  the application in place, adds a Start menu entry and an uninstaller, and offers a **Start the
-  bar when Windows starts** checkbox. Until now, having the bar at every logon meant opening
-  `shell:startup` and putting a shortcut there by hand.
+  the application in place, adds a Start menu entry and an uninstaller, and offers an
+  **Automatically start WindowsSimpleTaskTabBar** checkbox. Until now, having the bar at every
+  logon meant opening `shell:startup` and putting a shortcut there by hand.
+- The installer speaks the same twelve languages as the bar, and picks the one Windows is set
+  to. Its own words are the translations that come with the tool that builds it, rather than
+  anything written for this application.
 - The installer asks for no administrator rights. It installs for your account alone, into
   `%LOCALAPPDATA%\Programs\WindowsSimpleTaskTabBar`, so the file it writes is one you can
   replace yourself when the bar tells you a newer release exists.
