@@ -301,9 +301,10 @@ not mean going stale, and its pull requests run `build.yml` like any other. Depe
 own branches (`dependabot/...`), which is outside the naming convention above and cannot be
 changed.
 
-The net48 build is the only one distributed, in all three packages: .NET Framework 4.8 ships with
-every supported version of Windows, and the build is AnyCPU, so it covers ARM as well. The net8 target is still
-built and tested on every run, as a second compiler over the same source.
+The net48 build is the only one distributed, and all three packages carry it: .NET Framework 4.8
+ships with every supported version of Windows, and the build is AnyCPU, so it covers ARM as well.
+The net8 target is still built and tested on every run, as a second compiler over the same
+source.
 
 ## Releasing
 
