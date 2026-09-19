@@ -79,7 +79,8 @@ Three files are attached to each
 same build. Take whichever suits you.
 
 - **`WindowsSimpleTaskTabBar-Setup-<version>.exe`** — the installer. It adds a Start menu entry
-  and an uninstaller, and offers a **Start the bar when Windows starts** checkbox.
+  and an uninstaller, and offers an **Automatically start WindowsSimpleTaskTabBar** checkbox. It
+  speaks the same twelve languages as the bar.
 - **`WindowsSimpleTaskTabBar-<version>.zip`** — portable. The executable, `LICENSE` and both
   READMEs, for anyone who cannot or would rather not run an installer.
 - **`WindowsSimpleTaskTabBar.exe`** — the executable on its own, under 200 KB. Each release entry
@@ -99,7 +100,8 @@ support.
 **With the installer**
 
 1. Run `WindowsSimpleTaskTabBar-Setup-<version>.exe`.
-2. Tick **Start the bar when Windows starts** if you want the bar there at every logon.
+2. Tick **Automatically start WindowsSimpleTaskTabBar** if you want the bar there at every
+   logon.
 3. The last page starts the bar.
 
 It installs into `%LOCALAPPDATA%\Programs\WindowsSimpleTaskTabBar` for your account alone, so it

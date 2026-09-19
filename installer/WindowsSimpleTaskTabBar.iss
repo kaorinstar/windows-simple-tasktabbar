@@ -11,8 +11,9 @@
 ; runs before this does.
 ;
 ; This file is stored as UTF-8 with a byte order mark. That mark is how the Inno Setup compiler
-; tells a Unicode script from one written in the machine's own code page, and without it the
-; Japanese message below is read as whatever that code page happens to be.
+; tells a Unicode script from one written in the machine's own code page. Nothing here is
+; outside ASCII today, and the mark stays so that the first line that is - an application name,
+; a path, a message - cannot arrive as whatever that code page makes of it.
 
 #ifndef AppVersion
   #error "AppVersion is not defined. Build this script with ISCC /DAppVersion=0.7.0"
@@ -81,19 +82,32 @@ CloseApplications=yes
 RestartApplications=no
 
 ; The wizard's own text comes from the language files that ship with Inno Setup, not from
-; Localization/UiStrings.cs, so the twelve languages the application is written in do not apply
-; here. English and Japanese are the two someone on this project reads, and those are the two
-; offered. The dialog that asks which to use appears only when Windows is set to neither.
+; Localization/UiStrings.cs. The list is the twelve languages of Localization/Languages.cs, in
+; the order it gives them, and every one of them is a file Inno Setup installs. Nothing here is
+; translated by this project, so a thirteenth language costs one line if Inno Setup carries it
+; and nothing at all if it does not: an unmatched language sees the wizard in English.
+;
+; A file named here that the installed Inno Setup does not have fails the compile, so the
+; "Build the installer" step of release.yml is what proves this list.
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
+Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "chinesetraditional"; MessagesFile: "compiler:Languages\ChineseTraditional.isl"
+Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
+Name: "german"; MessagesFile: "compiler:Languages\German.isl"
+Name: "french"; MessagesFile: "compiler:Languages\French.isl"
+Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
+Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
+Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"
+Name: "polish"; MessagesFile: "compiler:Languages\Polish.isl"
+Name: "italian"; MessagesFile: "compiler:Languages\Italian.isl"
 
-[CustomMessages]
-english.StartWithWindows=Start the bar when Windows starts
-japanese.StartWithWindows=Windows の起動時にバーを開始する
-
+; Both messages are Inno Setup's own, so the checkbox and the heading above it arrive translated
+; in every language listed above. A sentence written here instead would have to be translated
+; twelve times by whoever added the thirteenth language.
 [Tasks]
-Name: "startupicon"; Description: "{cm:StartWithWindows}"; GroupDescription: "{cm:AdditionalIcons}"
+Name: "startupicon"; Description: "{cm:AutoStartProgram,{#AppName}}"; GroupDescription: "{cm:AutoStartProgramGroupDescription}"
 
 [Files]
 Source: "{#PackageDir}\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
