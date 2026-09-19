@@ -11,6 +11,27 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
+## Unreleased
+
+- Each release now carries an installer, `WindowsSimpleTaskTabBar-Setup-<version>.exe`. It puts
+  the application in place, adds a Start menu entry and an uninstaller, and offers a **Start the
+  bar when Windows starts** checkbox. Until now, having the bar at every logon meant opening
+  `shell:startup` and putting a shortcut there by hand.
+- The installer asks for no administrator rights. It installs for your account alone, into
+  `%LOCALAPPDATA%\Programs\WindowsSimpleTaskTabBar`, so the file it writes is one you can
+  replace yourself when the bar tells you a newer release exists.
+- Installing a newer version over an older one closes the running bar for you, so there is
+  nothing to exit first. Uninstalling takes the Start menu entry and the startup shortcut with
+  it. Your settings stay where they are, in `%APPDATA%`, so installing again keeps your language,
+  colours, groups and tab order.
+- A portable package, `WindowsSimpleTaskTabBar-<version>.zip`, is attached as well: the
+  executable with `LICENSE` and both READMEs beside it, for anyone who cannot or would rather not
+  run an installer.
+- `WindowsSimpleTaskTabBar.exe` is still attached on its own and is unchanged, so nothing has to
+  change about the way you use it today.
+- The installer is not code-signed either, so SmartScreen warns the first time it is run, in the
+  same way it warns for the executable.
+
 ## v0.7.0
 
 - Applications can now be put in an order of your own. A tab used to land wherever its window

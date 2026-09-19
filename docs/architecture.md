@@ -26,6 +26,8 @@ windows-simple-tasktabbar/
 ├── docs/
 │   ├── architecture.md            This document
 │   └── architecture.ja.md         Japanese translation
+├── installer/
+│   └── WindowsSimpleTaskTabBar.iss  The installer, as release.yml builds it
 ├── src/
 │   ├── WindowsSimpleTaskTabBar.Core/       Logic with no UI dependency
 │   │   ├── Filtering/
@@ -562,16 +564,17 @@ no process here at all - the same bargain grouping and exclusion both make. Once
 
 ### Telling the user a new version exists
 
-A release attaches one bare executable that the user copies into a folder of their own, so there
-is nothing - no installer, no package manager - that would ever tell them a newer one exists. The
-bar reads the version number of the newest release from GitHub and says so. **It does no more
-than that.** It downloads nothing and replaces nothing.
+A release attaches an installer, a portable ZIP and the bare executable, and none of the three
+comes with a package manager entry, so nothing would ever tell the user that a newer release
+exists. The bar reads the version number of the newest release from GitHub and says so. **It does
+no more than that.** It downloads nothing and replaces nothing.
 
 That limit is the design, not a stage on the way to something else. The executable is not
-code-signed, so there is little for a downloaded replacement to be checked against; a
-self-replacement that failed would leave the user with an application that will not start; and
-once the installer in #21 puts the file in `Program Files`, writing over it needs elevation and
-the whole approach would have to be redone. Telling the user costs none of that.
+code-signed, so there is little for a downloaded replacement to be checked against, and a
+self-replacement that failed would leave the user with an application that will not start.
+Telling the user costs neither. The installer (#21) is one reason the file it writes goes to
+`%LOCALAPPDATA%\Programs` rather than `Program Files`: what the user installed without
+elevation, the user can replace without elevation.
 
 **The version is read from `api.github.com/repos/.../releases/latest`**, with
 `DataContractJsonSerializer` and a contract naming the one field that is used. That is the tool

@@ -1,8 +1,11 @@
-# Distribution: build, test, package, and attach the package to a release.
+# Distribution: build, test, package, and attach the packages to a release.
+#
+# Three files are published, all carrying the same build: the installer, the portable ZIP, and
+# the executable on its own.
 #
 # A tag push publishes the release. The tag decides both the version stamped into the binaries
 # and the notes, which are taken from the matching section of version.md. A manual run is a dry
-# run: it produces the same package as a workflow artifact, stamped with the version in
+# run: it produces the same three packages as a workflow artifact, stamped with the version in
 # Directory.Build.props, and creates no release, so a change here can be tried out before a tag
 # exists.
 #
@@ -162,18 +165,86 @@ jobs:
         shell: pwsh
         run: Remove-Item -Path artifacts/*.pdb -Force -ErrorAction SilentlyContinue
 
-      - name: Upload the package as a build artifact
+      # The installer and the ZIP carry their version in their file names, so that number has to
+      # be the one the build actually used. On a tag push that is RELEASE_VERSION. On a manual
+      # run nothing set it, and the build kept the <Version> in Directory.Build.props, so the
+      # name is read from there rather than guessed: a file named after a version other than the
+      # one inside it is worse than a file with no version in its name at all.
+      - name: Work out the version the packages are named after
+        shell: pwsh
+        run: |
+          $version = $env:RELEASE_VERSION
+          if (-not $version) {
+            $props = Get-Content Directory.Build.props -Raw
+            if ($props -notmatch '<Version>([^<]+)</Version>') {
+              Write-Error "Directory.Build.props has no <Version> element for the package names to fall back on."
+              exit 1
+            }
+            $version = $Matches[1].Trim()
+          }
+          Add-Content -Path $env:GITHUB_ENV -Value "PACKAGE_VERSION=$version"
+          Write-Host "The packages are named after version $version"
+
+      # Inno Setup is not on the runner image. Chocolatey is, so it installs it. There is no
+      # NuGet package or SDK tool that builds an installer, which is why this one step reaches
+      # outside the .NET toolchain.
+      - name: Install Inno Setup (it builds the installer)
+        run: choco install innosetup --no-progress --yes
+
+      # ISCC writes the installer into artifacts\, beside the executable it packaged, because
+      # OutputDir in the script points back there. The version goes in on the command line; the
+      # script refuses to compile without it.
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) {
+            Write-Error "ISCC.exe is not at $iscc. The Inno Setup install above did not put it where this step expects it."
+            exit 1
+          }
+          & $iscc "/DAppVersion=$env:PACKAGE_VERSION" installer\WindowsSimpleTaskTabBar.iss
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Inno Setup exited with $LASTEXITCODE."
+            exit 1
+          }
+
+      # The portable package, for anyone who cannot or would rather not run an installer. It is
+      # assembled in a folder of its own so the archive holds those four files at its top level
+      # and nothing else - not the installer sitting next to them in artifacts\.
+      - name: Build the portable ZIP
+        shell: pwsh
+        run: |
+          $staging = 'package/portable'
+          New-Item -ItemType Directory -Path $staging -Force | Out-Null
+          Copy-Item artifacts/WindowsSimpleTaskTabBar.exe -Destination $staging
+          Copy-Item README.md, README.ja.md, LICENSE -Destination $staging
+          # Braces around the variable: a period is a valid character in an environment variable
+          # name, so $env:PACKAGE_VERSION.zip would be read as the name of a variable that does
+          # not exist, and the archive would be called WindowsSimpleTaskTabBar-.
+          $zip = "artifacts/WindowsSimpleTaskTabBar-${env:PACKAGE_VERSION}.zip"
+          Compress-Archive -Path "$staging/*" -DestinationPath $zip -Force
+
+      - name: Show what is being published
+        shell: pwsh
+        run: Get-ChildItem artifacts | Select-Object Name, Length | Format-Table -AutoSize
+
+      - name: Upload the packages as a build artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a   # v7.0.1
         with:
           name: WindowsSimpleTaskTabBar
           path: artifacts/
 
-      # A manual run stops here. Only a v* tag creates the release.
-      - name: Attach the package to a release (tag pushes only)
+      # A manual run stops here. Only a v* tag creates the release. The three files are named one
+      # by one rather than taken as artifacts/*, so a file that appeared in that folder for some
+      # other reason cannot find its way into a release.
+      - name: Attach the packages to a release (tag pushes only)
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64   # v3.0.3
         with:
-          files: artifacts/WindowsSimpleTaskTabBar.exe
+          files: |
+            artifacts/WindowsSimpleTaskTabBar-Setup-${{ env.PACKAGE_VERSION }}.exe
+            artifacts/WindowsSimpleTaskTabBar-${{ env.PACKAGE_VERSION }}.zip
+            artifacts/WindowsSimpleTaskTabBar.exe
           body_path: release-notes.md
 
   # A failure here leaves no record otherwise: GitHub emails whoever triggered the run and that is
