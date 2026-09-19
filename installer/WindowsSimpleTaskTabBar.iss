@@ -63,10 +63,18 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 
+; The name of the mutex Program.cs creates to keep a second bar from starting. Naming it here
+; makes Setup and the uninstaller say "close it now, then click OK" when the bar is running,
+; instead of running into whatever the running bar is holding open. It is the message rather
+; than the failure: an uninstall that meets the running bar reports that a file is in use by
+; another process, which tells the user nothing they can act on.
+AppMutex=WindowsSimpleTaskTabBar_SingleInstance
+
 ; The bar holds its own executable open while it runs, so installing over a copy already there
-; has to close it first. Setup asks Windows to close it, rather than telling the user to find
-; the tray icon and exit it by hand. Asking is also what gets the desktop its space back: the
-; bar unregisters itself as an AppBar while it closes, which a forced termination would skip.
+; has to close it first. Once the user has answered the message above, Setup asks Windows to
+; close anything still holding a file, rather than stopping. Asking is also what gets the
+; desktop its space back: the bar unregisters itself as an AppBar while it closes, which a
+; forced termination would skip.
 CloseApplications=yes
 ; Setup does not start it again itself. The last page offers that instead, so an installation
 ; over a running bar ends the same way as a first installation.
@@ -100,8 +108,13 @@ Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
 ; in shell:startup afterwards.
 Name: "{userstartup}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: startupicon
 
+; shellexec, not the ordinary launch. Setup still has the uninstall log open when this runs, and
+; a program it starts as its own child can be handed that file along with it, which leaves the
+; bar holding the log for as long as it runs. The uninstaller then cannot read its own log and
+; stops with "the process cannot access the file", naming a file the user has never heard of.
+; Going through the shell starts the bar with nothing of Setup's passed on to it.
 [Run]
-Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: shellexec nowait postinstall skipifsilent
 
 ; The settings file in %APPDATA%\WindowsSimpleTaskTabBar is deliberately not deleted here. It is
 ; the user's own work - their language, colours, groups and tab order - and uninstalling to
