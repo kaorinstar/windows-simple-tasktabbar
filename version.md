@@ -20,7 +20,6 @@ in [README.md](README.md).
   "Añadir" where Windows says "Agregar", and the setting that follows Windows is now worded as
   Windows' own applications word it in German, French and Korean. Nothing moved and nothing
   changed what it does; only the words did.
-
 - Each release now carries an installer, `WindowsSimpleTaskTabBar-Setup-<version>.exe`. It puts
   the application in place, adds a Start menu entry and an uninstaller, and offers an
   **Automatically start WindowsSimpleTaskTabBar** checkbox. Until now, having the bar at every

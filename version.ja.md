@@ -19,7 +19,6 @@
   Windows・Edge・Chrome はいずれも「guia」を使います。スペイン語の「追加」は Windows と同じ
   「Agregar」にしました。Windows の設定に従う項目の文言も、ドイツ語・フランス語・韓国語で
   Windows 標準の言い回しに合わせています。位置や動作は変わりません。語句だけの変更です。
-
 - 各リリースにインストーラー `WindowsSimpleTaskTabBar-Setup-<バージョン>.exe` を添付するように
   しました。アプリの配置に加えて、スタートメニューの項目と削除用の項目を作り、
   「WindowsSimpleTaskTabBar を自動的に起動する」の選択肢を出します。これまでは、ログオンの
