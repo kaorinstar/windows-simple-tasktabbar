@@ -9,8 +9,10 @@ namespace WindowsSimpleTaskTabBar.Core.Localization;
 /// and <see cref="Canonical"/> decides which row a Windows culture belongs to.
 ///
 /// English is the source language. Every other table is a translation of it, and English is
-/// what an unmatched culture falls back to. Only English and Japanese have been checked by
-/// someone who reads them; corrections to the rest are welcome as issues or pull requests.
+/// what an unmatched culture falls back to. Each table uses the words Windows itself uses in
+/// that language, taken from its settings, File Explorer and taskbar menus, and from Edge and
+/// Chrome for anything to do with tabs. Only English and Japanese have been read by someone who
+/// reads them, so corrections are welcome as issues or pull requests.
 /// </remarks>
 public static class Languages
 {

@@ -61,7 +61,8 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
   Spanish, Portuguese (Brazil), Korean, Polish and Italian. Following Windows is the default, and
   a display language that is none of the twelve shows English. The font follows the language, so
   Chinese, Japanese and Korean each get their own rather than one another's letter shapes.
-  English and Japanese are the two the maintainer can check; corrections to the rest are welcome.
+  Each language uses the words Windows itself uses for the same thing. English and Japanese are
+  the two the maintainer can check; corrections to the rest are welcome.
 
 With grouping turned on, the windows of one application sit together and share a colour along
 the top edge of their tabs, with a rule between one group and the next.
