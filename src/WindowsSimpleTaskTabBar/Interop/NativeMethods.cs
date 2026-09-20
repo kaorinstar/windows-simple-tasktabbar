@@ -16,6 +16,17 @@ internal static class NativeMethods
     public const uint ABM_QUERYPOS = 0x00000002;
     public const uint ABM_SETPOS = 0x00000003;
 
+    /// <summary>
+    /// Asks where the Windows taskbar is. The answer carries the edge it is on, which is what
+    /// the bar follows when the setting says to.
+    /// </summary>
+    public const uint ABM_GETTASKBARPOS = 0x00000005;
+
+    // The four edges an AppBar can sit on. The numbers are the ones
+    // <c>Core/Layout/ScreenEdge</c> uses, so the two need no translation table between them.
+    public const uint ABE_LEFT = 0;
+    public const uint ABE_TOP = 1;
+    public const uint ABE_RIGHT = 2;
     public const uint ABE_BOTTOM = 3;
 
     public const int ABN_STATECHANGE = 0x0000;

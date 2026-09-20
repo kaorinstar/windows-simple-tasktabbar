@@ -89,20 +89,29 @@ public static class PreviewPlacement
     }
 
     /// <summary>
-    /// Where to put a preview of that size: centred over its tab, above the bar, and on screen.
+    /// Where to put a preview of that size: centred over its tab, on the desktop side of the
+    /// bar, and on screen.
     /// </summary>
     /// <remarks>
-    /// Nothing brings the preview back down from the top of the screen, because nothing can put
-    /// it there: <see cref="Fit"/> is given the room above the bar as its maximum height, so a
-    /// preview is never taller than the space it is about to occupy.
+    /// Nothing brings the preview back from the far edge of the screen, because nothing can put
+    /// it there: <see cref="Fit"/> is given the room between the bar and that edge as its
+    /// maximum height, so a preview is never taller than the space it is about to occupy.
     /// </remarks>
     /// <param name="tabLeft">Left edge of the tab, in screen pixels.</param>
-    /// <param name="barTop">Top edge of the bar, in screen pixels.</param>
+    /// <param name="barEdge">
+    /// The edge of the bar the preview sits against, in screen pixels: the bar's top edge when
+    /// the bar is at the bottom of the screen, its bottom edge when the bar is at the top.
+    /// </param>
     /// <param name="screenLeft">Left edge of the screen the bar is on.</param>
     /// <param name="screenRight">Right edge of that screen.</param>
     /// <param name="gap">Space left between the preview and the bar.</param>
+    /// <param name="below">
+    /// Whether the preview hangs below the bar, which is where the room is when the bar is on
+    /// the top edge of the screen.
+    /// </param>
     public static PreviewBox Place(int width, int height, int tabLeft, int tabWidth,
-                                   int barTop, int screenLeft, int screenRight, int gap)
+                                   int barEdge, int screenLeft, int screenRight, int gap,
+                                   bool below)
     {
         int x = tabLeft + (tabWidth - width) / 2;
 
@@ -113,6 +122,8 @@ public static class PreviewPlacement
         if (x > rightMost) x = rightMost;
         if (x < screenLeft) x = screenLeft;
 
-        return new PreviewBox(x, barTop - gap - height, width, height);
+        int y = below ? barEdge + gap : barEdge - gap - height;
+
+        return new PreviewBox(x, y, width, height);
     }
 }

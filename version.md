@@ -11,6 +11,15 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
+## Unreleased
+
+- The bar can sit at the top of the screen as well as at the bottom, and by default it follows
+  the Windows taskbar. Moving the taskbar to the top of the screen now takes the bar up there
+  with it, with nothing to set and no restart.
+- **Bar position** in the settings holds the bar at the top or at the bottom instead, wherever
+  the taskbar is. A taskbar down the left or the right side leaves the bar at the bottom of the
+  screen, which is where it has always been.
+
 ## v0.8.0
 
 - The interface reads better in the ten languages other than English and Japanese. Each table now

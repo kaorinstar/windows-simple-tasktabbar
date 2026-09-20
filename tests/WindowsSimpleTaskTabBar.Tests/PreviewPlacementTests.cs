@@ -108,7 +108,7 @@ public class PreviewPlacementTests
     public void ThePreviewIsCentredOnItsTab()
     {
         PreviewBox box = PreviewPlacement.Place(width: 200, height: 120, tabLeft: 500,
-            tabWidth: 100, barTop: 1000, screenLeft: 0, screenRight: 1920, gap: 6);
+            tabWidth: 100, barEdge: 1000, screenLeft: 0, screenRight: 1920, gap: 6, below: false);
 
         // The tab's middle is 550, so a 200 wide preview starts at 450.
         Assert.Equal(450, box.X);
@@ -120,16 +120,28 @@ public class PreviewPlacementTests
     public void ThePreviewSitsAboveTheBarWithTheGapBetween()
     {
         PreviewBox box = PreviewPlacement.Place(width: 200, height: 120, tabLeft: 500,
-            tabWidth: 100, barTop: 1000, screenLeft: 0, screenRight: 1920, gap: 6);
+            tabWidth: 100, barEdge: 1000, screenLeft: 0, screenRight: 1920, gap: 6, below: false);
 
         Assert.Equal(1000 - 6 - 120, box.Y);
+    }
+
+    [Fact]
+    public void ThePreviewHangsBelowABarOnTheTopEdge()
+    {
+        // The bar is at the top of the screen, so its bottom edge is what the preview sits
+        // against and the room is underneath it.
+        PreviewBox box = PreviewPlacement.Place(width: 200, height: 120, tabLeft: 500,
+            tabWidth: 100, barEdge: 34, screenLeft: 0, screenRight: 1920, gap: 6, below: true);
+
+        Assert.Equal(34 + 6, box.Y);
+        Assert.Equal(450, box.X);
     }
 
     [Fact]
     public void APreviewOverTheFirstTabIsBroughtOntoTheScreen()
     {
         PreviewBox box = PreviewPlacement.Place(width: 200, height: 120, tabLeft: 4,
-            tabWidth: 100, barTop: 1000, screenLeft: 0, screenRight: 1920, gap: 6);
+            tabWidth: 100, barEdge: 1000, screenLeft: 0, screenRight: 1920, gap: 6, below: false);
 
         Assert.Equal(0, box.X);
     }
@@ -138,7 +150,7 @@ public class PreviewPlacementTests
     public void APreviewOverTheLastTabIsBroughtOntoTheScreen()
     {
         PreviewBox box = PreviewPlacement.Place(width: 200, height: 120, tabLeft: 1850,
-            tabWidth: 60, barTop: 1000, screenLeft: 0, screenRight: 1920, gap: 6);
+            tabWidth: 60, barEdge: 1000, screenLeft: 0, screenRight: 1920, gap: 6, below: false);
 
         Assert.Equal(1920 - 200, box.X);
         Assert.True(box.X + box.Width <= 1920);
@@ -149,7 +161,7 @@ public class PreviewPlacementTests
     {
         // A screen to the right of the primary one starts at 1920, not at 0.
         PreviewBox box = PreviewPlacement.Place(width: 200, height: 120, tabLeft: 1930,
-            tabWidth: 60, barTop: 1000, screenLeft: 1920, screenRight: 3840, gap: 6);
+            tabWidth: 60, barEdge: 1000, screenLeft: 1920, screenRight: 3840, gap: 6, below: false);
 
         Assert.Equal(1920, box.X);
     }
@@ -159,7 +171,7 @@ public class PreviewPlacementTests
     {
         // Nothing sensible fits, so the side that carries the title bar is the one kept.
         PreviewBox box = PreviewPlacement.Place(width: 900, height: 120, tabLeft: 100,
-            tabWidth: 100, barTop: 600, screenLeft: 0, screenRight: 800, gap: 6);
+            tabWidth: 100, barEdge: 600, screenLeft: 0, screenRight: 800, gap: 6, below: false);
 
         Assert.Equal(0, box.X);
     }
