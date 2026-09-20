@@ -76,7 +76,7 @@ the top edge of their tabs, with a rule between one group and the next.
 
 The settings:
 
-![The settings window in two columns: language, bar height, colours, tab order and window preview on the left, tab groups, excluded applications and updates on the right](docs/images/settings.png)
+![The settings window in two columns: language, bar height, colours, tab order and window preview on the left, bar position, tab groups, excluded applications and updates on the right](docs/images/settings.png)
 
 ## Download
 
