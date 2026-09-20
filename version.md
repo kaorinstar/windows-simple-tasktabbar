@@ -11,7 +11,7 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
-## Unreleased
+## v0.8.0
 
 - The interface reads better in the ten languages other than English and Japanese. Each table now
   uses the words Windows itself uses for the same thing, rather than a literal rendering of the
@@ -44,6 +44,8 @@ in [README.md](README.md).
   change about the way you use it today.
 - The installer is not code-signed either, so SmartScreen warns the first time it is run, in the
   same way it warns for the executable.
+- The executable is 169,472 bytes, the same as in v0.7.0: the words changed, and a file this
+  size is padded to the same length either way.
 
 ## v0.7.0
 
