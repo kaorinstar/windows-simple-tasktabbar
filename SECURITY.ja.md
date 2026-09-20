@@ -48,8 +48,8 @@ https://github.com/kaorinstar/windows-simple-tasktabbar/releases にあります
 
 以下は文書化済みです。これらの報告からは、すでに書かれている内容以上のものは得られません。
 
-- **実行ファイルに署名していません。** そのため初回起動時に SmartScreen の警告が出ます。
-  証明書の購入が解決策ですが、購入していません
+- **実行ファイルにもインストーラーにも署名していません。** そのため初回の実行時に SmartScreen
+  の警告が出ます。証明書の購入が解決策ですが、購入していません
   （[#71](https://github.com/kaorinstar/windows-simple-tasktabbar/issues/71)）。
 - **3段階の前面化処理は、Windows の前面化制限を迂回します。** 使っているのは公開されたAPI
   （`SetForegroundWindow`、`AttachThreadInput`、`keybd_event` による Alt キーの押下と解放）

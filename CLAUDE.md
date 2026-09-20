@@ -25,8 +25,13 @@ decision.
   fails the tests, so a string added to one table is added to all of them in the same commit.
 - The interface is written in the twelve languages of #35. A thirteenth costs one table in
   `UiStrings.cs` and one row in `Languages.All`, and nothing else. Keep that property.
-- English and Japanese are the two that have been read by someone who knows them. Do not rewrite
-  another language's table on your own judgement; a correction comes from someone who reads it.
+- **A translation follows the words the platform already uses.** Before writing or changing a
+  table, look up what the same thing is called in that language by Windows 11's own settings,
+  File Explorer and the taskbar menus, and by Edge and Chrome for anything to do with tabs. The
+  term already on the user's screen beats a literal rendering of the English, and "nobody here
+  reads that language" is a reason to go and look it up rather than a reason to leave it. English
+  and Japanese are the two anyone here reads, so every other table is checked against those
+  sources; a correction from someone who reads the language settles it over any of this.
 
 ## Build and test
 
@@ -38,11 +43,15 @@ dotnet test -c Release
 
 Warnings are treated as errors. Do not call a task finished while a warning remains.
 
-Producing the package that is actually distributed:
+Producing the executable that is actually distributed:
 
 ```
 dotnet publish src/WindowsSimpleTaskTabBar/WindowsSimpleTaskTabBar.csproj -c Release -f net48 -o artifacts
 ```
+
+A release carries that executable three ways: on its own, inside a portable ZIP, and inside an
+installer built from `installer/WindowsSimpleTaskTabBar.iss` by Inno Setup, which runs on Windows
+only. `release.yml` assembles all three; there is nothing to build here for the other two.
 
 ## Verification
 
@@ -81,7 +90,9 @@ reader choose between them without saying which one you mean.
 2. **Run workflow** → Branch: the branch to test → **Run workflow**. There are no other inputs.
 3. When the run finishes, open it and download the artifact named `WindowsSimpleTaskTabBar`
    from the Artifacts section at the bottom of the page.
-4. Unzip it. `WindowsSimpleTaskTabBar.exe` is the net48 build, which is the one that ships.
+4. Unzip it. It holds the three files a release carries: `WindowsSimpleTaskTabBar.exe`, which is
+   the net48 build and the one that ships, the installer, and the portable ZIP. To test the
+   application itself, run the executable.
 
 A manual run publishes nothing. It stamps the version from `Directory.Build.props` and creates
 no release; only pushing a `v*` tag does that.
@@ -197,6 +208,24 @@ restriction.
 
 `SetWinEventHook` occasionally misses events. The periodic refresh covers that case.
 
+### `shellexec` and `AppMutex` in `installer/WindowsSimpleTaskTabBar.iss`
+
+Setup still has `unins000.dat`, the uninstall log, open while its last page offers to start the
+bar, and a program it starts as its own child can be handed that open file along with it. The bar
+then holds the log for as long as it runs, and the next uninstall stops before it has begun,
+reporting that a file is in use by another process and naming a file the user has never heard of.
+Exiting the bar is the only way out of it, and nothing on screen says so. `shellexec` starts the
+bar through the shell instead, with nothing of Setup's passed on.
+
+`AppMutex` names the mutex `Program.cs` already creates to keep a second bar from starting. It
+makes Setup and the uninstaller say "close it now, then click OK" while the bar is running, which
+is the same sentence in every language Inno Setup ships. It costs the automatic close that
+`CloseApplications` alone gave on an upgrade, and it is worth that: the user is told what to do in
+words they can act on, at the one moment it matters.
+
+Both lines were written after an uninstall failed this way on a real machine (#107). Neither can
+be dropped on the grounds that the installer works without it.
+
 ## Not yet implemented
 
 The list of planned work lives in the issue tracker, not here, so that there is one copy of it to
@@ -251,8 +280,28 @@ repository.
 - `.github/workflows/build.yml` builds and tests for every push to `main` and every pull
   request. It packages nothing and runs with `contents: read`.
 - `.github/workflows/release.yml` builds, tests and packages. Pushing a tag such as `v0.1.0`
-  publishes a release with the net48 package attached. Starting it by hand produces the same
-  package as a build artifact and creates no release. Only this workflow gets `contents: write`.
+  publishes a release with three files attached: the installer, the portable ZIP and the net48
+  executable. Starting it by hand produces the same three as a build artifact and creates no
+  release, which is the only way to try a change to the packaging before a tag exists, since
+  `build.yml` packages nothing. Only this workflow gets `contents: write`.
+
+  The installer is Inno Setup reading `installer/WindowsSimpleTaskTabBar.iss`, installed onto the
+  runner with Chocolatey because the image does not carry it. The script takes its version on the
+  command line and refuses to compile without one, so the tag stays the single place a version is
+  written. It installs for the current user, under `%LOCALAPPDATA%\Programs`, and asks for no
+  administrator rights; its **Automatically start WindowsSimpleTaskTabBar** checkbox is a shortcut
+  in `shell:startup` and nothing else, which is why uninstalling takes it away again.
+
+  The wizard is offered in ten of the twelve languages the bar has, from the files Inno Setup
+  installs, and every word it says is Inno Setup's own. Keep it that way: a sentence written into
+  the script would have to be translated ten times by whoever adds the eleventh language.
+
+  **A language file the installed Inno Setup does not have fails the compile**, which is what
+  happened when the two Chinese languages were named: both `.isl` files are in Inno Setup's
+  source tree, but the release Chocolatey installs does not carry them yet. Naming a language
+  therefore needs a manual `release.yml` run on the branch to prove it, and a tag pushed without
+  one leaves a tag with no release under it. Shipping a copy of an `.isl` beside the script is
+  the way to add a language the compiler lacks, and nobody has needed it enough to do it.
 
 A third file, `.github/workflows/report-build-status.yml`, is called by both once their build job
 finishes, and only for pushes. On a failure it opens an issue labelled `ci-failure`, or comments on
@@ -286,9 +335,10 @@ not mean going stale, and its pull requests run `build.yml` like any other. Depe
 own branches (`dependabot/...`), which is outside the naming convention above and cannot be
 changed.
 
-The net48 package is the only one distributed: .NET Framework 4.8 ships with every supported
-version of Windows, and the build is AnyCPU, so it covers ARM as well. The net8 target is still
-built and tested on every run, as a second compiler over the same source.
+The net48 build is the only one distributed, and all three packages carry it: .NET Framework 4.8
+ships with every supported version of Windows, and the build is AnyCPU, so it covers ARM as well.
+The net8 target is still built and tested on every run, as a second compiler over the same
+source.
 
 ## Releasing
 
@@ -370,3 +420,21 @@ beside them.
 The initial design and implementation were produced in a chat session with Claude running on
 Linux. The `net48` build was verified there, but the application has not been exercised on
 Windows from that environment.
+
+## Choosing a model for subagents
+
+**When calling the Agent tool, name the `model` explicitly. Default to a light model
+(`sonnet` or `haiku`).**
+
+| Model | Work to send there |
+|---|---|
+| `haiku` / `sonnet` | Locating files, grep-style enumeration, mechanical checks, routine work |
+| `opus` | Cross-cutting contradiction hunts, design judgement, anything hard to undo |
+
+- **Explore defaults to a light model** — its job is to find where things are.
+- **Use Opus when you judge it necessary.** This is not an instruction to economise; it is an
+  instruction not to spend Opus on work a light model already handles.
+- **Do not take a light model's answer on trust.** If the output is shallow or looks like it
+  missed something, send it again on Opus rather than building on it.
+
+Each subagent call consumes its own context, so the number of calls is what drives the cost.

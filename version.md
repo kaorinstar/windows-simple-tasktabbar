@@ -11,6 +11,42 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
+## v0.8.0
+
+- The interface reads better in the ten languages other than English and Japanese. Each table now
+  uses the words Windows itself uses for the same thing, rather than a literal rendering of the
+  English: the bar's height was headed "toolbar height" in both Chinese tables, Brazilian
+  Portuguese called a tab an "aba" where Windows, Edge and Chrome all say "guia", Spanish offered
+  "Añadir" where Windows says "Agregar", and the setting that follows Windows is now worded as
+  Windows' own applications word it in German, French and Korean. Nothing moved and nothing
+  changed what it does; only the words did.
+- Each release now carries an installer, `WindowsSimpleTaskTabBar-Setup-<version>.exe`. It puts
+  the application in place, adds a Start menu entry and an uninstaller, and offers an
+  **Automatically start WindowsSimpleTaskTabBar** checkbox. Until now, having the bar at every
+  logon meant opening `shell:startup` and putting a shortcut there by hand.
+- The installer speaks ten of the twelve languages the bar does, and picks the one Windows is
+  set to: English, Japanese, Russian, German, French, Spanish, Portuguese (Brazil), Korean,
+  Polish and Italian. Its own words are the translations that come with the tool that builds it,
+  rather than anything written for this application, and that tool carries no Chinese file yet,
+  so Simplified and Traditional Chinese see the installer in English and the bar itself in
+  Chinese.
+- The installer asks for no administrator rights. It installs for your account alone, into
+  `%LOCALAPPDATA%\Programs\WindowsSimpleTaskTabBar`, so the file it writes is one you can
+  replace yourself when the bar tells you a newer release exists.
+- Installing a newer version over an older one, and uninstalling, both ask you to exit a bar
+  that is running before they go on, and say so in as many words. Uninstalling takes the Start
+  menu entry and the startup shortcut with it. Your settings stay where they are, in `%APPDATA%`,
+  so installing again keeps your language, colours, groups and tab order.
+- A portable package, `WindowsSimpleTaskTabBar-<version>.zip`, is attached as well: the
+  executable with `LICENSE` and both READMEs beside it, for anyone who cannot or would rather not
+  run an installer.
+- `WindowsSimpleTaskTabBar.exe` is still attached on its own and is unchanged, so nothing has to
+  change about the way you use it today.
+- The installer is not code-signed either, so SmartScreen warns the first time it is run, in the
+  same way it warns for the executable.
+- The executable is 169,472 bytes, the same as in v0.7.0: the words changed, and a file this
+  size is padded to the same length either way.
+
 ## v0.7.0
 
 - Applications can now be put in an order of your own. A tab used to land wherever its window

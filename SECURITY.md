@@ -48,8 +48,8 @@ read from the source.
 
 These are documented. A report of one tells us nothing that is not already written down.
 
-- **The executable is not code-signed**, so SmartScreen warns the first time it is run. A
-  certificate is the fix and one has not been bought
+- **Neither the executable nor the installer is code-signed**, so SmartScreen warns the first
+  time each of them is run. A certificate is the fix and one has not been bought
   ([#71](https://github.com/kaorinstar/windows-simple-tasktabbar/issues/71)).
 - **The three activation strategies work around the Windows foreground lock.** They use
   documented API — `SetForegroundWindow`, `AttachThreadInput`, and an Alt press and release
