@@ -679,6 +679,11 @@ internal sealed class SettingsForm : Form
         {
             Text = _text[StringId.EdgeNote],
             AutoSize = true,
+
+            // Wrapped against the same width as every other note. Without the bound this one
+            // lays out as a single line, and a sentence that names the taskbar twice is long
+            // enough to decide how wide the whole dialog is.
+            MaximumSize = new Size(ColumnWidth * 2, 0),
             ForeColor = SystemColors.GrayText,
             Margin = new Padding(4, 0, 4, 4),
         };
