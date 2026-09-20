@@ -11,7 +11,7 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
-## Unreleased
+## v0.8.0
 
 - The interface reads better in the ten languages other than English and Japanese. Each table now
   uses the words Windows itself uses for the same thing, rather than a literal rendering of the
