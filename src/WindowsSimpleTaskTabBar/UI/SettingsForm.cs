@@ -63,6 +63,18 @@ internal sealed class SettingsForm : Form
 
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
         Justification = "Owned by the Controls collection it is added to.")]
+    private RadioButton _followTaskbar;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private RadioButton _edgeBottom;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private RadioButton _edgeTop;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
     private RadioButton _followWindows;
 
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
@@ -386,6 +398,8 @@ internal sealed class SettingsForm : Form
         // tab order stands on the left, and updates, which is about nothing else in this dialog,
         // stands on the right to make up the difference. Moving tab order across instead was
         // measured and only swaps which column is too long: it is the tallest box on its side.
+        // Bar position stands opposite bar height for the same reason, rather than under it
+        // where the subject would put it: the left column is the longer of the two.
         FlowLayoutPanel left = Column();
         left.Controls.Add(BuildLanguageGroup());
         left.Controls.Add(BuildHeightGroup());
@@ -394,6 +408,7 @@ internal sealed class SettingsForm : Form
         left.Controls.Add(BuildPreviewGroup());
 
         FlowLayoutPanel right = Column();
+        right.Controls.Add(BuildEdgeGroup());
         right.Controls.Add(BuildGroupingGroup());
         right.Controls.Add(BuildExclusionsGroup());
         right.Controls.Add(BuildUpdatesGroup());
@@ -631,6 +646,72 @@ internal sealed class SettingsForm : Form
             Margin = new Padding(12, 6, 12, 6),
         };
         box.Controls.Add(content);
+        return box;
+    }
+
+    private GroupBox BuildEdgeGroup()
+    {
+        _followTaskbar = new RadioButton
+        {
+            Text = _text[StringId.EdgeFollowTaskbar],
+            AutoSize = true,
+            Margin = new Padding(4, 4, 4, 2),
+        };
+        _followTaskbar.CheckedChanged += (_, __) => OnEdgeChanged();
+
+        _edgeBottom = new RadioButton
+        {
+            Text = _text[StringId.EdgeBottom],
+            AutoSize = true,
+            Margin = new Padding(4, 2, 4, 2),
+        };
+        _edgeBottom.CheckedChanged += (_, __) => OnEdgeChanged();
+
+        _edgeTop = new RadioButton
+        {
+            Text = _text[StringId.EdgeTop],
+            AutoSize = true,
+            Margin = new Padding(4, 2, 4, 4),
+        };
+        _edgeTop.CheckedChanged += (_, __) => OnEdgeChanged();
+
+        var explanation = new Label
+        {
+            Text = _text[StringId.EdgeNote],
+            AutoSize = true,
+
+            // Wrapped against the same width as every other note. Without the bound this one
+            // lays out as a single line, and a sentence that names the taskbar twice is long
+            // enough to decide how wide the whole dialog is.
+            MaximumSize = new Size(ColumnWidth * 2, 0),
+            ForeColor = SystemColors.GrayText,
+            Margin = new Padding(4, 0, 4, 4),
+        };
+
+        var choices = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.TopDown,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(8, 4, 8, 8),
+
+            // Docked, for the reason given on the box above it.
+            Dock = DockStyle.Fill,
+            WrapContents = false,
+        };
+        choices.Controls.Add(_followTaskbar);
+        choices.Controls.Add(_edgeBottom);
+        choices.Controls.Add(_edgeTop);
+        choices.Controls.Add(explanation);
+
+        var box = new GroupBox
+        {
+            Text = _text[StringId.EdgeGroup],
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(12, 12, 12, 6),
+        };
+        box.Controls.Add(choices);
         return box;
     }
 
@@ -1162,6 +1243,9 @@ internal sealed class SettingsForm : Form
         _language.SelectedIndex = LanguageIndex();
         _standard.Checked = _settings.BarHeight == BarHeightMode.Standard;
         _compact.Checked = _settings.BarHeight == BarHeightMode.Compact;
+        _followTaskbar.Checked = _settings.BarEdge == BarEdgeMode.FollowTaskbar;
+        _edgeBottom.Checked = _settings.BarEdge == BarEdgeMode.Bottom;
+        _edgeTop.Checked = _settings.BarEdge == BarEdgeMode.Top;
         _followWindows.Checked = _settings.Colours == ColourMode.FollowWindows;
         _light.Checked = _settings.Colours == ColourMode.Light;
         _dark.Checked = _settings.Colours == ColourMode.Dark;
@@ -1224,6 +1308,21 @@ internal sealed class SettingsForm : Form
         if (mode == _settings.BarHeight) return;
 
         _settings.BarHeight = mode;
+        _onChanged();
+    }
+
+    private void OnEdgeChanged()
+    {
+        if (_loading) return;
+
+        // As with the height above: CheckedChanged fires for the button being cleared as well as
+        // the one being set, so the stored value decides whether anything happened.
+        BarEdgeMode mode = _edgeBottom.Checked ? BarEdgeMode.Bottom
+            : _edgeTop.Checked ? BarEdgeMode.Top
+            : BarEdgeMode.FollowTaskbar;
+        if (mode == _settings.BarEdge) return;
+
+        _settings.BarEdge = mode;
         _onChanged();
     }
 

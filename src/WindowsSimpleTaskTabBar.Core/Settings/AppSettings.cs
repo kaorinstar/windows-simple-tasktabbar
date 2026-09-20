@@ -17,6 +17,27 @@ public enum BarHeightMode
 }
 
 /// <summary>
+/// Which edge of the screen the bar sits on.
+/// </summary>
+public enum BarEdgeMode
+{
+    /// <summary>
+    /// The edge the Windows taskbar is on, followed as it moves.
+    /// </summary>
+    /// <remarks>
+    /// A taskbar on the left or the right edge leaves the bar at the bottom, because the bar is
+    /// a horizontal row of tabs and has no side edge to follow the taskbar onto (#17).
+    /// </remarks>
+    FollowTaskbar = 0,
+
+    /// <summary>The bottom edge, whichever edge the taskbar is on.</summary>
+    Bottom = 1,
+
+    /// <summary>The top edge, whichever edge the taskbar is on.</summary>
+    Top = 2,
+}
+
+/// <summary>
 /// Which colours the bar draws with.
 /// </summary>
 public enum ColourMode
@@ -45,7 +66,7 @@ public class AppSettings
     /// The schema this instance was written with. Present from the first release so that a later
     /// version can tell an old file apart from a new one instead of guessing.
     /// </summary>
-    public const int CurrentSchema = 8;
+    public const int CurrentSchema = 9;
 
     /// <summary>How many accents a group can be marked with.</summary>
     public const int AccentCount = 8;
@@ -63,6 +84,18 @@ public class AppSettings
     public int Schema { get; set; } = CurrentSchema;
 
     public BarHeightMode BarHeight { get; set; } = BarHeightMode.Standard;
+
+    /// <summary>
+    /// Which edge of the screen the bar sits on, and whether it follows the taskbar there.
+    /// </summary>
+    /// <remarks>
+    /// Follows the taskbar by default, and a settings file written before this setting existed
+    /// reads as following it too. On the taskbar's usual place at the bottom that is exactly
+    /// what the bar did before this setting existed, so an update changes nothing for most
+    /// people; someone whose taskbar is at the top gets the bar up there with it, which is what
+    /// they would have chosen by hand.
+    /// </remarks>
+    public BarEdgeMode BarEdge { get; set; } = BarEdgeMode.FollowTaskbar;
 
     /// <summary>
     /// Which palette the bar draws with, and whether it follows Windows.
@@ -191,6 +224,7 @@ public class AppSettings
         {
             Schema = CurrentSchema,
             BarHeight = IsKnown(BarHeight) ? BarHeight : BarHeightMode.Standard,
+            BarEdge = IsKnown(BarEdge) ? BarEdge : BarEdgeMode.FollowTaskbar,
             Colours = IsKnown(Colours) ? Colours : ColourMode.FollowWindows,
             GroupByApplication = GroupByApplication,
             ShowWindowPreview = ShowWindowPreview,
@@ -219,6 +253,7 @@ public class AppSettings
 
         Schema = tidy.Schema;
         BarHeight = tidy.BarHeight;
+        BarEdge = tidy.BarEdge;
         Colours = tidy.Colours;
         GroupByApplication = tidy.GroupByApplication;
         ShowWindowPreview = tidy.ShowWindowPreview;
@@ -253,6 +288,13 @@ public class AppSettings
     private static bool IsKnown(BarHeightMode mode)
     {
         return mode == BarHeightMode.Standard || mode == BarHeightMode.Compact;
+    }
+
+    private static bool IsKnown(BarEdgeMode mode)
+    {
+        return mode == BarEdgeMode.FollowTaskbar
+               || mode == BarEdgeMode.Bottom
+               || mode == BarEdgeMode.Top;
     }
 
     private static bool IsKnown(ColourMode mode)

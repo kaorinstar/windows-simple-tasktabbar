@@ -47,6 +47,12 @@ public enum StringId
     HeightStandard,
     HeightCompact,
 
+    EdgeGroup,
+    EdgeFollowTaskbar,
+    EdgeBottom,
+    EdgeTop,
+    EdgeNote,
+
     ColourGroup,
     ColourFollowWindows,
     ColourLight,

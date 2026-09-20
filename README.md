@@ -53,6 +53,11 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
 - **Choose the colours** — an option in the settings: follow Windows, always light, or always
   dark. Following Windows is the default, and the bar repaints as soon as that setting changes,
   including the automatic switch some people schedule. Light and dark stay as you set them.
+- **Choose where the bar sits** — an option in the settings: follow the taskbar, the bottom of
+  the screen, or the top. Following the taskbar is the default, so moving the Windows taskbar to
+  the top of the screen takes the bar up there with it, with nothing to set and no restart. A
+  taskbar down the left or the right side leaves the bar at the bottom, because the row of tabs
+  is horizontal.
 - **A new version** — the bar checks for one when it starts and tells you when there is one.
   Nothing is downloaded. See [Updates](#updates).
 
@@ -71,7 +76,7 @@ the top edge of their tabs, with a rule between one group and the next.
 
 The settings:
 
-![The settings window in two columns: language, bar height, colours, tab order and window preview on the left, tab groups, excluded applications and updates on the right](docs/images/settings.png)
+![The settings window in two columns: language, bar height, colours, tab order and window preview on the left, bar position, tab groups, excluded applications and updates on the right](docs/images/settings.png)
 
 ## Download
 

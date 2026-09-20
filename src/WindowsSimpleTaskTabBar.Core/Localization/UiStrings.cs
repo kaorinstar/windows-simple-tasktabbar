@@ -45,6 +45,16 @@ public static class UiStrings
         { StringId.HeightStandard, "Standard ({0} px)" },
         { StringId.HeightCompact, "Compact ({0} px) - gives the height back to your windows" },
 
+        { StringId.EdgeGroup, "Bar position" },
+        { StringId.EdgeFollowTaskbar, "Follow the taskbar" },
+        { StringId.EdgeBottom, "Bottom of the screen" },
+        { StringId.EdgeTop, "Top of the screen" },
+        {
+            StringId.EdgeNote,
+            "Following the taskbar puts the bar at the top of the screen when the taskbar is there."
+            + " A taskbar down the left or the right side leaves the bar at the bottom."
+        },
+
         { StringId.ColourGroup, "Colours" },
         { StringId.ColourFollowWindows, "Follow Windows" },
         { StringId.ColourLight, "Light" },
@@ -156,6 +166,16 @@ public static class UiStrings
         { StringId.HeightStandard, "標準 ({0} px)" },
         { StringId.HeightCompact, "コンパクト ({0} px) - その分だけウィンドウを広く使えます" },
 
+        { StringId.EdgeGroup, "バーの位置" },
+        { StringId.EdgeFollowTaskbar, "タスクバーに合わせる" },
+        { StringId.EdgeBottom, "画面の下" },
+        { StringId.EdgeTop, "画面の上" },
+        {
+            StringId.EdgeNote,
+            "タスクバーに合わせると、タスクバーが画面の上にあるときはバーも上に表示されます。"
+            + "タスクバーが左右にあるときは、バーは画面の下に表示されます。"
+        },
+
         { StringId.ColourGroup, "配色" },
         { StringId.ColourFollowWindows, "Windows に合わせる" },
         { StringId.ColourLight, "ライト" },
@@ -256,6 +276,16 @@ public static class UiStrings
         { StringId.HeightStandard, "标准 ({0} px)" },
         { StringId.HeightCompact, "紧凑 ({0} px) - 把这部分高度还给窗口" },
 
+        { StringId.EdgeGroup, "标签栏位置" },
+        { StringId.EdgeFollowTaskbar, "跟随任务栏" },
+        { StringId.EdgeBottom, "屏幕底部" },
+        { StringId.EdgeTop, "屏幕顶部" },
+        {
+            StringId.EdgeNote,
+            "跟随任务栏时，任务栏移到屏幕顶部，标签栏也会移到顶部。"
+            + "任务栏位于左侧或右侧时，标签栏保持在屏幕底部。"
+        },
+
         { StringId.ColourGroup, "颜色" },
         { StringId.ColourFollowWindows, "跟随 Windows" },
         { StringId.ColourLight, "浅色" },
@@ -343,6 +373,16 @@ public static class UiStrings
         { StringId.HeightGroup, "索引標籤列高度" },
         { StringId.HeightStandard, "標準 ({0} px)" },
         { StringId.HeightCompact, "精簡 ({0} px) - 把這部分高度還給視窗" },
+
+        { StringId.EdgeGroup, "索引標籤列位置" },
+        { StringId.EdgeFollowTaskbar, "跟隨工作列" },
+        { StringId.EdgeBottom, "螢幕下方" },
+        { StringId.EdgeTop, "螢幕上方" },
+        {
+            StringId.EdgeNote,
+            "跟隨工作列時，工作列移到螢幕上方，索引標籤列也會移到上方。"
+            + "工作列位於左側或右側時，索引標籤列維持在螢幕下方。"
+        },
 
         { StringId.ColourGroup, "色彩" },
         { StringId.ColourFollowWindows, "跟隨 Windows" },
@@ -434,6 +474,16 @@ public static class UiStrings
         { StringId.HeightGroup, "Высота панели" },
         { StringId.HeightStandard, "Обычная ({0} px)" },
         { StringId.HeightCompact, "Компактная ({0} px) - возвращает высоту вашим окнам" },
+
+        { StringId.EdgeGroup, "Положение панели" },
+        { StringId.EdgeFollowTaskbar, "Как у панели задач" },
+        { StringId.EdgeBottom, "Внизу экрана" },
+        { StringId.EdgeTop, "Вверху экрана" },
+        {
+            StringId.EdgeNote,
+            "Если панель задач находится вверху экрана, панель вкладок тоже переходит вверх."
+            + " Когда панель задач расположена слева или справа, панель вкладок остаётся внизу."
+        },
 
         { StringId.ColourGroup, "Цвета" },
         { StringId.ColourFollowWindows, "Как в Windows" },
@@ -555,6 +605,16 @@ public static class UiStrings
         { StringId.HeightStandard, "Standard ({0} px)" },
         { StringId.HeightCompact, "Kompakt ({0} px) - gibt die Höhe an Ihre Fenster zurück" },
 
+        { StringId.EdgeGroup, "Position der Leiste" },
+        { StringId.EdgeFollowTaskbar, "Taskleiste folgen" },
+        { StringId.EdgeBottom, "Unterer Bildschirmrand" },
+        { StringId.EdgeTop, "Oberer Bildschirmrand" },
+        {
+            StringId.EdgeNote,
+            "Liegt die Taskleiste am oberen Bildschirmrand, wandert die Leiste mit nach oben."
+            + " Bei einer Taskleiste am linken oder rechten Rand bleibt die Leiste unten."
+        },
+
         { StringId.ColourGroup, "Farben" },
         { StringId.ColourFollowWindows, "Systemstandard" },
         { StringId.ColourLight, "Hell" },
@@ -675,6 +735,16 @@ public static class UiStrings
         { StringId.HeightStandard, "Standard ({0} px)" },
         { StringId.HeightCompact, "Compacte ({0} px) - rend la hauteur à vos fenêtres" },
 
+        { StringId.EdgeGroup, "Position de la barre" },
+        { StringId.EdgeFollowTaskbar, "Suivre la barre des tâches" },
+        { StringId.EdgeBottom, "En bas de l'écran" },
+        { StringId.EdgeTop, "En haut de l'écran" },
+        {
+            StringId.EdgeNote,
+            "Si la barre des tâches est en haut de l'écran, la barre monte avec elle."
+            + " Avec une barre des tâches à gauche ou à droite, la barre reste en bas."
+        },
+
         { StringId.ColourGroup, "Couleurs" },
         { StringId.ColourFollowWindows, "Utiliser le thème Windows" },
         { StringId.ColourLight, "Clair" },
@@ -794,6 +864,16 @@ public static class UiStrings
         { StringId.HeightStandard, "Estándar ({0} px)" },
         { StringId.HeightCompact, "Compacta ({0} px) - devuelve esa altura a tus ventanas" },
 
+        { StringId.EdgeGroup, "Posición de la barra" },
+        { StringId.EdgeFollowTaskbar, "Seguir a la barra de tareas" },
+        { StringId.EdgeBottom, "Parte inferior de la pantalla" },
+        { StringId.EdgeTop, "Parte superior de la pantalla" },
+        {
+            StringId.EdgeNote,
+            "Si la barra de tareas está en la parte superior de la pantalla, la barra sube con ella."
+            + " Con la barra de tareas a la izquierda o a la derecha, la barra se queda abajo."
+        },
+
         { StringId.ColourGroup, "Colores" },
         { StringId.ColourFollowWindows, "Seguir a Windows" },
         { StringId.ColourLight, "Claro" },
@@ -912,6 +992,16 @@ public static class UiStrings
         { StringId.HeightStandard, "Padrão ({0} px)" },
         { StringId.HeightCompact, "Compacta ({0} px) - devolve essa altura às suas janelas" },
 
+        { StringId.EdgeGroup, "Posição da barra" },
+        { StringId.EdgeFollowTaskbar, "Seguir a barra de tarefas" },
+        { StringId.EdgeBottom, "Parte inferior da tela" },
+        { StringId.EdgeTop, "Parte superior da tela" },
+        {
+            StringId.EdgeNote,
+            "Se a barra de tarefas estiver na parte superior da tela, a barra sobe junto."
+            + " Com a barra de tarefas à esquerda ou à direita, a barra fica na parte inferior."
+        },
+
         { StringId.ColourGroup, "Cores" },
         { StringId.ColourFollowWindows, "Seguir o Windows" },
         { StringId.ColourLight, "Claro" },
@@ -1024,6 +1114,16 @@ public static class UiStrings
         { StringId.HeightStandard, "표준 ({0} px)" },
         { StringId.HeightCompact, "좁게 ({0} px) - 그만큼 창을 넓게 사용합니다" },
 
+        { StringId.EdgeGroup, "표시줄 위치" },
+        { StringId.EdgeFollowTaskbar, "작업 표시줄 따라가기" },
+        { StringId.EdgeBottom, "화면 아래쪽" },
+        { StringId.EdgeTop, "화면 위쪽" },
+        {
+            StringId.EdgeNote,
+            "작업 표시줄이 화면 위쪽에 있으면 표시줄도 위쪽으로 이동합니다."
+            + "작업 표시줄이 왼쪽이나 오른쪽에 있으면 표시줄은 화면 아래쪽에 유지됩니다."
+        },
+
         { StringId.ColourGroup, "색" },
         { StringId.ColourFollowWindows, "시스템 설정 사용" },
         { StringId.ColourLight, "밝게" },
@@ -1122,6 +1222,16 @@ public static class UiStrings
         { StringId.HeightGroup, "Wysokość paska" },
         { StringId.HeightStandard, "Standardowa ({0} px)" },
         { StringId.HeightCompact, "Kompaktowa ({0} px) - oddaje tę wysokość Twoim oknom" },
+
+        { StringId.EdgeGroup, "Położenie paska" },
+        { StringId.EdgeFollowTaskbar, "Jak pasek zadań" },
+        { StringId.EdgeBottom, "U dołu ekranu" },
+        { StringId.EdgeTop, "U góry ekranu" },
+        {
+            StringId.EdgeNote,
+            "Gdy pasek zadań znajduje się u góry ekranu, pasek kart przenosi się razem z nim."
+            + " Przy pasku zadań po lewej lub prawej stronie pasek kart pozostaje u dołu."
+        },
 
         { StringId.ColourGroup, "Kolory" },
         { StringId.ColourFollowWindows, "Jak w systemie Windows" },
@@ -1242,6 +1352,16 @@ public static class UiStrings
         {
             StringId.HeightCompact,
             "Compatta ({0} px) - restituisce quell'altezza alle tue finestre"
+        },
+
+        { StringId.EdgeGroup, "Posizione della barra" },
+        { StringId.EdgeFollowTaskbar, "Segui la barra delle applicazioni" },
+        { StringId.EdgeBottom, "Parte inferiore dello schermo" },
+        { StringId.EdgeTop, "Parte superiore dello schermo" },
+        {
+            StringId.EdgeNote,
+            "Se la barra delle applicazioni si trova in alto, la barra si sposta in alto con essa."
+            + " Con la barra delle applicazioni a sinistra o a destra, la barra resta in basso."
         },
 
         { StringId.ColourGroup, "Colori" },

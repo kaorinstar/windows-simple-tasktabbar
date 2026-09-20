@@ -37,6 +37,7 @@ windows-simple-tasktabbar/
 │   │   │   └── TabGrouping.cs     どのタブがどのグループかと、行の並び順
 │   │   ├── Layout/
 │   │   │   ├── BarMetrics.cs      バーの高さとDPIから決まる描画寸法
+│   │   │   ├── BarPlacement.cs    バーを置く画面の端と、その位置の計算
 │   │   │   └── TabStrip.cs        タブ幅・あふれ・スクロールの計算
 │   │   ├── Localization/
 │   │   │   ├── LanguageInfo.cs    1つの言語の名前と表示に使う書体
@@ -78,6 +79,7 @@ windows-simple-tasktabbar/
         ├── AppSettingsTests.cs
         ├── BarMetricsTests.cs
         ├── BarPaletteTests.cs
+        ├── BarPlacementTests.cs
         ├── LocalizationTests.cs
         ├── PreviewPlacementTests.cs
         ├── ReleaseVersionTests.cs
@@ -149,6 +151,25 @@ Interop/NativeMethods.cs（Windows API）
 
 上の層から下の層だけを呼びます。逆向きの呼び出しはしません。
 `NativeMethods` の呼び出しは `Interop` に閉じ込め、他の場所には書かない方針です。
+
+## タスクバーの隣に置く仕組み
+
+`UI/MainForm.cs` は `SHAppBarMessage` で AppBar として登録します。これにより画面の作業領域の
+一部が確保され、最大化したウィンドウがバーを覆いません。単に最前面にするだけでは、他の
+ウィンドウと重なるだけで同じ結果にはなりません。
+
+バーを置く端は設定項目です。初期状態ではタスクバーと同じ端に置きます。`ABM_GETTASKBARPOS` で
+タスクバーの位置を尋ね、`Core/Layout/BarPlacement.cs` が設定と合わせて、置く端と矩形を決めます。
+`UpdateAppBarPosition` は起動時だけでなく呼ばれるたびにこの判定を行います。タスクバーが動いた
+ときは AppBar の通知で同じ処理が走るため、タスクバーを反対の端へ移しても、再起動せずにバーが
+追従します。
+
+タスクバーが左右にあるときは、バーは画面の下に置きます。タブは横一列に並ぶため、縦の端に
+沿わせることができません。縦置きは別の課題として扱います（#17）。
+
+バーが上にあるときは、描画を上下反転します。タブはバーの上端から下げ、角の丸みは下側に付けます。
+グループの色帯はデスクトップ側の端に沿って引き、デスクトップとの境界線はバーの下端に移ります。
+ウィンドウのプレビューはバーの下に表示します。
 
 ## 前面のタブの示し方
 

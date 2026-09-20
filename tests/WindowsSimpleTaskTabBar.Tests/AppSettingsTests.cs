@@ -64,6 +64,31 @@ public class AppSettingsTests
     }
 
     [Fact]
+    public void DefaultsToFollowingTheTaskbar()
+    {
+        // The taskbar is at the bottom unless it has been moved, which is where the bar sat
+        // before this setting existed, so an update changes nothing for most people.
+        Assert.Equal(BarEdgeMode.FollowTaskbar, new AppSettings().BarEdge);
+    }
+
+    [Fact]
+    public void AnUnknownEdgeFallsBackToFollowingTheTaskbar()
+    {
+        var settings = new AppSettings { BarEdge = (BarEdgeMode)99 };
+
+        Assert.Equal(BarEdgeMode.FollowTaskbar, settings.Normalized().BarEdge);
+    }
+
+    [Fact]
+    public void NormalizingKeepsAChosenEdge()
+    {
+        var settings = new AppSettings { BarEdge = BarEdgeMode.Top };
+        settings.Normalize();
+
+        Assert.Equal(BarEdgeMode.Top, settings.BarEdge);
+    }
+
+    [Fact]
     public void NormalizingStampsTheCurrentSchema()
     {
         var settings = new AppSettings { Schema = 0 };

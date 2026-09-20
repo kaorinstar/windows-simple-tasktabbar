@@ -38,6 +38,7 @@ windows-simple-tasktabbar/
 │   │   │   └── TabGrouping.cs              Which group a tab is in, and the row's order
 │   │   ├── Layout/
 │   │   │   ├── BarMetrics.cs               Drawing sizes, from bar height and DPI
+│   │   │   ├── BarPlacement.cs             Which screen edge the bar sits on, and where
 │   │   │   └── TabStrip.cs                 Tab width, overflow, scroll arithmetic
 │   │   ├── Localization/
 │   │   │   ├── LanguageInfo.cs             One language: its name and its font
@@ -79,6 +80,7 @@ windows-simple-tasktabbar/
         ├── AppSettingsTests.cs
         ├── BarMetricsTests.cs
         ├── BarPaletteTests.cs
+        ├── BarPlacementTests.cs
         ├── LocalizationTests.cs
         ├── PreviewPlacementTests.cs
         ├── ReleaseVersionTests.cs
@@ -154,11 +156,26 @@ and must not appear anywhere else.
 
 ## Key implementation notes
 
-### Sitting above the taskbar
+### Sitting beside the taskbar
 
 `UI/MainForm.cs` registers an AppBar through `SHAppBarMessage`, which reserves part of the
 desktop work area. Because the area is reserved, maximized windows do not cover the bar. Simply
 setting a window to topmost would not achieve this — it would overlap other windows instead.
+
+The edge the bar reserves is a setting, and by default it is the edge the Windows taskbar is on:
+`ABM_GETTASKBARPOS` answers where the taskbar is, and `Core/Layout/BarPlacement.cs` turns that
+and the setting into the edge and the rectangle. `UpdateAppBarPosition` settles both on every
+call rather than once at start-up, and the AppBar callback already runs it whenever the taskbar
+moves, so the bar follows a taskbar dragged to the other edge without a restart.
+
+A taskbar down the left or the right side leaves the bar at the bottom. The row of tabs is
+horizontal, so there is no side edge for it to follow the taskbar onto; standing the bar on one
+is tracked separately (#17).
+
+Everything the bar draws is mirrored when it sits at the top: the tabs hang from its top edge,
+their corners are rounded underneath, a group's accent runs along the edge facing the desktop,
+the line that marks the bar off from the desktop moves to the foot of the bar, and a window
+preview hangs below it rather than above.
 
 ### Three-step activation
 

@@ -59,6 +59,17 @@ public class MainForm : Form
 
     private uint _callbackMessage;
     private bool _appBarRegistered;
+
+    /// <summary>
+    /// Which edge the bar is drawn against now. Settled by the setting and, when that says to
+    /// follow the taskbar, by where the taskbar is; every size and every rounded corner below
+    /// reads it rather than assuming the bottom.
+    /// </summary>
+    private ScreenEdge _edge = ScreenEdge.Bottom;
+
+    /// <summary>Whether the bar sits on the top edge, which mirrors everything it draws.</summary>
+    private bool AtTop => _edge == ScreenEdge.Top;
+
     private bool _released;               // see ReleaseResources
 
     private readonly List<TabItem> _tabs = new();
@@ -863,6 +874,31 @@ public class MainForm : Form
         _appBarRegistered = false;
     }
 
+    /// <summary>
+    /// Which edge of the screen the Windows taskbar is on, or the bottom when Windows does not
+    /// answer.
+    /// </summary>
+    /// <remarks>
+    /// The bottom rather than nothing, because that is where the taskbar is unless it has been
+    /// moved, and it is where the bar sat before it could follow anything. A call that fails
+    /// therefore leaves the bar where the user already expects it.
+    /// </remarks>
+    private static ScreenEdge TaskbarEdge()
+    {
+        var data = new NativeMethods.APPBARDATA
+        {
+            cbSize = System.Runtime.InteropServices.Marshal.SizeOf<NativeMethods.APPBARDATA>(),
+        };
+
+        if (NativeMethods.SHAppBarMessage(NativeMethods.ABM_GETTASKBARPOS, ref data) == 0)
+            return ScreenEdge.Bottom;
+
+        if (data.uEdge == NativeMethods.ABE_TOP) return ScreenEdge.Top;
+        if (data.uEdge == NativeMethods.ABE_LEFT) return ScreenEdge.Left;
+        if (data.uEdge == NativeMethods.ABE_RIGHT) return ScreenEdge.Right;
+        return ScreenEdge.Bottom;
+    }
+
     private void UpdateAppBarPosition()
     {
         if (!_appBarRegistered) return;
@@ -870,27 +906,51 @@ public class MainForm : Form
         Rectangle screen = Screen.PrimaryScreen.Bounds;
         int height = _metrics.BarHeight;
 
+        // Settled on every call rather than once at start-up: this runs again whenever the
+        // taskbar moves, so a taskbar dragged to the other edge takes the bar with it.
+        ScreenEdge edge = BarPlacement.Resolve(_settings.BarEdge, TaskbarEdge());
+        bool edgeChanged = edge != _edge;
+        _edge = edge;
+
+        BarBox wanted = BarPlacement.Requested(
+            screen.Left, screen.Top, screen.Right, screen.Bottom, edge, height);
+
         var data = new NativeMethods.APPBARDATA
         {
             cbSize = System.Runtime.InteropServices.Marshal.SizeOf<NativeMethods.APPBARDATA>(),
             hWnd = Handle,
-            uEdge = NativeMethods.ABE_BOTTOM,
+            uEdge = edge == ScreenEdge.Top ? NativeMethods.ABE_TOP : NativeMethods.ABE_BOTTOM,
         };
-        data.rc.left = screen.Left;
-        data.rc.right = screen.Right;
-        data.rc.top = screen.Bottom - height;
-        data.rc.bottom = screen.Bottom;
+        data.rc.left = wanted.Left;
+        data.rc.top = wanted.Top;
+        data.rc.right = wanted.Right;
+        data.rc.bottom = wanted.Bottom;
 
-        // Ask the system for free space at the bottom edge; this pushes the bar above the taskbar.
+        // Ask the system for free space at that edge; this keeps the bar clear of the taskbar.
         NativeMethods.SHAppBarMessage(NativeMethods.ABM_QUERYPOS, ref data);
-        data.rc.top = data.rc.bottom - height;
+
+        BarBox placed = BarPlacement.Settled(
+            new BarBox(data.rc.left, data.rc.top, data.rc.right, data.rc.bottom), edge, height);
+
+        data.rc.left = placed.Left;
+        data.rc.top = placed.Top;
+        data.rc.right = placed.Right;
+        data.rc.bottom = placed.Bottom;
 
         NativeMethods.SHAppBarMessage(NativeMethods.ABM_SETPOS, ref data);
 
         NativeMethods.SetWindowPos(Handle, IntPtr.Zero,
-            data.rc.left, data.rc.top,
-            data.rc.right - data.rc.left, data.rc.bottom - data.rc.top,
+            placed.Left, placed.Top, placed.Width, placed.Height,
             NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_SHOWWINDOW);
+
+        if (!edgeChanged) return;
+
+        // Moving to the other edge turns the bar over: the tabs hang from the other side and
+        // their corners are rounded on it. The window is the same size either way, so nothing
+        // else asks for this.
+        DiscardPreview();
+        LayoutTabs();
+        Invalidate();
     }
 
     protected override void WndProc(ref Message m)
@@ -1376,8 +1436,12 @@ public class MainForm : Form
     private void LayoutTabs()
     {
         int margin = _metrics.OuterMargin;
-        int top = _metrics.TopOffset;
-        int height = ClientSize.Height - top;
+
+        // The gap goes between the tabs and the edge the desktop is on, so a bar at the top
+        // hangs its tabs from its own top edge and leaves the gap underneath them. Either way a
+        // tab stands on the edge the bar sits against.
+        int top = AtTop ? 0 : _metrics.TopOffset;
+        int height = ClientSize.Height - _metrics.TopOffset;
         int gap = _metrics.TabGap;
 
         if (_tabs.Count == 0)
@@ -1609,15 +1673,18 @@ public class MainForm : Form
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
         g.Clear(_cBack);
 
+        // The line marks the bar off from the desktop, so it is drawn on the side the desktop
+        // is on: the bar's top edge at the bottom of the screen, its bottom edge at the top.
+        int line = AtTop ? ClientSize.Height - 1 : 0;
         using (var pen = new Pen(_cLine))
-            g.DrawLine(pen, 0, 0, ClientSize.Width, 0);
+            g.DrawLine(pen, 0, line, ClientSize.Width, line);
 
         if (_tabs.Count == 0)
         {
             // Centred in the bar rather than placed at a fixed offset, so it stays put when
             // the bar height changes.
             var emptyRect = new Rectangle(
-                _metrics.Padding, _metrics.TopOffset,
+                _metrics.Padding, AtTop ? 0 : _metrics.TopOffset,
                 ClientSize.Width - _metrics.Padding * 2, ClientSize.Height - _metrics.TopOffset);
             TextRenderer.DrawText(g, _text[StringId.BarNoWindows], _font, emptyRect, _cText,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
@@ -1656,17 +1723,22 @@ public class MainForm : Form
         // nothing else: drawing it taller moved the group accent off the top edge it shares with
         // the tabs beside it, and left the two out of line.
         //
-        // The active tab's foot alone goes past the bottom of the bar, by the width of the
-        // outline. The outline follows a closed path, and a bottom edge left on the last row of
+        // The active tab's foot alone goes past the edge of the bar, by the width of the
+        // outline. The outline follows a closed path, and an edge left on the last row of
         // pixels would be drawn as a line under the tab; pushed out of the client area it is not
         // drawn at all, which is what a tab standing on the edge of the bar should look like.
-        // The fill does not care: everything below the bar is clipped away either way.
+        // The fill does not care: everything past the bar is clipped away either way. The foot
+        // is the tab's bottom on a bar at the bottom of the screen and its top on one at the
+        // top, which is the edge it stands on in each case.
         Rectangle body = tab.Active
-            ? Rectangle.FromLTRB(tab.Bounds.Left, tab.Bounds.Top,
-                                 tab.Bounds.Right, tab.Bounds.Bottom + _metrics.ActiveOutlineWidth)
+            ? (AtTop
+                ? Rectangle.FromLTRB(tab.Bounds.Left, tab.Bounds.Top - _metrics.ActiveOutlineWidth,
+                                     tab.Bounds.Right, tab.Bounds.Bottom)
+                : Rectangle.FromLTRB(tab.Bounds.Left, tab.Bounds.Top,
+                                     tab.Bounds.Right, tab.Bounds.Bottom + _metrics.ActiveOutlineWidth))
             : tab.Bounds;
 
-        using (GraphicsPath path = RoundedTop(body, _metrics.CornerRadius))
+        using (GraphicsPath path = Rounded(body, _metrics.CornerRadius, roundTop: !AtTop))
         {
             using (var brush = new SolidBrush(fill))
                 g.FillPath(brush, path);
@@ -1678,8 +1750,8 @@ public class MainForm : Form
             }
 
             // After the outline, so a marked tab keeps the full thickness of its accent and the
-            // group still reads as one band along the top of the row. The outline is left down
-            // the sides, which is where it does the marking.
+            // group still reads as one band along the free edge of the row. The outline is left
+            // down the sides, which is where it does the marking.
             if (tab.Marked) DrawGroupBand(g, path, tab);
         }
 
@@ -1726,8 +1798,8 @@ public class MainForm : Form
     }
 
     /// <summary>
-    /// The accent along a grouped tab's top edge, clipped to the tab's own outline so it follows
-    /// the rounded corners rather than squaring them off.
+    /// The accent along a grouped tab's free edge, clipped to the tab's own outline so it
+    /// follows the rounded corners rather than squaring them off.
     /// </summary>
     /// <remarks>
     /// Save and Restore rather than ResetClip: OnPaint has clipped the row to _contentRect, and
@@ -1742,7 +1814,7 @@ public class MainForm : Form
         g.SetClip(path, CombineMode.Intersect);
 
         using (var brush = new SolidBrush(GroupAccent(tab)))
-            g.FillRectangle(brush, tab.Bounds.Left, tab.Bounds.Top,
+            g.FillRectangle(brush, tab.Bounds.Left, BandTop(tab.Bounds),
                             tab.Bounds.Width, _metrics.GroupBandHeight);
 
         g.Restore(state);
@@ -1782,7 +1854,7 @@ public class MainForm : Form
             if (sameGroup)
             {
                 using var brush = new SolidBrush(GroupAccent(left));
-                g.FillRectangle(brush, x, left.Bounds.Top, width, _metrics.GroupBandHeight);
+                g.FillRectangle(brush, x, BandTop(left.Bounds), width, _metrics.GroupBandHeight);
             }
             else if (left.Marked || right.Marked)
             {
@@ -1829,13 +1901,44 @@ public class MainForm : Form
         g.DrawLine(pen, tip, cy, tail, cy + arm);
     }
 
-    private static GraphicsPath RoundedTop(Rectangle r, int radius)
+    /// <summary>
+    /// Where a group's accent band sits inside a tab: along the tab's free edge, which is the
+    /// one the desktop is on.
+    /// </summary>
+    /// <remarks>
+    /// The same edge the corners are rounded on, so the band follows the rounding rather than
+    /// cutting across the square foot the tab stands on.
+    /// </remarks>
+    private int BandTop(Rectangle tab)
+    {
+        return AtTop ? tab.Bottom - _metrics.GroupBandHeight : tab.Top;
+    }
+
+    /// <summary>
+    /// A tab's outline: rounded on the edge facing the desktop, square on the edge it stands on.
+    /// </summary>
+    /// <param name="roundTop">
+    /// Whether the top corners are the rounded pair, which they are while the bar is at the
+    /// bottom of the screen. A bar at the top hangs its tabs the other way up.
+    /// </param>
+    private static GraphicsPath Rounded(Rectangle r, int radius, bool roundTop)
     {
         var path = new GraphicsPath();
         int d = radius * 2;
-        path.AddArc(r.Left, r.Top, d, d, 180, 90);
-        path.AddArc(r.Right - d, r.Top, d, d, 270, 90);
-        path.AddLine(r.Right, r.Bottom, r.Left, r.Bottom);
+
+        if (roundTop)
+        {
+            path.AddArc(r.Left, r.Top, d, d, 180, 90);
+            path.AddArc(r.Right - d, r.Top, d, d, 270, 90);
+            path.AddLine(r.Right, r.Bottom, r.Left, r.Bottom);
+        }
+        else
+        {
+            path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+            path.AddArc(r.Left, r.Bottom - d, d, d, 90, 90);
+            path.AddLine(r.Left, r.Top, r.Right, r.Top);
+        }
+
         path.CloseFigure();
         return path;
     }
@@ -1999,11 +2102,12 @@ public class MainForm : Form
     /// this the bar would clear its hover as the pointer arrived, and the preview would take
     /// itself down at the moment the user reached for it.
     ///
-    /// The way between them is the strip the bar leaves above the tabs, <see cref="BarMetrics.
-    /// TopOffset"/> tall, which belongs to no tab: the preview covers the top row of it and the
-    /// tabs start below it, so a couple of pixels in between are on the bar and on nothing. A
+    /// The way between them is the strip the bar leaves beside the tabs, <see cref="BarMetrics.
+    /// TopOffset"/> tall, which belongs to no tab: the preview covers the first row of it and the
+    /// tabs start past it, so a couple of pixels in between are on the bar and on nothing. A
     /// pointer moving fast crosses them in one message and a slow one lands in them, which is
-    /// what made this show up as "it disappears if I move slowly".
+    /// what made this show up as "it disappears if I move slowly". On a bar at the top of the
+    /// screen the strip is at the foot of the bar, because that is the side the preview is on.
     /// </remarks>
     private bool PointerIsAtPreview
     {
@@ -2013,7 +2117,11 @@ public class MainForm : Form
             if (_preview.Bounds.Contains(MousePosition)) return true;
 
             Point p = PointToClient(MousePosition);
-            return ClientRectangle.Contains(p) && p.Y < _metrics.TopOffset;
+            if (!ClientRectangle.Contains(p)) return false;
+
+            return AtTop
+                ? p.Y >= ClientSize.Height - _metrics.TopOffset
+                : p.Y < _metrics.TopOffset;
         }
     }
 
@@ -2064,17 +2172,24 @@ public class MainForm : Form
         Rectangle tab = RectangleToScreen(_tabs[index].Bounds);
         Rectangle screen = Screen.FromControl(this).Bounds;
 
-        // No gap. The panel sits on the bar's top edge so the pointer can travel from the tab
-        // onto it without crossing anything in between: a gap is desktop, and the moment the
+        // No gap. The panel sits against the bar's free edge so the pointer can travel from the
+        // tab onto it without crossing anything in between: a gap is desktop, and the moment the
         // pointer touched it the bar would lose its hover and take the preview down. The
         // taskbar's own thumbnails sit against it for the same reason.
         const int gap = 0;
 
-        // As large as the box allows, and never taller than the room above the bar, which the
-        // title and the frame are taken out of first. Fit is what keeps the whole panel inside
-        // that room, so Place has nothing to bring back down from the top.
+        // The desktop is on the other side of the bar from the edge it sits on, so a bar at the
+        // top of the screen hangs its previews underneath itself.
+        bool below = AtTop;
+        int barEdge = below ? Bottom : Top;
+
+        // As large as the box allows, and never taller than the room between the bar and the far
+        // edge of the screen, which the title and the frame are taken out of first. Fit is what
+        // keeps the whole panel inside that room, so Place has nothing to bring back onto the
+        // screen.
         int max = Scaled(PreviewMaxLogical);
-        int room = Top - screen.Top - border * 2 - _preview.TitleHeight;
+        int room = (below ? screen.Bottom - Bottom : Top - screen.Top)
+                   - border * 2 - _preview.TitleHeight;
         int maxHeight = max < room ? max : room;
 
         PreviewPlacement.Fit(sourceWidth, sourceHeight, max, maxHeight,
@@ -2088,7 +2203,7 @@ public class MainForm : Form
 
         // The title travels with the picture, so it is part of what is being placed.
         PreviewBox content = PreviewPlacement.Place(width, height + _preview.TitleHeight,
-            tab.Left, tab.Width, Top, screen.Left, screen.Right, gap);
+            tab.Left, tab.Width, barEdge, screen.Left, screen.Right, gap, below);
 
         _preview.Present(content, _tabs[index].Title, _tabs[index].Icon);
 
