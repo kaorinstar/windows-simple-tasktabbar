@@ -292,12 +292,16 @@ repository.
   administrator rights; its **Automatically start WindowsSimpleTaskTabBar** checkbox is a shortcut
   in `shell:startup` and nothing else, which is why uninstalling takes it away again.
 
-  The wizard is offered in the same twelve languages as the bar, from the files Inno Setup
+  The wizard is offered in ten of the twelve languages the bar has, from the files Inno Setup
   installs, and every word it says is Inno Setup's own. Keep it that way: a sentence written into
-  the script would have to be translated twelve times by whoever adds the thirteenth language.
-  A language file named in the script that the installed Inno Setup does not have fails the
-  compile, so that step is what proves the list; a language Inno Setup has no file for would
-  simply see the wizard in English.
+  the script would have to be translated ten times by whoever adds the eleventh language.
+
+  **A language file the installed Inno Setup does not have fails the compile**, which is what
+  happened when the two Chinese languages were named: both `.isl` files are in Inno Setup's
+  source tree, but the release Chocolatey installs does not carry them yet. Naming a language
+  therefore needs a manual `release.yml` run on the branch to prove it, and a tag pushed without
+  one leaves a tag with no release under it. Shipping a copy of an `.isl` beside the script is
+  the way to add a language the compiler lacks, and nobody has needed it enough to do it.
 
 A third file, `.github/workflows/report-build-status.yml`, is called by both once their build job
 finishes, and only for pushes. On a failure it opens an issue labelled `ci-failure`, or comments on

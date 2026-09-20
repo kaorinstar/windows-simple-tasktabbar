@@ -82,18 +82,25 @@ CloseApplications=yes
 RestartApplications=no
 
 ; The wizard's own text comes from the language files that ship with Inno Setup, not from
-; Localization/UiStrings.cs. The list is the twelve languages of Localization/Languages.cs, in
-; the order it gives them, and every one of them is a file Inno Setup installs. Nothing here is
+; Localization/UiStrings.cs. The list is the languages of Localization/Languages.cs that the
+; installed Inno Setup has a file for, in the order that file gives them. Nothing here is
 ; translated by this project, so a thirteenth language costs one line if Inno Setup carries it
 ; and nothing at all if it does not: an unmatched language sees the wizard in English.
 ;
+; Simplified and Traditional Chinese are the two the bar has and this list does not.
+; ChineseSimplified.isl and ChineseTraditional.isl are in Inno Setup's source tree, and the
+; installer copies files\Languages\*.isl as it finds them, but the release Chocolatey puts on
+; the runner does not carry either yet: naming them failed the compile with "Couldn't open
+; include file". Adding them back means shipping a copy of each .isl beside this script, matched
+; to the compiler's version, and until someone does that those two see the wizard in English
+; while the bar itself is in Chinese.
+;
 ; A file named here that the installed Inno Setup does not have fails the compile, so the
-; "Build the installer" step of release.yml is what proves this list.
+; "Build the installer" step of release.yml is what proves this list. Run it by hand on a branch
+; before a tag: the same failure after a tag leaves a tag with no release under it.
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
-Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
-Name: "chinesetraditional"; MessagesFile: "compiler:Languages\ChineseTraditional.isl"
 Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 Name: "french"; MessagesFile: "compiler:Languages\French.isl"
