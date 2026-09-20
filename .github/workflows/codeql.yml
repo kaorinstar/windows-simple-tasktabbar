@@ -52,11 +52,16 @@ jobs:
       - name: Check out the source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
 
+      # The two codeql-action steps move together. A run whose init and analyze come from
+      # different versions stops with "CodeQL job status was configuration error" after
+      # uploading nothing, which is how a Dependabot pull request that bumped one of them alone
+      # failed twice over (#104, #105). .github/dependabot.yml now groups them into one pull
+      # request; change them together here as well.
       - name: Initialise CodeQL
-        uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938   # v4.37.9
+        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63   # v4.38.0
         with:
           languages: csharp
           build-mode: none
 
       - name: Analyse
-        uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938   # v4.37.9
+        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63   # v4.38.0
