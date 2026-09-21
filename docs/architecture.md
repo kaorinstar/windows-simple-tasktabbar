@@ -28,6 +28,8 @@ windows-simple-tasktabbar/
 │   └── architecture.ja.md         Japanese translation
 ├── installer/
 │   └── WindowsSimpleTaskTabBar.iss  The installer, as release.yml builds it
+├── tools/
+│   └── make-app-icon.py           Draws the application icon
 ├── src/
 │   ├── WindowsSimpleTaskTabBar.Core/       Logic with no UI dependency
 │   │   ├── Filtering/
@@ -60,6 +62,8 @@ windows-simple-tasktabbar/
 │   │       └── UpdateCheckSchedule.cs      Whether a check for a new release is due
 │   └── WindowsSimpleTaskTabBar/            The application
 │       ├── Program.cs                      Entry point
+│       ├── Properties/
+│       │   └── app.ico                     The application icon
 │       ├── Interop/
 │       │   └── NativeMethods.cs            Windows API declarations
 │       ├── Services/
@@ -703,3 +707,30 @@ without limit. That needs a person:
 change. The callback only sets a dirty flag; a 250 ms timer performs the actual refresh so that
 bursts of events collapse into a single update. A full refresh also runs every two seconds as a
 safety net in case an event is missed.
+
+### The application icon
+
+`src/WindowsSimpleTaskTabBar/Properties/app.ico` is two tabs standing on the bar, drawn in the
+same shape the application draws its own tabs in: rounded at the top, square at the bottom, and
+flush with the bottom edge of the frame. The left tab is the active one and is filled white, the
+right one carries the pale shade of an inactive tab, and the outline and the bar are the blue the
+rest of the interface uses.
+
+`tools/make-app-icon.py` draws it, and is the only copy of that design; the `.ico` is an output.
+Run it by hand after changing the script, with `python3 tools/make-app-icon.py`. It writes the
+icon in place, needs the standard library alone, and no part of the build calls it.
+
+It is a script rather than a drawing saved from an editor for two reasons, and both are about how
+the icon reads at 16 pixels, which is the size the taskbar and the notification area ask for:
+
+- **Every edge sits on a whole pixel, at every size.** An icon exported from a vector drawing puts
+  its edges between pixels, and the renderer then spreads each one across two columns, which is
+  what makes a small icon look soft. Here only the four top corners of each tab are ever
+  part-transparent: 4 pixels of 256 at 16x16.
+- **The proportions are held per size rather than scaled from one drawing.** A border one pixel
+  wide at 16x16 has to stay one pixel rather than becoming two thirds of one.
+
+The five sizes are 16, 20, 24, 32 and 48, all stored uncompressed, which every reader of an icon
+understands. They come to about 19 KB inside an executable the READMEs keep under 200 KB, so a
+size added here is paid for there. `MainForm.LoadSmallApplicationIcon` reads the 16-pixel entry
+back out of the executable for the tray, so this file is the only copy of the image.
