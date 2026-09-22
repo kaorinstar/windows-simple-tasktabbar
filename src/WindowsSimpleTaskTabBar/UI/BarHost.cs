@@ -367,7 +367,10 @@ internal sealed class BarHost : ApplicationContext
             {
                 var bar = new MainForm(this, place.Device, place.Bounds);
                 _bars.Insert(Math.Min(i, _bars.Count), bar);
-                bar.Show();
+
+                // Built and placed, not shown. The refresh that follows every call to this
+                // method hands it its windows, and the bar puts itself on screen with them.
+                bar.Prepare();
                 continue;
             }
 

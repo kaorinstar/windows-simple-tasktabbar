@@ -60,6 +60,20 @@ public class MainForm : Form
     private bool _appBarRegistered;
 
     /// <summary>
+    /// The window the AppBar was registered against, which is what has to be handed back.
+    /// </summary>
+    /// <remarks>
+    /// The handle it was registered with rather than <see cref="Control.Handle"/> read again at
+    /// the end: a strip this bar fails to hand back is desktop that nothing gives back for the
+    /// rest of the session, and the two are the same handle only for as long as nothing
+    /// recreates the window.
+    /// </remarks>
+    private IntPtr _appBarHandle;
+
+    /// <summary>Whether the bar has been put on screen yet. See <see cref="Prepare"/>.</summary>
+    private bool _onScreen;
+
+    /// <summary>
     /// Which edge the bar is drawn against now. Settled by the setting and, when that says to
     /// follow the taskbar, by where the taskbar is; every size and every rounded corner below
     /// reads it rather than assuming the bottom.
@@ -366,6 +380,36 @@ public class MainForm : Form
         }
     }
 
+    /// <summary>
+    /// The bar appears without taking the foreground from whatever the user is working in.
+    /// </summary>
+    /// <remarks>
+    /// This is about being shown and nothing else: a click on the bar still activates it, which
+    /// is what <c>WindowService.Activate</c> relies on. It matters because a bar is now shown
+    /// when a monitor is plugged in as well as at start-up, which can be at any moment.
+    /// </remarks>
+    protected override bool ShowWithoutActivation => true;
+
+    /// <summary>
+    /// Creates the window and settles where it sits, without putting it on screen.
+    /// </summary>
+    /// <remarks>
+    /// Reading <see cref="Control.Handle"/> is what creates it. The window is not visible, so
+    /// <see cref="OnHandleCreated"/> can read this monitor's scale factor, build the sizes from
+    /// it and reserve the strip with nothing drawn yet. <see cref="SetWindows"/> shows the bar
+    /// once it has its first row of tabs.
+    ///
+    /// Shown first and positioned afterwards, which is what this replaces, the bar arrived as an
+    /// empty window at the size and place of the guess in the constructor and was then moved and
+    /// resized under the user: once for the scale factor, once for the strip the system granted,
+    /// and once more for each AppBar message that followed. Plugging in a monitor showed all of
+    /// that happening.
+    /// </remarks>
+    internal void Prepare()
+    {
+        _ = Handle;
+    }
+
     protected override void OnHandleCreated(EventArgs e)
     {
         base.OnHandleCreated(e);
@@ -500,12 +544,18 @@ public class MainForm : Form
     // ---------------------------------------------------------------
     private void RegisterAppBar()
     {
+        // Whatever was registered before goes first. Windows Forms recreates a window when
+        // certain properties change, and a second registration beside the first would leave the
+        // desktop reserving two strips for one bar.
+        UnregisterAppBar();
+
         _callbackMessage = NativeMethods.RegisterWindowMessage("WindowsSimpleTaskTabBar_AppBarMessage");
+        _appBarHandle = Handle;
 
         var data = new NativeMethods.APPBARDATA
         {
             cbSize = System.Runtime.InteropServices.Marshal.SizeOf<NativeMethods.APPBARDATA>(),
-            hWnd = Handle,
+            hWnd = _appBarHandle,
             uCallbackMessage = _callbackMessage,
         };
 
@@ -521,10 +571,11 @@ public class MainForm : Form
         var data = new NativeMethods.APPBARDATA
         {
             cbSize = System.Runtime.InteropServices.Marshal.SizeOf<NativeMethods.APPBARDATA>(),
-            hWnd = Handle,
+            hWnd = _appBarHandle,
         };
         NativeMethods.SHAppBarMessage(NativeMethods.ABM_REMOVE, ref data);
         _appBarRegistered = false;
+        _appBarHandle = IntPtr.Zero;
     }
 
     /// <summary>
@@ -599,9 +650,13 @@ public class MainForm : Form
 
         NativeMethods.SHAppBarMessage(NativeMethods.ABM_SETPOS, ref data);
 
+        // SWP_SHOWWINDOW only once the bar belongs on screen. Until then this is moving a
+        // window nobody can see into the place it will appear in; see Prepare.
+        uint flags = NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE;
+        if (_onScreen) flags |= NativeMethods.SWP_SHOWWINDOW;
+
         NativeMethods.SetWindowPos(Handle, IntPtr.Zero,
-            placed.Left, placed.Top, placed.Width, placed.Height,
-            NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_SHOWWINDOW);
+            placed.Left, placed.Top, placed.Width, placed.Height, flags);
 
         if (!edgeChanged) return;
 
@@ -763,6 +818,14 @@ public class MainForm : Form
         UpdateToolTip();
 
         Invalidate();
+
+        // The first pass is what puts the bar on screen. It was created hidden and moved into
+        // place there, so what appears is the finished bar rather than an empty window being
+        // pushed around; see Prepare.
+        if (_onScreen) return;
+
+        _onScreen = true;
+        Show();
     }
 
     /// <summary>

@@ -218,6 +218,17 @@ its own list and decides the order, the grouping, the scrolling and the drawing 
 window dragged to another monitor simply stops appearing in one list and starts appearing in
 another, on the pass after it moved, so nothing has to watch for the move itself.
 
+A bar is created without being shown. `BarHost.SyncBars` makes the window with `MainForm.Prepare`,
+which creates the handle and nothing else: `OnHandleCreated` reads that monitor's scale factor,
+builds the sizes from it and reserves the strip while nothing is on screen, and the first
+`SetWindows` shows the finished bar. Shown first and positioned afterwards, a bar arrived as an
+empty white window at the size the constructor guessed and was then moved and resized under the
+user - once for the scale factor, once for the strip the system granted, and once more for each
+AppBar message that followed. Plugging in a monitor showed all of it happening. `Form` is also
+given `ShowWithoutActivation`, because a bar now appears when a monitor is plugged in as well as
+at start-up, and that can be at any moment; a click on the bar still activates it, which is what
+the three-step activation relies on.
+
 `Core/Monitors/MonitorMap.cs` holds the arithmetic: given a window rectangle and the monitor
 rectangles, the monitor the window covers most of, or the nearest one when it covers none of
 any. That is the rule `MONITOR_DEFAULTTONEAREST` applies, done here so it can be tested without
