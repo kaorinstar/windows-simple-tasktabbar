@@ -1,31 +1,25 @@
 #!/usr/bin/env python3
 """Draws src/WindowsSimpleTaskTabBar/Properties/app.ico.
 
-The icon is the bar: a plain blue strip, wider than it is tall, carrying two tabs. Both tabs
-are the same size, as they are on screen, and neither is taller than it is wide. Each is
-rounded at the top, square at the bottom, and stands on the bottom edge of the strip. The
-left tab is the active one and is filled white; the right one carries the pale shade of an
-inactive tab. A thin gap of blue separates them.
+The icon is a square box with tabs stacked inside it, each one stepped down and to the right
+of the one behind, the way overlapping windows sit on a screen. The box is a blue outline.
+The tab in front is filled white, as the active tab is on the bar; the ones behind it carry
+the pale shade of an inactive tab, and each is partly hidden by the one in front of it.
 
-The strip's own corners are square. Rounding them would put a curve where the bar has a
-straight edge on screen, and would be the only part of the icon's outline that is not a whole
-pixel. As it stands, every pixel is either fully transparent or fully opaque.
+Everything is drawn in straight lines on whole pixels, so no pixel is ever part-transparent
+and nothing is ever blended. That is what keeps the icon sharp at 16 pixels, which is the
+size the taskbar and the notification area ask for.
 
-The strip is not square, and does not fill the frame: it is a bar, and the space above and
-below it is transparent. How tall it can be follows from the tabs. Two of them side by side
-leave each a little under half the width, and a tab is never taller than it is wide, so the
-strip comes to a little under half the height of the frame.
+Three tabs at 16 and 20 pixels would leave two pixels of each tab behind showing, which
+reads as a blue smudge rather than as a stack, so those two sizes carry two tabs and the
+rest carry three. Nobody sees two sizes at once, and legibility at the size it is actually
+looked at wins.
 
-Why this is a script rather than a drawing saved from an editor:
-
-* Every edge is placed on a whole pixel, at every size. An icon exported from a vector
-  drawing lands its edges between pixels, and the renderer then spreads each one over two
-  columns, which is what makes a small icon look soft. Here no pixel is part-transparent at
-  all: the outline of the strip is four straight edges on whole pixels, and the rounded top of
-  a tab is drawn over the blue behind it, so those pixels blend colour rather than coverage.
-* The proportions are held per size rather than scaled from one drawing. At 16x16 a tab is
-  6 pixels square and the gap between the two is 2, and all of those have to stay whole
-  numbers.
+Why this is a script rather than a drawing saved from an editor: an icon exported from a
+vector drawing lands its edges between pixels, and the renderer then spreads each one over
+two columns, which is what makes a small icon look soft. The proportions also have to be
+held per size rather than scaled from one drawing: an outline one pixel wide at 16x16 has
+to stay one pixel, not two thirds of one.
 
 Run it from anywhere; it writes over the icon in place:
 
@@ -39,13 +33,11 @@ import os
 import struct
 import zlib
 
-BLUE = (0x25, 0x63, 0xEB)    # the bar
-WHITE = (0xFF, 0xFF, 0xFF)   # the active tab
-PALE = (0x9D, 0xB9, 0xF6)    # an inactive tab
+BLUE = (0x25, 0x63, 0xEB)    # the box, and the outline of every tab
+WHITE = (0xFF, 0xFF, 0xFF)   # the tab in front
+PALE = (0x9D, 0xB9, 0xF6)    # a tab behind it
 
 SUPERSAMPLE = 8
-
-GAP = 2  # blue between the two tabs, at every size
 
 # The sizes Windows asks for: the notification area and the taskbar take the first three,
 # the Start menu and the file list take the last two. All five are stored uncompressed,
@@ -53,59 +45,55 @@ GAP = 2  # blue between the two tabs, at every size
 # inside an executable the README keeps under 200 KB.
 #
 # Per size, in whole pixels:
-#   margin  the blue to the left of the first tab, to the right of the second, and above
-#           both. A tab is (size - 2 * margin - GAP) / 2 wide and that many tall, and the
-#           strip is one tab plus one margin tall.
-#   corner  the two top corners of a tab
+#   frame   how far the box sits in from the edge of the icon
+#   edge    how thick the box's outline is
+#   side    how wide and tall a tab is
+#   step    how far each tab is stepped down and to the right of the one behind it
+#   stroke  how thick a tab's outline is
+#   start   where the tab at the back begins, measured from the edge of the icon
+#   count   how many tabs there are
 #
-# GAP is 2 rather than 1 because `size` is even: an odd gap cannot leave two tabs of equal
-# whole-pixel width.
+# `start` has to clear the box's own outline, or the two run into each other and read as
+# one thick line. `start + (count - 1) * step + side` has to stay inside it at the other
+# end, for the same reason.
 GEOMETRY = {
-    16: dict(margin=1, corner=1),
-    20: dict(margin=1, corner=2),
-    24: dict(margin=2, corner=2),
-    32: dict(margin=2, corner=3),
-    48: dict(margin=3, corner=4),
+    16: dict(frame=0, edge=1, side=8, step=4, stroke=1, start=2, count=2),
+    20: dict(frame=0, edge=1, side=11, step=5, stroke=1, start=2, count=2),
+    24: dict(frame=1, edge=1, side=10, step=4, stroke=1, start=3, count=3),
+    32: dict(frame=1, edge=2, side=14, step=5, stroke=2, start=4, count=3),
+    48: dict(frame=2, edge=2, side=22, step=7, stroke=2, start=6, count=3),
 }
 
 
 def rectangle(left, top, right, bottom):
-    """The strip. Its four corners are square, so every edge of it lands on a whole pixel."""
+    """A filled rectangle."""
     return lambda x, y: left <= x < right and top <= y < bottom
 
 
-def tab_shape(left, top, right, bottom, radius):
-    """A tab: rounded at the top, square at the bottom."""
+def outline(left, top, right, bottom, thickness):
+    """A rectangle's outline, drawn inside its bounds."""
     def covers(x, y):
-        if x < left or x >= right or y < top or y >= bottom:
+        if not (left <= x < right and top <= y < bottom):
             return False
-        if radius > 0 and y < top + radius:
-            if x < left + radius:
-                dx, dy = (left + radius) - x, (top + radius) - y
-                return dx * dx + dy * dy <= radius * radius
-            if x > right - radius:
-                dx, dy = x - (right - radius), (top + radius) - y
-                return dx * dx + dy * dy <= radius * radius
-        return True
+        return not (left + thickness <= x < right - thickness
+                    and top + thickness <= y < bottom - thickness)
     return covers
 
 
 def layers(size):
     """What the icon is made of at this size, in the order it is painted."""
     g = GEOMETRY[size]
-    margin = g['margin']
-    tab = (size - 2 * margin - GAP) // 2   # a tab is this wide and this tall
-    strip = tab + margin
-    top = (size - strip) // 2              # the bar sits in the middle of the frame
-    bottom = top + strip
+    frame, count = g['frame'], g['count']
+    shapes = [(outline(frame, frame, size - frame, size - frame, g['edge']), BLUE)]
 
-    left_tab = margin
-    right_tab = margin + tab + GAP
-    return [
-        (rectangle(0, top, size, bottom), BLUE),
-        (tab_shape(left_tab, top + margin, left_tab + tab, bottom, g['corner']), WHITE),
-        (tab_shape(right_tab, top + margin, right_tab + tab, bottom, g['corner']), PALE),
-    ]
+    # Back to front, so each tab hides the part of the one behind it that it covers.
+    for i in range(count):
+        at = g['start'] + i * g['step']
+        far = at + g['side']
+        fill = WHITE if i == count - 1 else PALE
+        shapes.append((rectangle(at, at, far, far), fill))
+        shapes.append((outline(at, at, far, far, g['stroke']), BLUE))
+    return shapes
 
 
 def render(size):

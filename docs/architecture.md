@@ -710,40 +710,32 @@ safety net in case an event is missed.
 
 ### The application icon
 
-`src/WindowsSimpleTaskTabBar/Properties/app.ico` is the bar: a plain blue strip, wider than it is
-tall, carrying two tabs. Both tabs are the same size, as they are on screen, and neither is taller
-than it is wide. Each is rounded at the top, square at the bottom, and stands on the bottom edge of
-the strip. The left tab is the active one and is filled white, the right one carries the pale shade
-of an inactive tab, a thin gap of blue separates them, and the blue is the one the rest of the
-interface uses.
+`src/WindowsSimpleTaskTabBar/Properties/app.ico` is a square box with tabs stacked inside it, each
+one stepped down and to the right of the one behind, the way overlapping windows sit on a screen.
+The box is a blue outline. The tab in front is filled white, as the active tab is on the bar; the
+ones behind it carry the pale shade of an inactive tab, and each is partly hidden by the one in
+front of it. The blue is the one the rest of the interface uses.
 
-The strip is not square and does not fill the frame; the space above and below it is transparent.
-How tall it can be follows from the tabs: two of them side by side leave each a little under half
-the width, and a tab is never taller than it is wide, so the strip comes to a little under half the
-height of the frame. At 16x16 it is 16 by 7.
+Every shape is a straight line on whole pixels, so no pixel is ever part-transparent and nothing
+is ever blended. That is what keeps the icon sharp at 16 pixels, which is the size the taskbar and
+the notification area ask for. An icon exported from a vector drawing lands its edges between
+pixels, and the renderer then spreads each one across two columns, which is what makes a small icon
+look soft.
 
-The strip's own four corners are square. Rounding them would put a curve where the bar has a
-straight edge on screen, and it would be the only part of the icon's outline that is not a whole
-pixel.
+Three tabs at 16 and 20 pixels would leave two pixels of each tab behind showing, which reads as a
+blue smudge rather than as a stack, so those two sizes carry two tabs and the other three carry
+three. Nobody sees two sizes at once, and legibility at the size actually being looked at wins.
 
 `tools/make-app-icon.py` draws it, and is the only copy of that design; the `.ico` is an output.
 Run it by hand after changing the script, with `python3 tools/make-app-icon.py`. It writes the
-icon in place, needs the standard library alone, and no part of the build calls it.
+icon in place, needs the standard library alone, and no part of the build calls it. The
+proportions are held per size in its `GEOMETRY` table rather than scaled from one drawing, because
+an outline one pixel wide at 16x16 has to stay one pixel rather than becoming two thirds of one.
 
-It is a script rather than a drawing saved from an editor for two reasons, and both are about how
-the icon reads at 16 pixels, which is the size the taskbar and the notification area ask for:
-
-- **Every edge sits on a whole pixel, at every size.** An icon exported from a vector drawing puts
-  its edges between pixels, and the renderer then spreads each one across two columns, which is
-  what makes a small icon look soft. Here no pixel is part-transparent at all: the outline of the
-  strip is four straight edges on whole pixels, and the rounded top of a tab is drawn over the
-  blue behind it, so those pixels blend colour rather than coverage.
-- **The proportions are held per size rather than scaled from one drawing.** At 16x16 a tab is 6
-  pixels square and the gap between the two is 2, and all of those have to stay whole numbers.
-
-The gap is 2 pixels rather than 1 at every size. Each side of the icon is an even number of pixels
-across, so an odd gap cannot leave two tabs of equal whole-pixel width, and the tabs being equal
-is the point.
+Two of the values in that table are what a change is most likely to break. `start` has to clear
+the box's own outline, or the two run into each other and read as one thick line, and
+`start + (count - 1) * step + side` has to stay inside it at the other end for the same reason.
+The script prints neither, so check the drawing after changing either.
 
 The five sizes are 16, 20, 24, 32 and 48, all stored uncompressed, which every reader of an icon
 understands. They come to about 19 KB inside an executable the READMEs keep under 200 KB, so a
