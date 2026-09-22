@@ -1,21 +1,27 @@
 #!/usr/bin/env python3
 """Draws src/WindowsSimpleTaskTabBar/Properties/app.ico.
 
-The icon is the bar itself, filled blue with rounded corners, carrying two tabs. Both tabs
-are the same size, as they are on screen, and both are wider than they are tall. Each is
-rounded at the top, square at the bottom and stands on the bottom edge of the bar. The left
-tab is the active one and is filled white; the right one carries the pale shade of an
-inactive tab.
+The icon is the bar: a blue strip, wider than it is tall, with rounded corners, carrying two
+tabs. Both tabs are the same size, as they are on screen, and neither is taller than it is
+wide. Each is rounded at the top, square at the bottom, and stands on the bottom edge of the
+strip. The left tab is the active one and is filled white; the right one carries the pale
+shade of an inactive tab. A thin gap of blue separates them.
+
+The strip is not square, and does not fill the frame: it is a bar, and the space above and
+below it is transparent. How tall it can be follows from the tabs. Two of them side by side
+leave each a little under half the width, and a tab is never taller than it is wide, so the
+strip comes to a little under half the height of the frame.
 
 Why this is a script rather than a drawing saved from an editor:
 
 * Every edge is placed on a whole pixel, at every size. An icon exported from a vector
   drawing lands its edges between pixels, and the renderer then spreads each one over two
   columns, which is what makes a small icon look soft. Here the only part-transparent pixels
-  are on the four corners of the bar and the two top corners of each tab: 12 pixels of 256
+  are on the four corners of the strip and the two top corners of each tab: 12 pixels of 256
   at 16x16.
 * The proportions are held per size rather than scaled from one drawing. At 16x16 a tab is
-  6 pixels wide and 5 tall, and both have to stay whole numbers.
+  6 pixels square and the gap between the two is 2, and all of those have to stay whole
+  numbers.
 
 Run it from anywhere; it writes over the icon in place:
 
@@ -35,27 +41,32 @@ PALE = (0x9D, 0xB9, 0xF6)    # an inactive tab
 
 SUPERSAMPLE = 8
 
+GAP = 2  # blue between the two tabs, at every size
+
 # The sizes Windows asks for: the notification area and the taskbar take the first three,
 # the Start menu and the file list take the last two. All five are stored uncompressed,
 # which is what every reader of an icon understands, and the five together are about 19 KB
 # inside an executable the README keeps under 200 KB.
 #
 # Per size, in whole pixels:
-#   pad     the blue left of the first tab, right of the second, and between the two,
-#           which is twice this. A tab is therefore (size - 4 * pad) / 2 wide.
-#   tab     the height of a tab, which is always less than its width
-#   radius  the four corners of the bar
+#   margin  the blue to the left of the first tab, to the right of the second, and above
+#           both. A tab is (size - 2 * margin - GAP) / 2 wide and that many tall, and the
+#           strip is one tab plus one margin tall.
+#   radius  the four corners of the strip
 #   corner  the two top corners of a tab
 #
-# `pad` also has to keep a tab clear of the bar's own rounded corner, which reaches
+# `margin` also has to keep a tab clear of the strip's own rounded corner, which reaches
 # 0.29 * radius in from the edge along the bottom row. A tab that crossed it would be cut
 # by the clip below and lose its square bottom corner.
+#
+# GAP is 2 rather than 1 because `size` is even: an odd gap cannot leave two tabs of equal
+# whole-pixel width.
 GEOMETRY = {
-    16: dict(pad=1, tab=5, radius=2, corner=1),
-    20: dict(pad=1, tab=7, radius=3, corner=2),
-    24: dict(pad=1, tab=9, radius=3, corner=2),
-    32: dict(pad=2, tab=11, radius=4, corner=3),
-    48: dict(pad=3, tab=17, radius=6, corner=4),
+    16: dict(margin=1, radius=2, corner=1),
+    20: dict(margin=1, radius=3, corner=2),
+    24: dict(margin=2, radius=3, corner=2),
+    32: dict(margin=2, radius=4, corner=3),
+    48: dict(margin=3, radius=6, corner=4),
 }
 
 
@@ -87,24 +98,25 @@ def rounded(left, top, right, bottom, radius, top_only=False):
 def layers(size):
     """What the icon is made of at this size, in the order it is painted."""
     g = GEOMETRY[size]
-    pad, height = g['pad'], g['tab']
-    gap = 2 * pad
-    width = (size - 4 * pad) // 2
-    top = size - height
-    left_tab = pad
-    right_tab = pad + width + gap
+    margin = g['margin']
+    tab = (size - 2 * margin - GAP) // 2   # a tab is this wide and this tall
+    strip = tab + margin
+    top = (size - strip) // 2              # the bar sits in the middle of the frame
+    bottom = top + strip
 
-    bar = rounded(0, 0, size, size, g['radius'])
+    bar = rounded(0, top, size, bottom, g['radius'])
 
     def on_the_bar(shape):
-        # A tab cannot reach past the bar it sits on, so it is clipped to it.
+        # A tab cannot reach past the bar it stands on, so it is clipped to it.
         return lambda x, y: bar(x, y) and shape(x, y)
 
+    left_tab = margin
+    right_tab = margin + tab + GAP
     return [
         (bar, BLUE),
-        (on_the_bar(rounded(left_tab, top, left_tab + width, size, g['corner'],
+        (on_the_bar(rounded(left_tab, top + margin, left_tab + tab, bottom, g['corner'],
                             top_only=True)), WHITE),
-        (on_the_bar(rounded(right_tab, top, right_tab + width, size, g['corner'],
+        (on_the_bar(rounded(right_tab, top + margin, right_tab + tab, bottom, g['corner'],
                             top_only=True)), PALE),
     ]
 
