@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """Draws src/WindowsSimpleTaskTabBar/Properties/app.ico.
 
-The icon is the bar: a blue strip, wider than it is tall, with rounded corners, carrying two
-tabs. Both tabs are the same size, as they are on screen, and neither is taller than it is
-wide. Each is rounded at the top, square at the bottom, and stands on the bottom edge of the
-strip. The left tab is the active one and is filled white; the right one carries the pale
-shade of an inactive tab. A thin gap of blue separates them.
+The icon is the bar: a plain blue strip, wider than it is tall, carrying two tabs. Both tabs
+are the same size, as they are on screen, and neither is taller than it is wide. Each is
+rounded at the top, square at the bottom, and stands on the bottom edge of the strip. The
+left tab is the active one and is filled white; the right one carries the pale shade of an
+inactive tab. A thin gap of blue separates them.
+
+The strip's own corners are square. Rounding them would put a curve where the bar has a
+straight edge on screen, and would be the only part of the icon's outline that is not a whole
+pixel. As it stands, every pixel is either fully transparent or fully opaque.
 
 The strip is not square, and does not fill the frame: it is a bar, and the space above and
 below it is transparent. How tall it can be follows from the tabs. Two of them side by side
@@ -16,9 +20,9 @@ Why this is a script rather than a drawing saved from an editor:
 
 * Every edge is placed on a whole pixel, at every size. An icon exported from a vector
   drawing lands its edges between pixels, and the renderer then spreads each one over two
-  columns, which is what makes a small icon look soft. Here the only part-transparent pixels
-  are on the four corners of the strip and the two top corners of each tab: 12 pixels of 256
-  at 16x16.
+  columns, which is what makes a small icon look soft. Here no pixel is part-transparent at
+  all: the outline of the strip is four straight edges on whole pixels, and the rounded top of
+  a tab is drawn over the blue behind it, so those pixels blend colour rather than coverage.
 * The proportions are held per size rather than scaled from one drawing. At 16x16 a tab is
   6 pixels square and the gap between the two is 2, and all of those have to stay whole
   numbers.
@@ -52,44 +56,35 @@ GAP = 2  # blue between the two tabs, at every size
 #   margin  the blue to the left of the first tab, to the right of the second, and above
 #           both. A tab is (size - 2 * margin - GAP) / 2 wide and that many tall, and the
 #           strip is one tab plus one margin tall.
-#   radius  the four corners of the strip
 #   corner  the two top corners of a tab
-#
-# `margin` also has to keep a tab clear of the strip's own rounded corner, which reaches
-# 0.29 * radius in from the edge along the bottom row. A tab that crossed it would be cut
-# by the clip below and lose its square bottom corner.
 #
 # GAP is 2 rather than 1 because `size` is even: an odd gap cannot leave two tabs of equal
 # whole-pixel width.
 GEOMETRY = {
-    16: dict(margin=1, radius=2, corner=1),
-    20: dict(margin=1, radius=3, corner=2),
-    24: dict(margin=2, radius=3, corner=2),
-    32: dict(margin=2, radius=4, corner=3),
-    48: dict(margin=3, radius=6, corner=4),
+    16: dict(margin=1, corner=1),
+    20: dict(margin=1, corner=2),
+    24: dict(margin=2, corner=2),
+    32: dict(margin=2, corner=3),
+    48: dict(margin=3, corner=4),
 }
 
 
-def rounded(left, top, right, bottom, radius, top_only=False):
-    """A rectangle with rounded corners; with top_only, the bottom two stay square."""
+def rectangle(left, top, right, bottom):
+    """The strip. Its four corners are square, so every edge of it lands on a whole pixel."""
+    return lambda x, y: left <= x < right and top <= y < bottom
+
+
+def tab_shape(left, top, right, bottom, radius):
+    """A tab: rounded at the top, square at the bottom."""
     def covers(x, y):
         if x < left or x >= right or y < top or y >= bottom:
             return False
-        if radius <= 0:
-            return True
-        if y < top + radius:
+        if radius > 0 and y < top + radius:
             if x < left + radius:
                 dx, dy = (left + radius) - x, (top + radius) - y
                 return dx * dx + dy * dy <= radius * radius
             if x > right - radius:
                 dx, dy = x - (right - radius), (top + radius) - y
-                return dx * dx + dy * dy <= radius * radius
-        if not top_only and y > bottom - radius:
-            if x < left + radius:
-                dx, dy = (left + radius) - x, y - (bottom - radius)
-                return dx * dx + dy * dy <= radius * radius
-            if x > right - radius:
-                dx, dy = x - (right - radius), y - (bottom - radius)
                 return dx * dx + dy * dy <= radius * radius
         return True
     return covers
@@ -104,20 +99,12 @@ def layers(size):
     top = (size - strip) // 2              # the bar sits in the middle of the frame
     bottom = top + strip
 
-    bar = rounded(0, top, size, bottom, g['radius'])
-
-    def on_the_bar(shape):
-        # A tab cannot reach past the bar it stands on, so it is clipped to it.
-        return lambda x, y: bar(x, y) and shape(x, y)
-
     left_tab = margin
     right_tab = margin + tab + GAP
     return [
-        (bar, BLUE),
-        (on_the_bar(rounded(left_tab, top + margin, left_tab + tab, bottom, g['corner'],
-                            top_only=True)), WHITE),
-        (on_the_bar(rounded(right_tab, top + margin, right_tab + tab, bottom, g['corner'],
-                            top_only=True)), PALE),
+        (rectangle(0, top, size, bottom), BLUE),
+        (tab_shape(left_tab, top + margin, left_tab + tab, bottom, g['corner']), WHITE),
+        (tab_shape(right_tab, top + margin, right_tab + tab, bottom, g['corner']), PALE),
     ]
 
 
