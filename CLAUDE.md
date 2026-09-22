@@ -208,7 +208,7 @@ restriction.
 
 `SetWinEventHook` occasionally misses events. The periodic refresh covers that case.
 
-### `shellexec` and `AppMutex` in `installer/WindowsSimpleTaskTabBar.iss`
+### `shellexec` and the `[Code]` section in `installer/WindowsSimpleTaskTabBar.iss`
 
 Setup still has `unins000.dat`, the uninstall log, open while its last page offers to start the
 bar, and a program it starts as its own child can be handed that open file along with it. The bar
@@ -217,14 +217,31 @@ reporting that a file is in use by another process and naming a file the user ha
 Exiting the bar is the only way out of it, and nothing on screen says so. `shellexec` starts the
 bar through the shell instead, with nothing of Setup's passed on.
 
-`AppMutex` names the mutex `Program.cs` already creates to keep a second bar from starting. It
-makes Setup and the uninstaller say "close it now, then click OK" while the bar is running, which
-is the same sentence in every language Inno Setup ships. It costs the automatic close that
-`CloseApplications` alone gave on an upgrade, and it is worth that: the user is told what to do in
-words they can act on, at the one moment it matters.
+The `[Code]` section closes a running bar so that its executable can be replaced or removed. It
+holds the ground `AppMutex` used to. `AppMutex` named the mutex `Program.cs` creates, and Inno
+Setup checks that at Setup's own start, before Restart Manager has been asked to close anything,
+so it turned every upgrade into "close it now, then click OK" and took the automatic close away
+before it could happen (#119). The two hooks the section uses are the two points where a script
+can still stop the work: `CurStepChanged(ssInstall)`, after the user has chosen to install, and
+`CurUninstallStepChanged(usAppMutexCheck)`, after the user has confirmed the uninstall. `Abort`
+ends Setup or the uninstaller from those two and from nowhere else, which is why they are the
+ones used.
 
-Both lines were written after an uninstall failed this way on a real machine (#107). Neither can
-be dropped on the grounds that the installer works without it.
+Three things about it are load-bearing:
+
+- **The bar is asked to close, never terminated.** `WM_CLOSE` reaches `OnFormClosing`, which
+  unregisters the AppBar and gives the desktop its space back. This is also why
+  `CloseApplications` is `yes` rather than `force`.
+- **The wait watches the mutex, not the window.** The window goes first; the mutex is gone once
+  the process has ended, which is what Setup is waiting for.
+- **The fallback message is Inno Setup's own** (`msgSetupAppRunningError`,
+  `msgUninstallAppRunningError`), so a bar that will not close produces the sentence it always
+  produced, in every language Inno Setup ships, with nothing written here to translate.
+
+The uninstaller never asks Windows to close anything - Restart Manager is Setup's alone - so on
+that side the `[Code]` section is the only thing between an uninstall and a running bar. That is
+what failed on a real machine as #107, and what `shellexec` above was written for. Neither can be
+dropped on the grounds that the installer works without it.
 
 ## Not yet implemented
 

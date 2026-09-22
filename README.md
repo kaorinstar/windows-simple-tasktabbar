@@ -112,8 +112,8 @@ support.
 
 It installs into `%LOCALAPPDATA%\Programs\WindowsSimpleTaskTabBar` for your account alone, so it
 never asks for administrator rights. Installing a newer version over an older one, and
-uninstalling, both ask you to exit a bar that is running: right-click it, choose **Exit**, then
-click **OK**. Uninstalling is done from
+uninstalling, both close a bar that is running for you, so there is nothing to exit by hand
+first. Uninstalling is done from
 **Settings > Apps**, and takes the Start menu entry and the startup shortcut with it. Your
 settings stay in `%APPDATA%\WindowsSimpleTaskTabBar\settings.json`, so installing again keeps
 them.
