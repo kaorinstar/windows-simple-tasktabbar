@@ -1,11 +1,7 @@
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing.Drawing2D;
-using System.Globalization;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
-using WindowsSimpleTaskTabBar.Core.Filtering;
-using WindowsSimpleTaskTabBar.Core.Focus;
 using WindowsSimpleTaskTabBar.Core.Grouping;
 using WindowsSimpleTaskTabBar.Core.Layout;
 using WindowsSimpleTaskTabBar.Core.Localization;
@@ -13,12 +9,24 @@ using WindowsSimpleTaskTabBar.Core.Ordering;
 using WindowsSimpleTaskTabBar.Core.Preview;
 using WindowsSimpleTaskTabBar.Core.Settings;
 using WindowsSimpleTaskTabBar.Core.Theme;
-using WindowsSimpleTaskTabBar.Core.Update;
 using WindowsSimpleTaskTabBar.Interop;
 using WindowsSimpleTaskTabBar.Services;
 
 namespace WindowsSimpleTaskTabBar.UI;
 
+/// <summary>
+/// One bar: the row of tabs on one monitor.
+/// </summary>
+/// <remarks>
+/// This was the application as well until a bar was needed on every monitor (#62). Everything
+/// there is one of - the settings, the tray icon, the caches, the event hooks and the timer -
+/// now lives in <see cref="BarHost"/>, which creates one of these per monitor and hands each
+/// one the windows that are on its own monitor.
+///
+/// What is left is a screen's worth of state: which windows this bar lists, the order they are
+/// in, where the row is scrolled to, the sizes for this monitor's scale factor, and the AppBar
+/// registration that keeps this monitor's windows off the strip the bar occupies.
+/// </remarks>
 public class MainForm : Form
 {
     // State of a single tab.
@@ -39,23 +47,14 @@ public class MainForm : Form
         public bool Marked;
     }
 
-    // A window icon, with the time it was fetched. See IconMaxAgeMs.
-    private sealed class CachedIcon
-    {
-        public Icon Icon;
-        public int FetchedAt;
-    }
+    /// <summary>The application, which owns everything there is one of.</summary>
+    private readonly BarHost _host;
 
     // Every drawing size now comes from BarMetrics, which derives them from the bar height
     // so that the compact height shrinks the contents with it.
-    private AppSettings _settings = new();
+    private readonly AppSettings _settings;
     private BarMetrics _metrics = BarMetrics.For(
         AppSettings.HeightInPixels(BarHeightMode.Standard), 1.0f);
-
-    // An application can change its icon while running, so a cached icon is fetched
-    // again once it is older than this. Only one icon is refreshed per pass, because
-    // WM_GETICON blocks until the owning window answers or the timeout expires.
-    private const int IconMaxAgeMs = 10_000;
 
     private uint _callbackMessage;
     private bool _appBarRegistered;
@@ -74,31 +73,20 @@ public class MainForm : Form
 
     private readonly List<TabItem> _tabs = new();
     private readonly List<IntPtr> _order = new();          // keeps the display order stable
-    private readonly Dictionary<IntPtr, CachedIcon> _iconCache = new();
-    private readonly ProcessInfoCache _processInfo = new();
 
-    // Every window that could be a tab, including the ones the user excludes. _order holds
-    // what is shown; this holds what was offered, so the settings dialog can still list an
-    // application whose windows it has just taken off the bar, and so the process cache keeps
-    // its entry for a window that is looked at on every refresh but never drawn.
-    private readonly List<IntPtr> _candidates = new();
+    // Shared with every other bar. The executable behind a window is the same answer wherever
+    // the window is, and asking once is what keeps the 250 ms refresh to a dictionary lookup.
+    private readonly ProcessInfoCache _processInfo;
 
-    // The priority order the row was last put into, and whether it still has to be. The bar
-    // starts with the whole row to arrange, and a change to the list arranges it again; between
-    // those two moments priority decides where a new tab is inserted and nothing else, so that
-    // a tab the user has dragged stays where they put it. See Core/Ordering/AppPriority.cs.
-    private List<string> _appliedPriority = new();
+    // Whether the whole row still has to be put into the user's priority order. The bar starts
+    // with the whole row to arrange, and a change to the list arranges it again; between those
+    // two moments priority decides where a new tab is inserted and nothing else, so that a tab
+    // the user has dragged stays where they put it. See Core/Ordering/AppPriority.cs.
     private bool _resortByPriority = true;
 
     // The group of each tab in _tabs, reused rather than rebuilt: it is read on every mouse
     // move while a tab is being dragged.
     private readonly List<string> _groupIds = new();
-
-    private readonly System.Windows.Forms.Timer _timer = new();
-    private NativeMethods.WinEventDelegate _winEventProc;   // kept in a field so it is not collected
-    private readonly List<IntPtr> _hooks = new();
-    private bool _dirty = true;
-    private int _tickCount;
 
     private int _hoverIndex = -1;
     private bool _hoverClose;
@@ -111,13 +99,6 @@ public class MainForm : Form
     private Rectangle _scrollRightButton;
     private int _hoverButton = -1;           // 0 left arrow, 1 right arrow, -1 neither
     private IntPtr _lastForeground;
-
-    // The window the tabs mark as the one in front. Not always the foreground window: see
-    // WindowToMark, and Core/Focus/ActiveMark.cs for the rule itself.
-    private IntPtr _markedWindow;
-
-    // Read once. A process cannot change the id it was given.
-    private static readonly uint OwnProcessId = NativeMethods.GetCurrentProcessId();
 
     // Dragging a tab to a new position. A press is only a candidate for a drag: what it turns
     // out to be is decided on release, so a press that does not move still acts as a click.
@@ -176,13 +157,12 @@ public class MainForm : Form
     /// </remarks>
     private const int PreviewMaxLogical = 280;
 
-    // Two menus for the bar: one for a tab, one for the space around the tabs. Neither is
-    // assigned to the ContextMenuStrip property, because which one to show depends on where
-    // the click landed, and that property would always show the same one.
-    private ContextMenuStrip _appMenu;
+    // The menu for a tab. It is not assigned to the ContextMenuStrip property, because which
+    // menu to show depends on where the click landed, and that property would always show the
+    // same one. The menu for the space around the tabs is the application's, and BarHost owns it.
     private ContextMenuStrip _tabMenu;
 
-    // Menus replaced by a change of language, kept until the bar closes. See RebuildMenus.
+    // Menus replaced by a change of language, kept until the bar closes. See RebuildTabMenu.
     private readonly List<ContextMenuStrip> _retiredMenus = new();
     private IntPtr _menuTarget;              // the tab _tabMenu was opened on
 
@@ -206,23 +186,6 @@ public class MainForm : Form
         Justification = "Owned by _tabMenu.Items, which releases it.")]
     private ToolStripItem _excludeItem;
 
-    private NotifyIcon _trayIcon;
-
-    // The update check. _updateAvailableTag names a release newer than this build, and is what
-    // both menus read when they open. It is seeded from the settings file at startup and set
-    // again by each check; it is empty when nothing newer is known.
-    private bool _updateCheckStarted;
-    private bool _updateCheckRunning;
-    private string _updateAvailableTag = string.Empty;
-
-    // Only a record of which dialog is open, so a second request can bring it forward. The
-    // using statement in ShowSettings owns it, and this field is null again by the time that
-    // statement ends.
-    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
-        Justification = "Owned by the using statement in ShowSettings.")]
-    private SettingsForm _settingsForm;
-    private IntPtr _trayIconHandle;   // owned by this class; see LoadSmallApplicationIcon
-
     private float _scale = 1.0f;
     private Font _font;
 
@@ -238,8 +201,30 @@ public class MainForm : Form
     // colours rather than as BarPalette's numbers so that painting a tab is a lookup.
     private readonly Color[] _accents = new Color[AppSettings.AccentCount];
 
-    public MainForm()
+    /// <summary>Which monitor this bar is on, as Windows names it, for example \\.\DISPLAY1.</summary>
+    /// <remarks>
+    /// The name rather than the rectangle, because the rectangle is what changes when a monitor
+    /// is moved in the display settings. <see cref="BarHost"/> matches a bar to its monitor by
+    /// this from one display change to the next.
+    /// </remarks>
+    internal string Device { get; }
+
+    /// <summary>The monitor this bar sits on, in screen pixels.</summary>
+    internal Rectangle Monitor { get; private set; }
+
+    /// <summary>Whether the application is taking this bar away, rather than the user.</summary>
+    private bool _hostClosing;
+
+    internal MainForm(BarHost host, string device, Rectangle monitor)
     {
+        _host = host;
+        _settings = host.Settings;
+        _processInfo = host.ProcessInfo;
+        _text = host.Text;
+
+        Device = device;
+        Monitor = monitor;
+
         FormBorderStyle = FormBorderStyle.None;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.Manual;
@@ -248,21 +233,13 @@ public class MainForm : Form
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer
                  | ControlStyles.UserPaint | ControlStyles.ResizeRedraw, true);
 
-        _settings = SettingsStore.Load();
-
-        // The row is empty until the first refresh, so putting it in priority order costs
-        // nothing there; _resortByPriority is on from the start for that. Remembering the list
-        // here is what stops the first settings change of the session - a colour, a height -
-        // from being read as a change to the order and reordering tabs the user had dragged.
-        _appliedPriority = new List<string>(_settings.ApplicationPriority);
-
-        _text = TextForSettings();
-        _updateAvailableTag = KnownNewerRelease();
+        // Against the edge of its own monitor before the window exists, so Windows creates it
+        // there and GetDpiForWindow answers with that monitor's scale factor rather than the
+        // primary monitor's. OnHandleCreated settles the real position from the AppBar.
+        Bounds = new Rectangle(monitor.Left, monitor.Bottom - _metrics.BarHeight,
+                               monitor.Width, _metrics.BarHeight);
 
         ApplyTheme();
-
-        _timer.Interval = 250;
-        _timer.Tick += (_, __) => OnTimerTick();
 
         _previewTimer.Interval = PreviewDelayMs;
         _previewTimer.Tick += (_, __) => OnPreviewDue();
@@ -274,42 +251,12 @@ public class MainForm : Form
         _toolTip.ReshowDelay = 200;
         _toolTip.AutoPopDelay = 10000;
 
-        _appMenu = BuildMenu();
         _tabMenu = BuildTabMenu();
-        CreateTrayIcon();
     }
 
     // ---------------------------------------------------------------
-    // Menu and tray icon
+    // The menu for a tab
     // ---------------------------------------------------------------
-
-    /// <summary>
-    /// Builds the application menu. The bar and the tray icon each need their own
-    /// <see cref="ContextMenuStrip"/> instance, but both are built here so the two
-    /// cannot drift apart.
-    /// </summary>
-    private ContextMenuStrip BuildMenu()
-    {
-        var menu = new ContextMenuStrip();
-        menu.Items.Add(_text[StringId.MenuSettings], null, (_, __) => ShowSettings());
-        menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(UpdateMenuText, null, (_, __) => OnUpdateMenuClicked()).Name = UpdateItemName;
-        menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(_text[StringId.MenuRefresh], null, (_, __) => { _dirty = true; RefreshTabs(); });
-        menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(_text[StringId.MenuExit], null, (_, __) => Close());
-
-        // What the update entry says depends on state that changes while the menu is closed, and
-        // there are two menus built from here. Setting the text as each one opens keeps them in
-        // step without a field pointing into either of them.
-        menu.Opening += (_, __) =>
-        {
-            ToolStripItem item = menu.Items[UpdateItemName];
-            if (item != null) item.Text = UpdateMenuText;
-        };
-
-        return menu;
-    }
 
     /// <summary>
     /// Builds the menu for a single tab. It acts on <see cref="_menuTarget"/>, which is set
@@ -325,7 +272,7 @@ public class MainForm : Form
         var menu = new ContextMenuStrip();
 
         menu.Items.Add(_text[StringId.TabMenuClose], null,
-            (_, __) => { WindowService.Close(_menuTarget); _dirty = true; });
+            (_, __) => { WindowService.Close(_menuTarget); _host.MarkDirty(); });
         _closeOthersItem = menu.Items.Add(_text[StringId.TabMenuCloseOthers], null,
             (_, __) => CloseWindows(_menuTarget, Side.Both));
         _closeLeftItem = menu.Items.Add(_text[StringId.TabMenuCloseLeft], null,
@@ -335,11 +282,11 @@ public class MainForm : Form
 
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_text[StringId.TabMenuMinimize], null,
-            (_, __) => { WindowService.Minimize(_menuTarget); _dirty = true; });
+            (_, __) => { WindowService.Minimize(_menuTarget); _host.MarkDirty(); });
 
         menu.Items.Add(new ToolStripSeparator());
         _excludeItem = menu.Items.Add(_text[StringId.TabMenuExclude], null,
-            (_, __) => ExcludeApplication(_menuTarget));
+            (_, __) => _host.ExcludeApplication(_menuTarget));
 
         return menu;
     }
@@ -374,7 +321,7 @@ public class MainForm : Form
             if (beside) WindowService.Close(handles[i]);
         }
 
-        _dirty = true;
+        _host.MarkDirty();
     }
 
     /// <summary>
@@ -401,55 +348,8 @@ public class MainForm : Form
         }
         else
         {
-            _appMenu.Show(this, p);
+            _host.ShowApplicationMenu(this, p);
         }
-    }
-
-    /// <summary>
-    /// Puts an icon in the notification area. Without it the only way to reach the menu is
-    /// to right-click the bar itself, which is also where the tabs are.
-    /// </summary>
-    private void CreateTrayIcon()
-    {
-        _trayIcon = new NotifyIcon
-        {
-            Icon = LoadSmallApplicationIcon(),
-            Text = "WindowsSimpleTaskTabBar",
-            ContextMenuStrip = BuildMenu(),
-            Visible = true,
-        };
-
-        _trayIcon.BalloonTipClicked += (_, __) => OpenReleasePage();
-    }
-
-    /// <summary>
-    /// Reads the small icon back out of this executable, so the tray and the executable
-    /// always show the same image and there is no second copy of it to keep in step.
-    /// </summary>
-    /// <remarks>
-    /// <c>Icon.ExtractAssociatedIcon</c> would be shorter, but it only ever returns the
-    /// large icon, which the notification area then shrinks. Asking Windows for the small
-    /// icon picks the entry drawn for that size instead.
-    /// </remarks>
-    private Icon LoadSmallApplicationIcon()
-    {
-        try
-        {
-            var small = new IntPtr[1];
-            if (NativeMethods.ExtractIconExW(Application.ExecutablePath, 0, null, small, 1) > 0
-                && small[0] != IntPtr.Zero)
-            {
-                _trayIconHandle = small[0];
-                // Icon.FromHandle does not take ownership, so the handle is destroyed on exit.
-                return Icon.FromHandle(_trayIconHandle);
-            }
-        }
-        catch
-        {
-            // Falls through to the system icon below.
-        }
-
-        return SystemIcons.Application;
     }
 
     protected override CreateParams CreateParams
@@ -466,15 +366,10 @@ public class MainForm : Form
     {
         base.OnHandleCreated(e);
 
-        uint dpi = NativeMethods.GetDpiForWindow(Handle);
-        if (dpi == 0) dpi = 96;
-        _scale = dpi / 96f;
+        ReadScale();
         RebuildMetrics();
 
         RegisterAppBar();
-        RegisterHooks();
-        RefreshTabs();
-        _timer.Start();
     }
 
     // ---------------------------------------------------------------
@@ -514,333 +409,87 @@ public class MainForm : Form
         _preview = null;
     }
 
-    /// <summary>The interface text in the language the settings ask for.</summary>
-    /// <remarks>
-    /// The setting is normally empty, which means the language Windows is set to. Anything the
-    /// application has no table for ends at English; <c>Languages.Resolve</c> holds the rules.
-    /// </remarks>
-    private UiText TextForSettings()
-    {
-        return new UiText(
-            Languages.Resolve(_settings.Language, CultureInfo.CurrentUICulture.Name));
-    }
-
     /// <summary>
-    /// Builds both menus again, and the tray icon's, after the language has changed.
+    /// Builds the tab menu again after the language has changed.
     /// </summary>
     /// <remarks>
     /// A <see cref="ToolStripItem"/> could have its text replaced instead, but that would mean a
     /// second list of which item holds which piece of text, beside the one in
-    /// <see cref="BuildMenu"/>. The menus are built in one place and thrown away whole.
+    /// <see cref="BuildTabMenu"/>. The menu is built in one place and thrown away whole.
     ///
-    /// The menus this replaces are kept rather than disposed. The language is changed in the
-    /// settings dialog, which was opened from the Settings item of one of these menus, and
-    /// Windows Forms is still holding that menu further up the stack: disposing it here fails
-    /// once the dialog closes and the click finishes being handled. A menu is small and a
+    /// The menu this replaces is kept rather than disposed. The language is changed in the
+    /// settings dialog, which was opened from the Settings item of the application menu, and
+    /// Windows Forms is still holding that menu further up the stack: disposing a menu from here
+    /// fails once the dialog closes and the click finishes being handled. A menu is small and a
     /// language is changed rarely, so they are held until <see cref="ReleaseResources"/> runs.
     /// </remarks>
-    private void RebuildMenus()
+    private void RebuildTabMenu()
     {
-        Retire(_appMenu);
-        Retire(_tabMenu);
-
-        _appMenu = BuildMenu();
+        if (_tabMenu != null) _retiredMenus.Add(_tabMenu);
         _tabMenu = BuildTabMenu();
-
-        if (_trayIcon != null)
-        {
-            // The NotifyIcon does not own its menu, so the one it held is retired here too.
-            Retire(_trayIcon.ContextMenuStrip);
-            _trayIcon.ContextMenuStrip = BuildMenu();
-        }
-    }
-
-    /// <summary>Keeps a menu that is no longer shown, to be disposed when the bar closes.</summary>
-    private void Retire(ContextMenuStrip menu)
-    {
-        if (menu != null) _retiredMenus.Add(menu);
     }
 
     /// <summary>
-    /// Opens the settings dialog. Only one at a time, and changes take effect as they are made.
+    /// Takes a settings change that the application has already applied and written out, and
+    /// brings this bar into line with it.
     /// </summary>
-    private void ShowSettings()
+    /// <remarks>
+    /// The row itself is left alone here. <see cref="BarHost"/> refreshes every bar once the
+    /// last of them has been told, so grouping, exclusions and the priority order are applied
+    /// on one pass rather than one per bar.
+    /// </remarks>
+    /// <param name="resortByPriority">
+    /// Whether the priority list changed, which puts the whole row into it again. Every other
+    /// setting leaves the row as it is, so a tab the user dragged is not pulled back because
+    /// they went on to change the colours.
+    /// </param>
+    /// <param name="languageChanged">Whether the menu has to be built again.</param>
+    internal void ApplySettingsChanged(bool resortByPriority, bool languageChanged)
     {
-        if (_settingsForm != null)
-        {
-            _settingsForm.Activate();
-            return;
-        }
-
-        using var form = new SettingsForm(_settings, ApplySettings, RunningApplications, () => _text);
-        _settingsForm = form;
-        try
-        {
-            form.ShowDialog();
-        }
-        finally
-        {
-            _settingsForm = null;
-        }
-    }
-
-    /// <summary>
-    /// Applies a settings change and writes it out. A failed write is not reported: losing a
-    /// preference is not worth interrupting the user for.
-    /// </summary>
-    private void ApplySettings()
-    {
-        // In place, so the bar reads the same values the file will hold. A name the settings
-        // dialog could not keep, or an application claimed by two groups, is settled here rather
-        // than only on the way out.
-        _settings.Normalize();
-
-        // A change to the priority order puts the whole row into it once, on the refresh below.
-        // Every other setting leaves the row as it is, so a tab the user dragged is not pulled
-        // back because they went on to change the colours.
-        if (PriorityChanged()) _resortByPriority = true;
+        if (resortByPriority) _resortByPriority = true;
 
         // Before the metrics, which build the font: the family comes from the language.
-        UiText text = TextForSettings();
-        if (text.Language != _text.Language)
-        {
-            _text = text;
-            RebuildMenus();
-        }
+        _text = _host.Text;
+        if (languageChanged) RebuildTabMenu();
 
         ApplyTheme();             // the colour setting may have changed
         RebuildMetrics();
         UpdateAppBarPosition();   // the reserved area changes, so other windows resize with it
-
-        // Grouping is applied while the row is rebuilt, so a change to it shows on the next
-        // refresh rather than on this call. The dialog says changes apply straight away, so the
-        // refresh is asked for here instead of waiting up to two seconds for the safety net.
-        RefreshTabs();
-
-        // After the refresh, which recomputes the hover the preview follows. Turning the setting
-        // off is what this is here for: the preview on screen goes now rather than when the
-        // pointer next moves.
-        UpdatePreview();
-        UpdateToolTip();
-
-        SettingsStore.Save(_settings);
     }
 
-    // ---------------------------------------------------------------
-    // Telling the user a new version exists
-    // ---------------------------------------------------------------
-
-    /// <summary>The name the update entry is found by in both menus.</summary>
-    private const string UpdateItemName = "update";
-
-    /// <summary>
-    /// How long after the bar appears the automatic check runs, in timer ticks of 250 ms.
-    /// </summary>
+    /// <summary>Moves the bar onto its monitor's rectangle, after a display change.</summary>
     /// <remarks>
-    /// Ten seconds. The bar is usually started at logon, where the network is often not up yet
-    /// when the first window is drawn; checking immediately would fail for a reason that has
-    /// nothing to do with whether a release exists. Waiting also keeps the request off the path
-    /// that puts the bar on screen.
+    /// The scale factor is read after the move rather than before it, because it is the scale
+    /// factor of where the bar has landed that the sizes have to come from. Windows sends
+    /// WM_DPICHANGED for a move it makes itself, but not for a monitor that was given a
+    /// different scale factor while the bar was already sitting on it.
     /// </remarks>
-    private const int UpdateCheckDelayTicks = 40;
-
-    /// <summary>
-    /// The release the user was last told about, when it is still newer than this build.
-    /// </summary>
-    /// <remarks>
-    /// The check runs at most once a day, so a bar started again the same day runs none, and
-    /// without this the menu would fall back to "Check for updates..." while a newer release was
-    /// sitting in the settings file. The notice itself is still shown once per release; this is
-    /// only what the menu says.
-    ///
-    /// The comparison is against the running build rather than a plain "is it set" test, because
-    /// the user updates by replacing the executable. The settings file still names the release
-    /// they were told about, and after they act on it that release is the one they are running.
-    /// </remarks>
-    private string KnownNewerRelease()
+    internal void MoveToMonitor(Rectangle monitor)
     {
-        string told = _settings.LastNoticedRelease;
-        return ReleaseVersion.IsNewer(told, UpdateService.RunningVersion) ? told : string.Empty;
-    }
+        Monitor = monitor;
+        UpdateAppBarPosition();
 
-    /// <summary>One entry serves both jobs, so a five-item menu does not become seven.</summary>
-    private string UpdateMenuText =>
-        _updateAvailableTag.Length > 0
-            ? _text.Format(StringId.MenuUpdateAvailable, _updateAvailableTag)
-            : _text[StringId.MenuCheckForUpdates];
+        if (!ReadScale()) return;
 
-    /// <summary>
-    /// Starts the automatic check, once per run of the application.
-    /// </summary>
-    /// <remarks>
-    /// <see cref="_updateCheckStarted"/> is set whatever the answer, including when the check is
-    /// turned off or is not due, so this costs one comparison per tick after the first.
-    /// </remarks>
-    private void StartUpdateCheckOnce()
-    {
-        if (_updateCheckStarted || _tickCount < UpdateCheckDelayTicks) return;
-        _updateCheckStarted = true;
-
-        // Null means the setting was never chosen, which is on. See AppSettings.
-        if (_settings.CheckForUpdates == false) return;
-        if (!UpdateCheckSchedule.IsDue(_settings.LastUpdateCheckUtc, DateTime.UtcNow)) return;
-
-        RunUpdateCheck(report: false);
+        RebuildMetrics();
+        UpdateAppBarPosition();
     }
 
     /// <summary>
-    /// Runs a check on a pool thread and brings the answer back to this thread.
+    /// Reads this monitor's scale factor, and says whether it is not the one in use.
     /// </summary>
-    /// <param name="report">
-    /// True when the user asked for the check from the menu, which is always answered. The
-    /// automatic check passes false and says nothing unless there is something newer.
-    /// </param>
-    private void RunUpdateCheck(bool report)
+    private bool ReadScale()
     {
-        if (_updateCheckRunning) return;
-        _updateCheckRunning = true;
+        uint dpi = NativeMethods.GetDpiForWindow(Handle);
+        if (dpi == 0) return false;
 
-        // A pool thread is a background thread, so a request still in flight cannot hold up Exit.
-        ThreadPool.QueueUserWorkItem(_ =>
-        {
-            UpdateCheckResult result = UpdateService.Check();
+        float scale = dpi / 96f;
+        if (Math.Abs(scale - _scale) < 0.001f) return false;
 
-            try
-            {
-                if (IsDisposed || !IsHandleCreated) return;
-                BeginInvoke(new Action(() => OnUpdateChecked(result, report)));
-            }
-            catch (ObjectDisposedException)
-            {
-                // The bar was closed between the test above and the post. Nothing is left to
-                // tell, and _updateCheckRunning goes with the form.
-            }
-            catch (InvalidOperationException)
-            {
-            }
-        });
+        _scale = scale;
+        return true;
     }
 
-    /// <summary>
-    /// Acts on the answer, on the user interface thread.
-    /// </summary>
-    private void OnUpdateChecked(UpdateCheckResult result, bool report)
-    {
-        _updateCheckRunning = false;
-        if (_released) return;
-
-        if (result.Outcome == UpdateCheckOutcome.Failed)
-        {
-            // The time is not recorded: a machine that was offline at logon should try again on
-            // the next start rather than wait another day.
-            if (report)
-            {
-                MessageBox.Show(this, _text[StringId.UpdateCheckFailed],
-                    Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-
-            return;
-        }
-
-        _settings.LastUpdateCheckUtc = UpdateCheckSchedule.Stamp(DateTime.UtcNow);
-
-        if (result.Outcome == UpdateCheckOutcome.UpdateAvailable)
-        {
-            _updateAvailableTag = result.LatestTag;
-
-            bool alreadyTold =
-                ReleaseVersion.IsSameRelease(result.LatestTag, _settings.LastNoticedRelease);
-            _settings.LastNoticedRelease = result.LatestTag;
-
-            if (report)
-            {
-                if (MessageBox.Show(this,
-                        _text.Format(StringId.UpdateAvailableAsk, result.LatestTag),
-                        Text, MessageBoxButtons.YesNo, MessageBoxIcon.Information)
-                    == DialogResult.Yes)
-                {
-                    OpenReleasePage();
-                }
-            }
-            else if (!alreadyTold)
-            {
-                ShowUpdateNotice(result.LatestTag);
-            }
-        }
-        else
-        {
-            // GitHub says there is nothing newer, so anything seeded from the settings file at
-            // startup is out of date. Leaving it would keep offering an update to a release this
-            // build already is.
-            _updateAvailableTag = string.Empty;
-
-            if (report)
-            {
-                MessageBox.Show(this,
-                    _text.Format(StringId.UpdateUpToDate, UpdateService.RunningVersion),
-                    Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-        }
-
-        // Not ApplySettings: none of this changes the height, the reserved area or the row.
-        SettingsStore.Save(_settings);
-    }
-
-    /// <summary>
-    /// Shows the notice for a release the user has not been told about.
-    /// </summary>
-    /// <remarks>
-    /// A notification rather than a dialog. The automatic check lands while the user is starting
-    /// their day, and a modal window in front of that is worse than the news is good. Windows may
-    /// hold the notification back entirely - a focus assist rule, or notifications turned off for
-    /// this application - which is why the menu entry, not this, is what the feature relies on.
-    /// </remarks>
-    private void ShowUpdateNotice(string tag)
-    {
-        if (_trayIcon == null) return;
-
-        _trayIcon.ShowBalloonTip(10000, Text,
-            _text.Format(StringId.UpdateNotice, tag), ToolTipIcon.Info);
-    }
-
-    /// <summary>
-    /// Opens the release page, or runs a check when nothing is known yet.
-    /// </summary>
-    private void OnUpdateMenuClicked()
-    {
-        if (_updateAvailableTag.Length > 0) OpenReleasePage();
-        else RunUpdateCheck(report: true);
-    }
-
-    /// <summary>
-    /// Opens the releases page in the user's browser.
-    /// </summary>
-    /// <remarks>
-    /// The address is a constant in <see cref="UpdateService"/> and never a string the network
-    /// answered with: this hands it to the shell, which would open whatever it was given.
-    ///
-    /// <c>UseShellExecute</c> is set rather than left alone. It defaults to true on .NET
-    /// Framework and false on .NET, where a URL is not an executable and the call fails, so
-    /// setting it serves both targets without a second code path.
-    /// </remarks>
-    private static void OpenReleasePage()
-    {
-        try
-        {
-            // The process is frequently null, because the shell handed the address to a browser
-            // that was already running. Disposed all the same: the build treats an object created
-            // and then dropped as an error.
-            using (Process.Start(
-                new ProcessStartInfo(UpdateService.LatestReleaseUrl) { UseShellExecute = true }))
-            {
-            }
-        }
-        catch
-        {
-            // No default browser, or the shell refused. There is nothing useful to say about it,
-            // and the user asked to read a page, not to be told about a failure to open one.
-        }
-    }
 
     // ---------------------------------------------------------------
     // AppBar registration and positioning
@@ -899,11 +548,18 @@ public class MainForm : Form
         return ScreenEdge.Bottom;
     }
 
+    /// <summary>
+    /// Puts the bar against its own monitor's edge and reserves the strip it occupies there.
+    /// </summary>
+    /// <remarks>
+    /// Windows takes one AppBar registration per monitor, so each bar asks for a strip of the
+    /// monitor it is on and the windows maximized on that monitor stop above it.
+    /// </remarks>
     private void UpdateAppBarPosition()
     {
         if (!_appBarRegistered) return;
 
-        Rectangle screen = Screen.PrimaryScreen.Bounds;
+        Rectangle screen = Monitor;
         int height = _metrics.BarHeight;
 
         // Settled on every call rather than once at start-up: this runs again whenever the
@@ -975,13 +631,12 @@ public class MainForm : Form
         }
         else if (m.Msg == 0x007E /* WM_DISPLAYCHANGE */ || m.Msg == 0x02E0 /* WM_DPICHANGED */)
         {
-            uint dpi = NativeMethods.GetDpiForWindow(Handle);
-            if (dpi > 0)
-            {
-                _scale = dpi / 96f;
-                RebuildMetrics();
-            }
+            if (ReadScale()) RebuildMetrics();
             UpdateAppBarPosition();
+
+            // Which monitors exist may have changed with it, which is the application's to
+            // settle: this bar's monitor may be the one that has gone.
+            if (m.Msg == 0x007E && !_released) _host.OnDisplayChanged();
         }
         else if (m.Msg == 0x001A /* WM_SETTINGCHANGE */ && !_released && IsColourSetChange(m.LParam)
                  && _settings.Colours == ColourMode.FollowWindows)
@@ -1000,102 +655,36 @@ public class MainForm : Form
     }
 
     // ---------------------------------------------------------------
-    // Detecting window changes
+    // Refreshing the row
     // ---------------------------------------------------------------
-    private void RegisterHooks()
-    {
-        _winEventProc = WinEventCallback;
 
-        AddHook(NativeMethods.EVENT_SYSTEM_FOREGROUND, NativeMethods.EVENT_SYSTEM_FOREGROUND);
-        AddHook(NativeMethods.EVENT_OBJECT_CREATE, NativeMethods.EVENT_OBJECT_HIDE);
-        AddHook(NativeMethods.EVENT_OBJECT_NAMECHANGE, NativeMethods.EVENT_OBJECT_NAMECHANGE);
-    }
-
-    private void AddHook(uint min, uint max)
-    {
-        IntPtr hook = NativeMethods.SetWinEventHook(min, max, IntPtr.Zero, _winEventProc, 0, 0,
-            NativeMethods.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT_SKIPOWNPROCESS);
-        if (hook != IntPtr.Zero) _hooks.Add(hook);
-    }
-
-    private void WinEventCallback(IntPtr hook, uint eventType, IntPtr hwnd,
-        int idObject, int idChild, uint thread, uint time)
-    {
-        if (idObject != NativeMethods.OBJID_WINDOW) return;
-        _dirty = true;   // the timer performs the actual refresh in batches
-    }
-
-    private void OnTimerTick()
-    {
-        _tickCount++;
-        // Refresh on change, plus every two seconds as a safety net.
-        if (_dirty || _tickCount % 8 == 0)
-        {
-            _dirty = false;
-            RefreshTabs();
-        }
-
-        StartUpdateCheckOnce();
-    }
-
-    // ---------------------------------------------------------------
-    // Refreshing the tab list
-    // ---------------------------------------------------------------
     /// <summary>
-    /// Which window the tabs mark as the one in front, which is not always the one Windows says
-    /// is in the foreground. <see cref="ActiveMark"/> holds the rule and the reasons for it.
+    /// Takes the windows that are on this bar's monitor and rebuilds the row from them.
     /// </summary>
-    /// <param name="live">The windows the bar lists as of this pass.</param>
-    private IntPtr WindowToMark(HashSet<IntPtr> live)
-    {
-        IntPtr foreground = NativeMethods.GetForegroundWindow();
-
-        switch (ActiveMark.Choose(IsOwnWindow(foreground), live.Contains(foreground),
-                                  live.Contains(_markedWindow)))
-        {
-            case MarkChoice.TakeForeground: _markedWindow = foreground; break;
-            case MarkChoice.MarkNothing: _markedWindow = IntPtr.Zero; break;
-            default: break;   // KeepMarked: _markedWindow is already the answer
-        }
-
-        return _markedWindow;
-    }
-
-    /// <summary>Whether a window belongs to this application rather than somebody else.</summary>
     /// <remarks>
-    /// The process rather than the handle, because the bar is not the only window this
-    /// application puts on screen: the settings dialog and both menus are windows of their own,
-    /// and any of them can be what a click leaves in the foreground.
+    /// The windows are worked out once for the whole application, in
+    /// <see cref="BarHost.Refresh"/>, and handed to each bar: enumerating them, reading the
+    /// executable behind each one and fetching icons have the same answer on every monitor.
+    /// What is left here is the part that is this bar's own - which order its row is in, how it
+    /// is grouped and where it is scrolled to.
+    ///
+    /// A window that moved to another monitor simply stops appearing in this list and starts
+    /// appearing in another bar's, on the pass after it moved.
     /// </remarks>
-    private static bool IsOwnWindow(IntPtr hwnd)
+    /// <param name="current">The windows on this bar's monitor, after exclusions.</param>
+    /// <param name="marked">
+    /// The window the tabs mark as the one in front, which is on one bar at most.
+    /// </param>
+    internal void SetWindows(List<IntPtr> current, IntPtr marked)
     {
-        if (hwnd == IntPtr.Zero) return false;
-
-        // A window this application may not query answers 0, which belongs to no process and so
-        // is somebody else's, which is the safe reading: the mark moves rather than sticking.
-        NativeMethods.GetWindowThreadProcessId(hwnd, out uint processId);
-        return processId == OwnProcessId;
-    }
-
-    private void RefreshTabs()
-    {
-        _candidates.Clear();
-        _candidates.AddRange(WindowService.EnumerateTaskWindows(Handle));
-
-        // Before the excluded windows are dropped, so each one keeps its cache entry. Pruned
-        // against the shorter list they would be forgotten and looked up again four times a
-        // second, for windows that are never drawn.
-        _processInfo.Forget(new HashSet<IntPtr>(_candidates));
-
-        List<IntPtr> current = WithoutExcludedApplications(_candidates);
+        if (_released) return;
 
         // Keep the existing order and append newly opened windows at the end.
         // Membership is tested through sets: this runs every 250 ms.
         var live = new HashSet<IntPtr>(current);
         _order.RemoveAll(h => !live.Contains(h));
 
-        // After the live set is built, because which window is marked depends on it.
-        IntPtr foreground = WindowToMark(live);
+        IntPtr foreground = marked;
 
         var known = new HashSet<IntPtr>(_order);
         List<string> priority = _settings.ApplicationPriority;
@@ -1137,39 +726,18 @@ public class MainForm : Form
             if (prioritized) SortByPriority(priority);
         }
 
-        // Release icons that are no longer needed.
-        foreach (IntPtr key in _iconCache.Keys.ToList())
-        {
-            if (!known.Contains(key))
-            {
-                _iconCache[key].Icon?.Dispose();
-                _iconCache.Remove(key);
-            }
-        }
-
-        // Before the tabs are rebuilt, so no tab holds an icon that is about to be replaced.
-        RefreshStalestIcon();
-
         ArrangeByApplication();
 
         _tabs.Clear();
         foreach (IntPtr h in _order)
         {
-            if (!_iconCache.TryGetValue(h, out CachedIcon cached))
-            {
-                cached = new CachedIcon
-                {
-                    Icon = WindowService.GetWindowIcon(h),
-                    FetchedAt = Environment.TickCount,
-                };
-                _iconCache[h] = cached;
-            }
-
+            // Borrowed from the application's cache, which owns it. A tab never disposes the
+            // icon it draws with: the same window can be handed to another bar tomorrow.
             _tabs.Add(new TabItem
             {
                 Hwnd = h,
                 Title = WindowService.GetTitle(h),
-                Icon = cached.Icon,
+                Icon = _host.IconFor(h),
                 Active = (h == foreground),
             });
         }
@@ -1194,90 +762,15 @@ public class MainForm : Form
     }
 
     /// <summary>
-    /// Fetches the single oldest cached icon again, if it has passed <see cref="IconMaxAgeMs"/>.
-    /// Only one per pass: the underlying WM_GETICON call blocks until the owning window
-    /// answers or times out, and this runs on the UI thread.
+    /// Lets go of an icon the application is about to replace, so nothing here draws with one
+    /// that has been disposed. The refresh that follows hands the new one back.
     /// </summary>
-    private void RefreshStalestIcon()
+    internal void ForgetIcon(IntPtr hwnd)
     {
-        int now = Environment.TickCount;
-        IntPtr stalest = IntPtr.Zero;
-        int oldest = IconMaxAgeMs;
-
-        foreach (IntPtr h in _order)
+        foreach (TabItem tab in _tabs)
         {
-            if (!_iconCache.TryGetValue(h, out CachedIcon cached)) continue;
-
-            int age = unchecked(now - cached.FetchedAt);   // correct across TickCount wrapping
-            if (age >= oldest)
-            {
-                oldest = age;
-                stalest = h;
-            }
+            if (tab.Hwnd == hwnd) tab.Icon = null;
         }
-
-        if (stalest == IntPtr.Zero) return;
-
-        CachedIcon entry = _iconCache[stalest];
-        Icon previous = entry.Icon;
-        entry.Icon = WindowService.GetWindowIcon(stalest);
-        entry.FetchedAt = Environment.TickCount;
-        previous?.Dispose();
-    }
-
-    // ---------------------------------------------------------------
-    // Applications the user has excluded
-    // ---------------------------------------------------------------
-
-    /// <summary>
-    /// The windows that are left after the applications the user excluded are taken out.
-    /// </summary>
-    /// <remarks>
-    /// The list itself is returned untouched while nothing is excluded, down to not reading a
-    /// single process, so a bar nobody has configured behaves exactly as it did before this
-    /// setting existed. That is the same bargain grouping makes.
-    ///
-    /// Once something is excluded the executable is asked for once per window and answered from
-    /// <see cref="ProcessInfoCache"/> after that, so the 250 ms refresh costs a dictionary
-    /// lookup rather than a process query.
-    /// </remarks>
-    private List<IntPtr> WithoutExcludedApplications(List<IntPtr> windows)
-    {
-        List<string> excluded = _settings.ExcludedApplications;
-        if (excluded == null || excluded.Count == 0) return windows;
-
-        var result = new List<IntPtr>(windows.Count);
-        foreach (IntPtr h in windows)
-        {
-            if (!WindowExclusion.IsExcludedApplication(_processInfo.Name(h), excluded))
-                result.Add(h);
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Adds the application behind one window to the excluded list, and takes its windows off
-    /// the bar at once.
-    /// </summary>
-    /// <remarks>
-    /// Through the settings rather than by hiding the one tab: the user is excluding an
-    /// application, so its other windows go too, and the choice is written down where it can be
-    /// undone.
-    /// </remarks>
-    private void ExcludeApplication(IntPtr hwnd)
-    {
-        string name = _processInfo.Name(hwnd);
-        if (name.Length == 0) return;
-
-        if (_settings.ExcludedApplications.Contains(name, StringComparer.OrdinalIgnoreCase))
-            return;
-
-        _settings.ExcludedApplications.Add(name);
-
-        // The same call the settings dialog makes, so the row, the reserved area and the
-        // settings file are brought up to date by one path rather than two.
-        ApplySettings();
     }
 
     // ---------------------------------------------------------------
@@ -1323,33 +816,6 @@ public class MainForm : Form
 
         _order.Clear();
         _order.AddRange(handles);
-    }
-
-    /// <summary>
-    /// Whether the priority order differs from the one the row was last put into, and remembers
-    /// the current one either way.
-    /// </summary>
-    private bool PriorityChanged()
-    {
-        List<string> priority = _settings.ApplicationPriority ?? new List<string>();
-
-        if (_appliedPriority.Count == priority.Count)
-        {
-            bool same = true;
-            for (int i = 0; i < priority.Count; i++)
-            {
-                if (string.Equals(_appliedPriority[i], priority[i], StringComparison.Ordinal))
-                    continue;
-
-                same = false;
-                break;
-            }
-
-            if (same) return false;
-        }
-
-        _appliedPriority = new List<string>(priority);
-        return true;
     }
 
     // ---------------------------------------------------------------
@@ -1410,27 +876,6 @@ public class MainForm : Form
             _tabs[i].Marked = marks[i];
             _tabs[i].Accent = accents[i];
         }
-    }
-
-    /// <summary>The executables that have a window open right now, for the settings dialog.</summary>
-    /// <remarks>
-    /// From the candidates rather than from the row, so an application the user has just
-    /// excluded is still listed. Taken from the row it would leave the list the moment it was
-    /// ticked, and the tick that hid it would be the last thing the user could do to it.
-    /// </remarks>
-    private List<string> RunningApplications()
-    {
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var result = new List<string>();
-
-        foreach (IntPtr h in _candidates)
-        {
-            string name = _processInfo.Name(h);
-            if (name.Length > 0 && seen.Add(name)) result.Add(name);
-        }
-
-        result.Sort(StringComparer.OrdinalIgnoreCase);
-        return result;
     }
 
     private void LayoutTabs()
@@ -2170,7 +1615,7 @@ public class MainForm : Form
         }
 
         Rectangle tab = RectangleToScreen(_tabs[index].Bounds);
-        Rectangle screen = Screen.FromControl(this).Bounds;
+        Rectangle screen = Monitor;
 
         // No gap. The panel sits against the bar's free edge so the pointer can travel from the
         // tab onto it without crossing anything in between: a gap is desktop, and the moment the
@@ -2291,7 +1736,7 @@ public class MainForm : Form
         if (e.Button == MouseButtons.Middle || (e.Button == MouseButtons.Left && onClose))
         {
             WindowService.Close(tab.Hwnd);
-            _dirty = true;
+            _host.MarkDirty();
             return;
         }
 
@@ -2349,7 +1794,7 @@ public class MainForm : Form
         else
             WindowService.Activate(tab.Hwnd);
 
-        _dirty = true;
+        _host.MarkDirty();
     }
 
     /// <summary>
@@ -2514,7 +1959,11 @@ public class MainForm : Form
         }
 
         EndDrag();
-        RefreshTabs();
+
+        // Through the application, which hands every bar its windows again. The order this has
+        // just put back is kept: a refresh adds and removes windows rather than reordering the
+        // row.
+        _host.RefreshNow();
     }
 
     private void EndPress()
@@ -2556,86 +2005,84 @@ public class MainForm : Form
     // ---------------------------------------------------------------
 
     /// <summary>
-    /// Releases everything this form owns: the event hooks, the cached icons, the font, the
-    /// tooltip, the two menus, the tray icon and the AppBar registration.
+    /// Takes this bar away because the application asked: its monitor was unplugged, the
+    /// setting no longer wants a bar there, or the application is closing.
+    /// </summary>
+    /// <remarks>
+    /// The flag is what tells <see cref="OnFormClosing"/> that the user did not close this bar,
+    /// so the application is not ended with it.
+    /// </remarks>
+    internal void CloseForHost()
+    {
+        _hostClosing = true;
+        Close();
+        Dispose();
+    }
+
+    /// <summary>
+    /// Releases everything this bar owns: the font, the tooltip, the preview, the tab menu and
+    /// the AppBar registration.
     /// </summary>
     /// <remarks>
     /// Called from two places, and <see cref="_released"/> makes the second call do nothing.
     /// <see cref="OnFormClosing"/> calls it so the desktop gets its space back as soon as the
     /// bar is closed, and <see cref="Dispose(bool)"/> calls it so nothing is left registered
     /// when the form is disposed without having been closed.
+    ///
+    /// The icons and the process cache are not released here. They belong to
+    /// <see cref="BarHost"/> and are shared with the other bars, which are still drawing with
+    /// them when one bar goes because its monitor was unplugged.
     /// </remarks>
     private void ReleaseResources()
     {
         if (_released) return;
         _released = true;
 
-        _timer.Stop();
-        _timer.Dispose();
-
-        foreach (IntPtr hook in _hooks)
-            NativeMethods.UnhookWinEvent(hook);
-        _hooks.Clear();
-
-        // Before the icons: the preview draws one of them, borrowed from this cache.
         _previewTimer.Stop();
         _previewTimer.Dispose();
         _preview?.Dispose();
         _preview = null;
         _previewHwnd = IntPtr.Zero;
 
-        foreach (CachedIcon cached in _iconCache.Values)
-            cached.Icon?.Dispose();
-        _iconCache.Clear();
-
-        // Each tab holds an icon the cache has just released, so the tabs go with it.
+        // The icons are the application's, so the tabs only let go of them.
         _tabs.Clear();
-
-        // Strings only, so there is nothing here to release. Cleared for the same reason the
-        // tabs are: what it describes is gone.
-        _processInfo.Clear();
         _groupIds.Clear();
+        _order.Clear();
 
         _toolTip.Dispose();
 
         _font?.Dispose();
         _font = null;
 
-        _appMenu?.Dispose();
         _tabMenu?.Dispose();
 
         foreach (ContextMenuStrip menu in _retiredMenus)
             menu.Dispose();
         _retiredMenus.Clear();
 
-        // Hide before disposing. A tray icon that is only disposed can be left behind as a
-        // dead entry in the notification area until the user hovers over it.
-        if (_trayIcon != null)
-        {
-            _trayIcon.Visible = false;
-            _trayIcon.ContextMenuStrip?.Dispose();   // the NotifyIcon does not own it
-            _trayIcon.Dispose();
-            _trayIcon = null;
-        }
-
-        if (_trayIconHandle != IntPtr.Zero)
-        {
-            NativeMethods.DestroyIcon(_trayIconHandle);
-            _trayIconHandle = IntPtr.Zero;
-        }
-
         UnregisterAppBar();
     }
 
     /// <summary>
-    /// Releases the resources once the close is settled. The base call comes first because a
-    /// handler of the <c>FormClosing</c> event may cancel the close, and a bar that goes on
-    /// running still needs its font, its icons and its hooks.
+    /// Releases the resources once the close is settled, and ends the application when it was
+    /// the user who closed the bar.
     /// </summary>
+    /// <remarks>
+    /// The base call comes first because a handler of the <c>FormClosing</c> event may cancel
+    /// the close, and a bar that goes on running still needs its font and its tooltip.
+    ///
+    /// Closing one bar closes the application, which is what the Exit entry in the menu does
+    /// and what Windows does when it ends the session. A bar the application itself is taking
+    /// away - an unplugged monitor, or the setting - comes through
+    /// <see cref="CloseForHost"/> instead and leaves the rest of them alone.
+    /// </remarks>
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
         base.OnFormClosing(e);
-        if (!e.Cancel) ReleaseResources();
+        if (e.Cancel) return;
+
+        ReleaseResources();
+        if (!_hostClosing) _host.BarClosed(this);
     }
 
     /// <summary>

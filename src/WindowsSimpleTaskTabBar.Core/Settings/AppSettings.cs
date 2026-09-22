@@ -38,6 +38,31 @@ public enum BarEdgeMode
 }
 
 /// <summary>
+/// Which monitors carry a bar.
+/// </summary>
+public enum MonitorMode
+{
+    /// <summary>
+    /// A bar on every monitor, each one listing the windows on its own monitor.
+    /// </summary>
+    /// <remarks>
+    /// Zero, so a settings file written before this setting existed reads as this one. The bar
+    /// exists to reach a window that is behind another, and a window on a second monitor was
+    /// out of reach of the only bar there was.
+    /// </remarks>
+    EveryMonitor = 0,
+
+    /// <summary>
+    /// One bar, on the primary monitor, listing every window in the session.
+    /// </summary>
+    /// <remarks>
+    /// Every window, wherever it is, rather than the primary monitor's alone: this is the one
+    /// bar there is, and a window it left out would have nothing to reach it from.
+    /// </remarks>
+    PrimaryOnly = 1,
+}
+
+/// <summary>
 /// Which colours the bar draws with.
 /// </summary>
 public enum ColourMode
@@ -66,7 +91,7 @@ public class AppSettings
     /// The schema this instance was written with. Present from the first release so that a later
     /// version can tell an old file apart from a new one instead of guessing.
     /// </summary>
-    public const int CurrentSchema = 9;
+    public const int CurrentSchema = 10;
 
     /// <summary>How many accents a group can be marked with.</summary>
     public const int AccentCount = 8;
@@ -96,6 +121,19 @@ public class AppSettings
     /// they would have chosen by hand.
     /// </remarks>
     public BarEdgeMode BarEdge { get; set; } = BarEdgeMode.FollowTaskbar;
+
+    /// <summary>Which monitors carry a bar.</summary>
+    /// <remarks>
+    /// Every monitor by default, and a settings file written before this setting existed reads
+    /// the same way. That does change what someone with two monitors sees after an update: a
+    /// bar appears on the second one, and the windows on it move to that bar. It is the point
+    /// of the application - a window you cannot see is a window you cannot reach - and the
+    /// other choice is one radio button away.
+    ///
+    /// On a single monitor the two choices are the same bar, so nothing about this setting
+    /// shows until a second monitor is plugged in.
+    /// </remarks>
+    public MonitorMode Monitors { get; set; } = MonitorMode.EveryMonitor;
 
     /// <summary>
     /// Which palette the bar draws with, and whether it follows Windows.
@@ -225,6 +263,7 @@ public class AppSettings
             Schema = CurrentSchema,
             BarHeight = IsKnown(BarHeight) ? BarHeight : BarHeightMode.Standard,
             BarEdge = IsKnown(BarEdge) ? BarEdge : BarEdgeMode.FollowTaskbar,
+            Monitors = IsKnown(Monitors) ? Monitors : MonitorMode.EveryMonitor,
             Colours = IsKnown(Colours) ? Colours : ColourMode.FollowWindows,
             GroupByApplication = GroupByApplication,
             ShowWindowPreview = ShowWindowPreview,
@@ -254,6 +293,7 @@ public class AppSettings
         Schema = tidy.Schema;
         BarHeight = tidy.BarHeight;
         BarEdge = tidy.BarEdge;
+        Monitors = tidy.Monitors;
         Colours = tidy.Colours;
         GroupByApplication = tidy.GroupByApplication;
         ShowWindowPreview = tidy.ShowWindowPreview;
@@ -295,6 +335,11 @@ public class AppSettings
         return mode == BarEdgeMode.FollowTaskbar
                || mode == BarEdgeMode.Bottom
                || mode == BarEdgeMode.Top;
+    }
+
+    private static bool IsKnown(MonitorMode mode)
+    {
+        return mode == MonitorMode.EveryMonitor || mode == MonitorMode.PrimaryOnly;
     }
 
     private static bool IsKnown(ColourMode mode)

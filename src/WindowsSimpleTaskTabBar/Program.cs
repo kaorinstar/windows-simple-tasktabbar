@@ -24,6 +24,10 @@ internal static class Program
         ApplicationConfiguration.Initialize();
 #endif
 
-        Application.Run(new MainForm());
+        // An application context rather than a main window: there is one bar per monitor now,
+        // and every one of them can be taken away and brought back while the application runs.
+        using var host = new BarHost();
+        host.Start();
+        Application.Run(host);
     }
 }

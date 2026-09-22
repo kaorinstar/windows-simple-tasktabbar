@@ -52,6 +52,8 @@ windows-simple-tasktabbar/
 │   │   │   └── AppPriority.cs              Where a tab goes, from the user's order
 │   │   ├── Preview/
 │   │   │   └── PreviewPlacement.cs         How big a window preview is, and where it sits
+│   │   ├── Monitors/
+│   │   │   └── MonitorMap.cs               Which monitor a window is on
 │   │   ├── Settings/
 │   │   │   ├── AppGroup.cs                 One group the user defined by hand
 │   │   │   └── AppSettings.cs              The settings and their defaults
@@ -73,7 +75,8 @@ windows-simple-tasktabbar/
 │       │   └── WindowService.cs            Enumerate, activate, close windows
 │       └── UI/
 │           ├── AccentPalette.cs            The square of colour shown beside each accent
-│           ├── MainForm.cs                 AppBar registration, painting, input
+│           ├── BarHost.cs                  The application: the bars, the tray icon, the timer
+│           ├── MainForm.cs                 One bar: AppBar registration, painting, input
 │           ├── PreviewWindow.cs            The window a live preview is drawn in
 │           ├── SettingsForm.cs             The settings dialog
 │           └── UiFonts.cs                  The font of the active language, with a fallback
@@ -86,6 +89,7 @@ windows-simple-tasktabbar/
         ├── BarPaletteTests.cs
         ├── BarPlacementTests.cs
         ├── LocalizationTests.cs
+        ├── MonitorMapTests.cs
         ├── PreviewPlacementTests.cs
         ├── ReleaseVersionTests.cs
         ├── TabGroupingTests.cs
@@ -142,18 +146,24 @@ Differences between the two are handled with `#if NETFRAMEWORK` in `Program.cs`.
 ```
 Program.cs
    ↓
-UI/MainForm.cs  ──→  Core/Layout/                (calculations)
+UI/BarHost.cs   ──→  Core/Filtering/              (which windows are left off the bars)
+   │             ──→  Core/Focus/                 (which window is marked as in front)
+   │             ──→  Core/Monitors/              (which monitor a window is on)
+   ↓
+UI/MainForm.cs  ──→  Core/Layout/                 (calculations)
    │             ──→  Core/Grouping/              (which tab is in which group)
-   │             ──→  Core/Filtering/             (which windows are left off the bar)
    │             ──→  Core/Ordering/              (where a tab goes in the row)
-   │             ──→  Core/Focus/                 (which tab is marked as in front)
    │             ──→  Core/Localization/          (what every piece of text says)
    │             ──→  Core/Preview/               (how big a window preview is, and where)
    ↓
-Services/WindowService.cs                       (window operations)
+Services/WindowService.cs                        (window operations)
    ↓
-Interop/NativeMethods.cs                        (Windows API)
+Interop/NativeMethods.cs                         (Windows API)
 ```
+
+`BarHost` is the application and `MainForm` is one bar. There is one host and one bar per
+monitor, and the host owns everything there is one of: the settings, the tray icon, the caches,
+the event hooks and the 250 ms timer that drives the whole thing.
 
 Calls only go downward. `DllImport` declarations live exclusively in `Interop/NativeMethods.cs`
 and must not appear anywhere else.
@@ -163,7 +173,8 @@ and must not appear anywhere else.
 ### Sitting beside the taskbar
 
 `UI/MainForm.cs` registers an AppBar through `SHAppBarMessage`, which reserves part of the
-desktop work area. Because the area is reserved, maximized windows do not cover the bar. Simply
+desktop work area. Windows takes one registration per monitor, so each bar reserves a strip of
+its own monitor. Because the area is reserved, maximized windows do not cover the bar. Simply
 setting a window to topmost would not achieve this — it would overlap other windows instead.
 
 The edge the bar reserves is a setting, and by default it is the edge the Windows taskbar is on:
@@ -180,6 +191,50 @@ Everything the bar draws is mirrored when it sits at the top: the tabs hang from
 their corners are rounded underneath, a group's accent runs along the edge facing the desktop,
 the line that marks the bar off from the desktop moves to the foot of the bar, and a window
 preview hangs below it rather than above.
+
+### One bar per monitor
+
+Each monitor carries a bar, and each bar lists the windows on its own monitor. The setting is in
+`AppSettings.Monitors`; **Main display only** leaves one bar on the primary monitor, and that one
+lists every window in the session, because a window it left out would have nothing to reach it
+from.
+
+`BarHost.SyncBars` is the only place bars are created and destroyed. It runs at start-up, when
+the setting changes, and when the display arrangement changes: a monitor that appeared gets a
+bar, a monitor that disappeared loses one, and a monitor that moved has its bar moved with it.
+Bars are matched to monitors by device name rather than by position, because the position is the
+thing that changes.
+
+`SystemEvents.DisplaySettingsChanged` reports the change, and it arrives on a thread of its
+own, so the handler sets a flag and the timer acts on it. Creating and destroying windows
+belongs on the thread that owns them, and the timer is already the one place work is started
+from. A bar that sees `WM_DISPLAYCHANGE` sets the same flag, which covers what the event misses,
+and both go through `SyncBars`, which is idempotent.
+
+Which windows go to which bar is worked out once per pass, in `BarHost.Refresh`: enumerating the
+windows, reading the executable behind each one and fetching icons have the same answer on every
+monitor, so doing them per bar would be the same work several times over. Each bar is then handed
+its own list and decides the order, the grouping, the scrolling and the drawing for itself. A
+window dragged to another monitor simply stops appearing in one list and starts appearing in
+another, on the pass after it moved, so nothing has to watch for the move itself.
+
+`Core/Monitors/MonitorMap.cs` holds the arithmetic: given a window rectangle and the monitor
+rectangles, the monitor the window covers most of, or the nearest one when it covers none of
+any. That is the rule `MONITOR_DEFAULTTONEAREST` applies, done here so it can be tested without
+a screen and so the answer is a position in the list of bars rather than a monitor handle that
+would have to be matched back to one.
+
+**A minimized window is the exception, and it is the reason this is not a one-line lookup.**
+Windows parks one at roughly (-32000, -32000), which is on no monitor and nearest to whichever
+monitor reaches furthest towards the top left. Its tab would appear on a bar it has nothing to do
+with, and clicking it would restore the window onto a different monitor from the one whose bar
+was clicked. `WindowService.RestoredBounds` reads `rcNormalPosition` from `GetWindowPlacement`
+for such a window instead, which is where it comes back to.
+
+Monitors can run at different scale factors. The process is per-monitor DPI aware, and each bar
+reads `GetDpiForWindow` on its own handle and builds its own `BarMetrics` from it. A bar is given
+its monitor's rectangle before its window is created, so Windows creates it on that monitor and
+the first reading is already the right one.
 
 ### Three-step activation
 
@@ -329,7 +384,7 @@ the pointer is still on the same tab, because the same press may turn out to be 
 the press instead would minimize a window the moment the user started to drag its tab.
 
 The drop position comes from `TabStrip.DropIndex`, a pure function: a tab takes the next slot as
-soon as its leading edge passes the middle of it. `RefreshTabs` keeps running during a drag, so
+soon as its leading edge passes the middle of it. The refresh keeps running during a drag, so
 the dragged tab is tracked by window handle rather than by index, and its position is reapplied
 after every layout pass.
 
@@ -387,7 +442,7 @@ API: which group a tab belongs to, and what order the row is drawn in. The bar h
 group name per tab and gets back the order, so the rule is unit tested rather than inferred from
 what the bar looks like.
 
-`Arrange` has to give an arranged row back unchanged. `RefreshTabs` runs four times a second, so
+`Arrange` has to give an arranged row back unchanged. The refresh runs four times a second, so
 anything that moved a tab on the second pass would move it again on the third and the row would
 never come to rest. A group takes the place of its first window and the windows inside it keep
 the order they arrived in, which is what makes that true.
@@ -504,7 +559,7 @@ A packaged application - Calculator, Settings, Photos - is drawn in an `Applicat
 owned by `ApplicationFrameHost.exe`. Asked directly, every one of them answers with the same
 executable and they would all be shown as one group, so the frame's children are asked instead.
 
-`ProcessInfoCache` remembers the answers, including the failures: `RefreshTabs` runs four times a
+`ProcessInfoCache` remembers the answers, including the failures: the refresh runs four times a
 second, and a window this application may not query would otherwise be asked again on every
 pass. Nothing expires, because a window cannot change the process that owns it. Entries are
 dropped from the same live set the icon cache is pruned against, so a handle Windows later reuses
@@ -528,7 +583,7 @@ enumerated.
 The second is the user's own list, in `AppSettings.ExcludedApplications`, and it names
 executables rather than window classes: people recognise an application by the program it is,
 not by a class name they have never seen. Reading the executable behind a window costs a process
-query, so it is asked afterwards, in `MainForm.WithoutExcludedApplications`, and only for the
+query, so it is asked afterwards, in `BarHost.WithoutExcludedApplications`, and only for the
 windows that got past the first list. While the list is empty that method returns what it was
 given without reading a single process, so a bar nobody has configured costs exactly what it did
 before the setting existed. Once something is excluded, `ProcessInfoCache` answers each window
@@ -549,7 +604,7 @@ cost: two unrelated programs both called `app.exe` are excluded together.
 
 ### The order applications are given
 
-A tab used to land wherever its window happened to open. `RefreshTabs` appended every window it
+A tab used to land wherever its window happened to open. The refresh appended every window it
 had not seen before, so the row came out in the order `EnumWindows` answered in. Grouping brings
 the windows of one application together but says nothing about which application comes first, and
 dragging is lost when the application exits.
@@ -563,9 +618,10 @@ holds the arithmetic, and being strings and no window handles it is unit tested 
 **The order decides where a tab is inserted, not where it is held.** The row is rebuilt four times
 a second, so putting it back into priority order on every pass would undo a drag within 250 ms -
 the same reason this document gives above for not letting a single tab leave its group.
-`RefreshTabs` therefore asks `AppPriority.InsertionIndex` where each newly seen window goes, in
-front of the first tab that ranks below it, and the whole row is put in order at two moments only:
-when the bar starts, and when the user changes the list. `MainForm.PriorityChanged` is what tells
+`MainForm.SetWindows` therefore asks `AppPriority.InsertionIndex` where each newly seen window
+goes, in front of the first tab that ranks below it, and the whole row is put in order at two
+moments only: when the bar starts, and when the user changes the list. `BarHost.PriorityChanged`
+is what tells
 that change apart from every other settings change, so that changing the colours does not pull a
 dragged tab back.
 
@@ -652,8 +708,10 @@ person. The settings file is meant to be editable by hand.
 
 Everything decidable without a network or a window lives in `Core/Update/`: reading a version out
 of a tag, comparing two of them, and deciding whether a check is due. `Services/UpdateService.cs`
-makes the request and answers with one of three outcomes. `MainForm` owns the thread the answer
-comes back on, and everything the user sees.
+makes the request and answers with one of three outcomes. `BarHost` owns the thread the answer
+comes back on, and everything the user sees. The answer is left in a field for the next timer
+tick rather than posted to a window, because the application owns no window of its own and the
+bars it does own can be taken away by a monitor being unplugged while the request is in flight.
 
 ### Who owns what, and how a leak is caught
 
@@ -662,20 +720,24 @@ for the whole session. Ownership is therefore written down rather than assumed.
 
 | Object | Owner | Released |
 |---|---|---|
-| Window icons | `_iconCache` in `MainForm` | when the window closes, when the icon is refreshed, and in `ReleaseResources` |
-| `Font`, `ToolTip`, both menus, `NotifyIcon`, the timer | `MainForm` | `ReleaseResources` |
-| The tray icon handle from `ExtractIconExW` | `MainForm` | `DestroyIcon` in `ReleaseResources` |
-| Event hooks from `SetWinEventHook` | `_hooks` in `MainForm` | `UnhookWinEvent` in `ReleaseResources` |
-| The AppBar registration | `MainForm` | `UnregisterAppBar` in `ReleaseResources` |
+| Window icons | `_iconCache` in `BarHost` | when the window closes, when the icon is refreshed, and in `BarHost.ReleaseResources` |
+| The application menu, the `NotifyIcon`, the timer | `BarHost` | `BarHost.ReleaseResources` |
+| The tray icon handle from `ExtractIconExW` | `BarHost` | `DestroyIcon` in `BarHost.ReleaseResources` |
+| Event hooks from `SetWinEventHook` | `_hooks` in `BarHost` | `UnhookWinEvent` in `BarHost.ReleaseResources` |
+| The bars themselves | `_bars` in `BarHost` | `CloseForHost` when a monitor goes, and in `BarHost.ReleaseResources` |
+| `Font`, `ToolTip`, the tab menu, the preview window | each `MainForm` | `MainForm.ReleaseResources` |
+| The AppBar registration | each `MainForm` | `UnregisterAppBar` in `MainForm.ReleaseResources` |
 | The process handle from `OpenProcess` | `WindowService.GetExecutablePath` | `CloseHandle` in that method's `finally` |
 | `Pen`, `SolidBrush`, `GraphicsPath` while painting | the `using` statement around them | end of the statement |
 | The `HttpClient` and the response of an update check | the `using` statements in `UpdateService.FetchLatestTag` | end of the statement |
-| The process `Process.Start` hands back when a release page is opened | the `using` statement in `MainForm.OpenReleasePage` | end of the statement |
+| The process `Process.Start` hands back when a release page is opened | the `using` statement in `BarHost.OpenReleasePage` | end of the statement |
 | Controls in `SettingsForm` | the `Controls` collection they are added to | the form's own `Dispose` |
 
-`ReleaseResources` runs from two places and does its work only once: `OnFormClosing`, so the
-desktop gets its space back the moment the bar is closed, and `Dispose(bool)`, so nothing is left
-registered when the form is disposed without having been closed. It runs before the base
+A bar's `ReleaseResources` runs from two places and does its work only once: `OnFormClosing`, so
+the desktop gets its space back the moment the bar is closed, and `Dispose(bool)`, so nothing is
+left registered when the form is disposed without having been closed. An AppBar registration
+that outlives its bar reserves a strip of desktop that nothing gives back, which is why a
+monitor being unplugged goes through the same path as the application closing. It runs before the base
 `Dispose`, because removing the AppBar registration needs a window handle that still exists.
 
 Three analyzer rules guard this, raised to warnings in `.editorconfig` and therefore build
@@ -745,5 +807,5 @@ any of them.
 
 The five sizes are 16, 20, 24, 32 and 48, all stored uncompressed, which every reader of an icon
 understands. They come to about 19 KB inside an executable the READMEs keep under 200 KB, so a
-size added here is paid for there. `MainForm.LoadSmallApplicationIcon` reads the 16-pixel entry
+size added here is paid for there. `BarHost.LoadSmallApplicationIcon` reads the 16-pixel entry
 back out of the executable for the tray, so this file is the only copy of the image.

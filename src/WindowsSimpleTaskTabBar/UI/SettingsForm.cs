@@ -75,6 +75,14 @@ internal sealed class SettingsForm : Form
 
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
         Justification = "Owned by the Controls collection it is added to.")]
+    private RadioButton _everyMonitor;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private RadioButton _primaryMonitorOnly;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
     private RadioButton _followWindows;
 
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
@@ -399,7 +407,8 @@ internal sealed class SettingsForm : Form
         // stands on the right to make up the difference. Moving tab order across instead was
         // measured and only swaps which column is too long: it is the tallest box on its side.
         // Bar position stands opposite bar height for the same reason, rather than under it
-        // where the subject would put it: the left column is the longer of the two.
+        // where the subject would put it: the left column is the longer of the two. Displays
+        // follows bar position, which is the other box about where the bar is.
         FlowLayoutPanel left = Column();
         left.Controls.Add(BuildLanguageGroup());
         left.Controls.Add(BuildHeightGroup());
@@ -409,6 +418,7 @@ internal sealed class SettingsForm : Form
 
         FlowLayoutPanel right = Column();
         right.Controls.Add(BuildEdgeGroup());
+        right.Controls.Add(BuildMonitorGroup());
         right.Controls.Add(BuildGroupingGroup());
         right.Controls.Add(BuildExclusionsGroup());
         right.Controls.Add(BuildUpdatesGroup());
@@ -710,6 +720,61 @@ internal sealed class SettingsForm : Form
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Margin = new Padding(12, 12, 12, 6),
+        };
+        box.Controls.Add(choices);
+        return box;
+    }
+
+    private GroupBox BuildMonitorGroup()
+    {
+        _everyMonitor = new RadioButton
+        {
+            Text = _text[StringId.MonitorEvery],
+            AutoSize = true,
+            Margin = new Padding(4, 4, 4, 2),
+        };
+        _everyMonitor.CheckedChanged += (_, __) => OnMonitorsChanged();
+
+        _primaryMonitorOnly = new RadioButton
+        {
+            Text = _text[StringId.MonitorPrimaryOnly],
+            AutoSize = true,
+            Margin = new Padding(4, 2, 4, 4),
+        };
+        _primaryMonitorOnly.CheckedChanged += (_, __) => OnMonitorsChanged();
+
+        var explanation = new Label
+        {
+            Text = _text[StringId.MonitorNote],
+            AutoSize = true,
+
+            // Wrapped against the same width as every other note.
+            MaximumSize = new Size(ColumnWidth * 2, 0),
+            ForeColor = SystemColors.GrayText,
+            Margin = new Padding(4, 0, 4, 4),
+        };
+
+        var choices = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.TopDown,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(8, 4, 8, 8),
+
+            // Docked, for the reason given on the box above it.
+            Dock = DockStyle.Fill,
+            WrapContents = false,
+        };
+        choices.Controls.Add(_everyMonitor);
+        choices.Controls.Add(_primaryMonitorOnly);
+        choices.Controls.Add(explanation);
+
+        var box = new GroupBox
+        {
+            Text = _text[StringId.MonitorGroup],
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(12, 6, 12, 6),
         };
         box.Controls.Add(choices);
         return box;
@@ -1246,6 +1311,8 @@ internal sealed class SettingsForm : Form
         _followTaskbar.Checked = _settings.BarEdge == BarEdgeMode.FollowTaskbar;
         _edgeBottom.Checked = _settings.BarEdge == BarEdgeMode.Bottom;
         _edgeTop.Checked = _settings.BarEdge == BarEdgeMode.Top;
+        _everyMonitor.Checked = _settings.Monitors == MonitorMode.EveryMonitor;
+        _primaryMonitorOnly.Checked = _settings.Monitors == MonitorMode.PrimaryOnly;
         _followWindows.Checked = _settings.Colours == ColourMode.FollowWindows;
         _light.Checked = _settings.Colours == ColourMode.Light;
         _dark.Checked = _settings.Colours == ColourMode.Dark;
@@ -1323,6 +1390,21 @@ internal sealed class SettingsForm : Form
         if (mode == _settings.BarEdge) return;
 
         _settings.BarEdge = mode;
+        _onChanged();
+    }
+
+    private void OnMonitorsChanged()
+    {
+        if (_loading) return;
+
+        // As with the edge above: CheckedChanged fires for the button being cleared as well as
+        // the one being set, so the stored value decides whether anything happened.
+        MonitorMode mode = _primaryMonitorOnly.Checked
+            ? MonitorMode.PrimaryOnly
+            : MonitorMode.EveryMonitor;
+        if (mode == _settings.Monitors) return;
+
+        _settings.Monitors = mode;
         _onChanged();
     }
 

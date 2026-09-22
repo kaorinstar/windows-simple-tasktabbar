@@ -6,8 +6,9 @@ namespace WindowsSimpleTaskTabBar.Services;
 /// Remembers which executable owns a window, so the 250 ms refresh does not ask Windows again.
 /// </summary>
 /// <remarks>
-/// An instance rather than static state, so it has a named owner in <c>MainForm</c>. It holds
-/// strings only, so there is nothing here to release.
+/// An instance rather than static state, so it has a named owner in <c>BarHost</c>, which shares
+/// the one cache with every bar: a window's executable is the same answer wherever the window is.
+/// It holds strings only, so there is nothing here to release.
 ///
 /// Nothing expires. A window cannot change the process that owns it, so the one reason to
 /// forget an entry is that the window is gone, which <see cref="Forget"/> does from the same

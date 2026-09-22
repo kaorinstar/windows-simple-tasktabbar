@@ -53,6 +53,11 @@ public enum StringId
     EdgeTop,
     EdgeNote,
 
+    MonitorGroup,
+    MonitorEvery,
+    MonitorPrimaryOnly,
+    MonitorNote,
+
     ColourGroup,
     ColourFollowWindows,
     ColourLight,
