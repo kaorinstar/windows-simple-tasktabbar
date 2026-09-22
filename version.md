@@ -11,7 +11,7 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
-## Unreleased
+## v0.9.0
 
 - Every display carries a bar, and each one lists the windows on its own display. A window is
   now always on the bar beside it, rather than on a bar on another screen. Dragging a window to
@@ -43,6 +43,9 @@ in [README.md](README.md).
   taskbar and the notification area instead of looking soft there. The icon in the taskbar, the
   notification area, the Start menu, the file list and the installer all change together, since
   all of them read the same file.
+- The executable is 190,976 bytes, against 169,472 in v0.8.0. One bar per monitor is most of the
+  difference: the application and the bar are two classes now, and each carries the reasons for
+  what it holds. The four new settings strings in twelve languages account for the rest.
 
 ## v0.8.0
 
