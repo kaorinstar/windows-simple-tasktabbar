@@ -231,7 +231,8 @@ public class MainForm : Form
         DoubleBuffered = true;
         // The installer finds this window by its title, so that it can close a running bar
         // before it replaces or removes the executable. A change here is a change to
-        // installer/WindowsSimpleTaskTabBar.iss as well.
+        // installer/WindowsSimpleTaskTabBar.iss as well. Every bar carries the same title, and
+        // closing any one of them closes the application, so the first one found is enough.
         Text = "WindowsSimpleTaskTabBar";
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer
                  | ControlStyles.UserPaint | ControlStyles.ResizeRedraw, true);
