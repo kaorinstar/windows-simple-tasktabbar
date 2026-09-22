@@ -64,21 +64,23 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 
-; The name of the mutex Program.cs creates to keep a second bar from starting. Naming it here
-; makes Setup and the uninstaller say "close it now, then click OK" when the bar is running,
-; instead of running into whatever the running bar is holding open. It is the message rather
-; than the failure: an uninstall that meets the running bar reports that a file is in use by
-; another process, which tells the user nothing they can act on.
-AppMutex=WindowsSimpleTaskTabBar_SingleInstance
+; There is deliberately no AppMutex here. It named the mutex Program.cs creates, and that made
+; Setup and the uninstaller stop at their own start and ask the user to close the bar by hand.
+; The check runs before Windows has been asked to close anything, so naming the mutex took the
+; automatic close away before it could happen (#119). The [Code] section at the end of this file
+; does what AppMutex did, one step later in each case, and closes the bar itself rather than
+; asking the user to.
 
 ; The bar holds its own executable open while it runs, so installing over a copy already there
-; has to close it first. Once the user has answered the message above, Setup asks Windows to
-; close anything still holding a file, rather than stopping. Asking is also what gets the
-; desktop its space back: the bar unregisters itself as an AppBar while it closes, which a
-; forced termination would skip.
+; has to close it first. Setup asks Windows to do that on the Preparing to Install page, once
+; the user has chosen to install. Asking is also what gets the desktop its space back: the bar
+; unregisters itself as an AppBar while it closes, which a forced termination would skip. That
+; is why this is yes rather than force, which terminates whatever does not close.
 CloseApplications=yes
-; Setup does not start it again itself. The last page offers that instead, so an installation
-; over a running bar ends the same way as a first installation.
+; Setup does not start it again itself, and Windows cannot: restarting an application it closed
+; needs that application to have called RegisterApplicationRestart, and this one does not. The
+; last page offers to start the bar instead, so an installation over a running bar ends the same
+; way as a first installation.
 RestartApplications=no
 
 ; The wizard's own text comes from the language files that ship with Inno Setup, not from
@@ -140,3 +142,83 @@ Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags
 ; The settings file in %APPDATA%\WindowsSimpleTaskTabBar is deliberately not deleted here. It is
 ; the user's own work - their language, colours, groups and tab order - and uninstalling to
 ; install a newer version is the ordinary reason to uninstall at all.
+
+; Closing a running bar so that its executable can be replaced or removed. This is what AppMutex
+; used to stand in for, and it runs at the two points where Inno Setup lets a script stop the
+; work: after the user has chosen to install, and after the user has confirmed the uninstall.
+; Nothing here says anything of its own. The one message it can show is Inno Setup's own, so it
+; arrives translated in every language listed above, in the same words the mutex used to show.
+[Code]
+const
+  { The mutex Program.cs creates to keep a second bar from starting. While it exists a bar is
+    running, and it is gone once that process has ended. The window disappears before the
+    process does, so this is what the wait below watches rather than the window. }
+  BarMutex = 'WindowsSimpleTaskTabBar_SingleInstance';
+  WM_CLOSE = $0010;
+  { Ten seconds, in the hundred-millisecond steps the wait is made of. Closing takes a fraction
+    of that; the rest is for a machine busy enough to make a fraction take longer. }
+  CloseSteps = 100;
+
+{ Asks a running bar to close and waits for it to go. True when no bar is running, either
+  because none was or because the one that was has closed. }
+function CloseRunningBar(): Boolean;
+var
+  Wnd: HWND;
+  I: Integer;
+begin
+  if not CheckForMutexes(BarMutex) then begin
+    Result := True;
+    Exit;
+  end;
+
+  { WM_CLOSE rather than a forced termination, for the reason CloseApplications is yes rather
+    than force: the bar unregisters itself as an AppBar on its way out, and the desktop only
+    gets that space back if that runs. The window is MainForm's, and its title is the
+    application name, set in the MainForm constructor and not translated. }
+  Wnd := FindWindowByWindowName('{#AppName}');
+  if Wnd <> 0 then
+    PostMessage(Wnd, WM_CLOSE, 0, 0);
+
+  for I := 1 to CloseSteps do begin
+    Sleep(100);
+    if not CheckForMutexes(BarMutex) then begin
+      Result := True;
+      Exit;
+    end;
+  end;
+
+  Result := False;
+end;
+
+{ Closes the bar, and falls back to asking the user when it will not close: a window it is
+  waiting on, a bar started by another account, anything this cannot reach. The message is Inno
+  Setup's own msgSetupAppRunningError or msgUninstallAppRunningError, which is the sentence
+  AppMutex used to show. Cancel ends Setup or the uninstaller, which is what Abort does at both
+  of the two points this is called from, and nowhere else. A silent run has nobody to answer, so
+  the message is suppressed there and taken as Cancel. }
+procedure CloseRunningBarOrAsk(RunningMessage: String);
+begin
+  while not CloseRunningBar() do
+    if SuppressibleMsgBox(FmtMessage(RunningMessage, ['{#AppName}']), mbError, MB_OKCANCEL,
+       IDCANCEL) <> IDOK then
+      Abort;
+end;
+
+{ Just before the files are copied. Windows has usually closed the bar by now, on the Preparing
+  to Install page; this is here for the run where it could not, and for the silent install,
+  where that page is never shown. }
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssInstall then
+    CloseRunningBarOrAsk(SetupMessage(msgSetupAppRunningError));
+end;
+
+{ Just before the uninstaller checks for a running application, which is after the user has
+  confirmed the uninstall and before anything has been deleted. The uninstaller never asks
+  Windows to close anything - Restart Manager is Setup's alone - so this is the only thing
+  between an uninstall and a running bar, and #107 is what that used to look like. }
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usAppMutexCheck then
+    CloseRunningBarOrAsk(SetupMessage(msgUninstallAppRunningError));
+end;

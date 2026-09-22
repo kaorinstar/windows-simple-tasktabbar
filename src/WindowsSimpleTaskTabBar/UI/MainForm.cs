@@ -244,6 +244,9 @@ public class MainForm : Form
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.Manual;
         DoubleBuffered = true;
+        // The installer finds this window by its title, so that it can close a running bar
+        // before it replaces or removes the executable. A change here is a change to
+        // installer/WindowsSimpleTaskTabBar.iss as well.
         Text = "WindowsSimpleTaskTabBar";
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer
                  | ControlStyles.UserPaint | ControlStyles.ResizeRedraw, true);
