@@ -710,9 +710,9 @@ safety net in case an event is missed.
 
 ### The application icon
 
-`src/WindowsSimpleTaskTabBar/Properties/app.ico` is a square of blue with tabs stacked on it, each
-one stepped down and to the right of the one behind, the way overlapping windows sit on a screen.
-The blue fills the frame and is the one the rest of the interface uses. The tab in front is filled
+`src/WindowsSimpleTaskTabBar/Properties/app.ico` is a rounded square of blue with tabs stacked on
+it, each one stepped down and to the right of the one behind, the way overlapping windows sit on a
+screen. The blue fills the frame and is the one the rest of the interface uses. The tab in front is filled
 white, as the active tab is on the bar; the ones behind it carry the pale shade of an inactive tab,
 and each is partly hidden by the one in front of it.
 
@@ -720,11 +720,11 @@ Each tab keeps a blue outline of its own. Against the blue behind it, that outli
 two tabs overlap, which is what it is for: without it, two pale tabs run into each other and the
 stack reads as one shape.
 
-Every shape is a straight line on whole pixels, so no pixel is ever part-transparent and nothing is
-ever blended. That is what keeps the icon sharp at 16 pixels, which is the size the taskbar and the
-notification area ask for. An icon exported from a vector drawing lands its edges between pixels,
-and the renderer then spreads each one across two columns, which is what makes a small icon look
-soft.
+Every shape inside the square is a straight line on whole pixels, so nothing there is ever blended.
+That is what keeps the icon sharp at 16 pixels, which is the size the taskbar and the notification
+area ask for. An icon exported from a vector drawing lands its edges between pixels, and the
+renderer then spreads each one across two columns, which is what makes a small icon look soft. The
+four corners of the square are the only part-transparent pixels in it: 20 of 256 at 16x16.
 
 Three tabs at 16 and 20 pixels would leave two pixels of each tab behind showing, which reads as a
 blue smudge rather than as a stack, so those two sizes carry two tabs and the other three carry
@@ -738,8 +738,10 @@ an outline one pixel wide at 16x16 has to stay one pixel rather than becoming tw
 
 In that table, `start` is the blue left above and to the left of the stack, and
 `size - (start + (count - 1) * step + side)` is the blue below and to the right of it. The two are
-kept equal, so the stack sits in the middle of the square. The script prints neither, so check the
-drawing after changing any of them.
+kept equal, so the stack sits in the middle of the square. Both also have to clear the corner,
+which cuts 0.293 of the radius in from each edge at the point it is deepest; a tab that crossed it
+would hang outside the square. The script prints none of this, so check the drawing after changing
+any of them.
 
 The five sizes are 16, 20, 24, 32 and 48, all stored uncompressed, which every reader of an icon
 understands. They come to about 19 KB inside an executable the READMEs keep under 200 KB, so a

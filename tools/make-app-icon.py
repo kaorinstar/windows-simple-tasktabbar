@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """Draws src/WindowsSimpleTaskTabBar/Properties/app.ico.
 
-The icon is a square of blue with tabs stacked on it, each one stepped down and to the right
-of the one behind, the way overlapping windows sit on a screen. The blue fills the frame; the
-tab in front is filled white, as the active tab is on the bar; the ones behind it carry the
-pale shade of an inactive tab, and each is partly hidden by the one in front of it.
+The icon is a rounded square of blue with tabs stacked on it, each one stepped down and to
+the right of the one behind, the way overlapping windows sit on a screen. The blue fills the
+frame; the tab in front is filled white, as the active tab is on the bar; the ones behind it
+carry the pale shade of an inactive tab, and each is partly hidden by the one in front of it.
 
 Each tab keeps a blue outline of its own. Against the blue behind it that outline is only
 visible where two tabs overlap, and that is what it is for: without it, two pale tabs run
 into each other and the stack reads as one shape.
 
-Everything is drawn in straight lines on whole pixels, so no pixel is ever part-transparent
-and nothing is ever blended. That is what keeps the icon sharp at 16 pixels, which is the
-size the taskbar and the notification area ask for.
+Everything inside the square is drawn in straight lines on whole pixels, so nothing there is
+ever blended. That is what keeps the icon sharp at 16 pixels, which is the size the taskbar
+and the notification area ask for. The four corners of the square are the only part-
+transparent pixels in it: 20 of 256 at 16x16.
 
 Three tabs at 16 and 20 pixels would leave two pixels of each tab behind showing, which
 reads as a blue smudge rather than as a stack, so those two sizes carry two tabs and the
@@ -49,6 +50,7 @@ SUPERSAMPLE = 8
 # inside an executable the README keeps under 200 KB.
 #
 # Per size, in whole pixels:
+#   radius  the four corners of the square
 #   side    how wide and tall a tab is
 #   step    how far each tab is stepped down and to the right of the one behind it
 #   stroke  how thick a tab's outline is
@@ -58,18 +60,35 @@ SUPERSAMPLE = 8
 # `start` is also the blue left above and to the left of the stack, and
 # `size - (start + (count - 1) * step + side)` is the blue below and to the right of it.
 # The two are kept equal, so the stack sits in the middle of the square.
+#
+# `start` also has to clear the corner, which cuts 0.293 * radius in from each edge at the
+# point it is deepest. A tab that crossed it would hang outside the square.
 GEOMETRY = {
-    16: dict(side=8, step=4, stroke=1, start=2, count=2),
-    20: dict(side=11, step=5, stroke=1, start=2, count=2),
-    24: dict(side=10, step=4, stroke=1, start=3, count=3),
-    32: dict(side=14, step=5, stroke=2, start=4, count=3),
-    48: dict(side=22, step=7, stroke=2, start=6, count=3),
+    16: dict(radius=3, side=8, step=4, stroke=1, start=2, count=2),
+    20: dict(radius=4, side=11, step=5, stroke=1, start=2, count=2),
+    24: dict(radius=4, side=10, step=4, stroke=1, start=3, count=3),
+    32: dict(radius=6, side=14, step=5, stroke=2, start=4, count=3),
+    48: dict(radius=9, side=22, step=7, stroke=2, start=6, count=3),
 }
 
 
 def rectangle(left, top, right, bottom):
     """A filled rectangle."""
     return lambda x, y: left <= x < right and top <= y < bottom
+
+
+def rounded_square(size, radius):
+    """The square the icon is drawn on, with its four corners rounded."""
+    def covers(x, y):
+        if not (0 <= x < size and 0 <= y < size):
+            return False
+        cx = radius if x < radius else (size - radius if x > size - radius else None)
+        cy = radius if y < radius else (size - radius if y > size - radius else None)
+        if cx is None or cy is None:
+            return True
+        dx, dy = x - cx, y - cy
+        return dx * dx + dy * dy <= radius * radius
+    return covers
 
 
 def outline(left, top, right, bottom, thickness):
@@ -86,7 +105,7 @@ def layers(size):
     """What the icon is made of at this size, in the order it is painted."""
     g = GEOMETRY[size]
     count = g['count']
-    shapes = [(rectangle(0, 0, size, size), BLUE)]
+    shapes = [(rounded_square(size, g['radius']), BLUE)]
 
     # Back to front, so each tab hides the part of the one behind it that it covers.
     for i in range(count):
