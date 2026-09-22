@@ -19,6 +19,13 @@ in [README.md](README.md).
 - **Bar position** in the settings holds the bar at the top or at the bottom instead, wherever
   the taskbar is. A taskbar down the left or the right side leaves the bar at the bottom of the
   screen, which is where it has always been.
+- The application icon is now a rounded square of blue with tabs stacked on it, each one stepped
+  down and to the right of the one behind, the way overlapping windows sit on a screen. The tab in
+  front is white, as the active tab is on the bar, and the ones behind it are the pale shade of an
+  inactive tab. Every edge inside the square lands on a whole pixel, so it stays sharp in the
+  taskbar and the notification area instead of looking soft there. The icon in the taskbar, the
+  notification area, the Start menu, the file list and the installer all change together, since
+  all of them read the same file.
 
 ## v0.8.0
 

@@ -28,6 +28,8 @@ windows-simple-tasktabbar/
 │   └── architecture.ja.md         Japanese translation
 ├── installer/
 │   └── WindowsSimpleTaskTabBar.iss  The installer, as release.yml builds it
+├── tools/
+│   └── make-app-icon.py           Draws the application icon
 ├── src/
 │   ├── WindowsSimpleTaskTabBar.Core/       Logic with no UI dependency
 │   │   ├── Filtering/
@@ -60,6 +62,8 @@ windows-simple-tasktabbar/
 │   │       └── UpdateCheckSchedule.cs      Whether a check for a new release is due
 │   └── WindowsSimpleTaskTabBar/            The application
 │       ├── Program.cs                      Entry point
+│       ├── Properties/
+│       │   └── app.ico                     The application icon
 │       ├── Interop/
 │       │   └── NativeMethods.cs            Windows API declarations
 │       ├── Services/
@@ -703,3 +707,43 @@ without limit. That needs a person:
 change. The callback only sets a dirty flag; a 250 ms timer performs the actual refresh so that
 bursts of events collapse into a single update. A full refresh also runs every two seconds as a
 safety net in case an event is missed.
+
+### The application icon
+
+`src/WindowsSimpleTaskTabBar/Properties/app.ico` is a rounded square of blue with tabs stacked on
+it, each one stepped down and to the right of the one behind, the way overlapping windows sit on a
+screen. The blue fills the frame and is the one the rest of the interface uses. The tab in front is filled
+white, as the active tab is on the bar; the ones behind it carry the pale shade of an inactive tab,
+and each is partly hidden by the one in front of it.
+
+Each tab keeps a blue outline of its own. Against the blue behind it, that outline shows only where
+two tabs overlap, which is what it is for: without it, two pale tabs run into each other and the
+stack reads as one shape.
+
+Every shape inside the square is a straight line on whole pixels, so nothing there is ever blended.
+That is what keeps the icon sharp at 16 pixels, which is the size the taskbar and the notification
+area ask for. An icon exported from a vector drawing lands its edges between pixels, and the
+renderer then spreads each one across two columns, which is what makes a small icon look soft. The
+four corners of the square are the only part-transparent pixels in it: 20 of 256 at 16x16.
+
+Three tabs at 16 and 20 pixels would leave two pixels of each tab behind showing, which reads as a
+blue smudge rather than as a stack, so those two sizes carry two tabs and the other three carry
+three. Nobody sees two sizes at once, and legibility at the size actually being looked at wins.
+
+`tools/make-app-icon.py` draws it, and is the only copy of that design; the `.ico` is an output.
+Run it by hand after changing the script, with `python3 tools/make-app-icon.py`. It writes the
+icon in place, needs the standard library alone, and no part of the build calls it. The
+proportions are held per size in its `GEOMETRY` table rather than scaled from one drawing, because
+an outline one pixel wide at 16x16 has to stay one pixel rather than becoming two thirds of one.
+
+In that table, `start` is the blue left above and to the left of the stack, and
+`size - (start + (count - 1) * step + side)` is the blue below and to the right of it. The two are
+kept equal, so the stack sits in the middle of the square. Both also have to clear the corner,
+which cuts 0.293 of the radius in from each edge at the point it is deepest; a tab that crossed it
+would hang outside the square. The script prints none of this, so check the drawing after changing
+any of them.
+
+The five sizes are 16, 20, 24, 32 and 48, all stored uncompressed, which every reader of an icon
+understands. They come to about 19 KB inside an executable the READMEs keep under 200 KB, so a
+size added here is paid for there. `MainForm.LoadSmallApplicationIcon` reads the 16-pixel entry
+back out of the executable for the tray, so this file is the only copy of the image.
