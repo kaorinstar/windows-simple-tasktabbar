@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 """Draws src/WindowsSimpleTaskTabBar/Properties/app.ico.
 
-The icon is two tabs standing on the bar: rounded at the top, square at the bottom, and
-flush with the bottom edge of the frame, which is the shape the application draws its own
-tabs in. The left tab is the active one and is filled white; the right one is filled in the
-pale shade an inactive tab carries.
+The icon is the bar itself, filled blue with rounded corners, carrying two tabs. Both tabs
+are the same size, as they are on screen, and both are wider than they are tall. Each is
+rounded at the top, square at the bottom and stands on the bottom edge of the bar. The left
+tab is the active one and is filled white; the right one carries the pale shade of an
+inactive tab.
 
 Why this is a script rather than a drawing saved from an editor:
 
 * Every edge is placed on a whole pixel, at every size. An icon exported from a vector
   drawing lands its edges between pixels, and the renderer then spreads each one over two
-  columns, which is what makes a small icon look soft. Here only the four top corners of
-  each tab are ever part-transparent: 4 pixels of 256 at 16x16.
-* The proportions are held per size rather than scaled from one drawing. A border one pixel
-  wide at 16x16 has to stay one pixel, not two thirds of one.
+  columns, which is what makes a small icon look soft. Here the only part-transparent pixels
+  are on the four corners of the bar and the two top corners of each tab: 12 pixels of 256
+  at 16x16.
+* The proportions are held per size rather than scaled from one drawing. At 16x16 a tab is
+  6 pixels wide and 5 tall, and both have to stay whole numbers.
 
 Run it from anywhere; it writes over the icon in place:
 
@@ -27,9 +29,9 @@ import os
 import struct
 import zlib
 
-BLUE = (0x25, 0x63, 0xEB)    # the bar, and the outline of every tab
-WHITE = (0xFF, 0xFF, 0xFF)   # the fill of the active tab
-PALE = (0x9D, 0xB9, 0xF6)    # the fill of an inactive tab
+BLUE = (0x25, 0x63, 0xEB)    # the bar
+WHITE = (0xFF, 0xFF, 0xFF)   # the active tab
+PALE = (0x9D, 0xB9, 0xF6)    # an inactive tab
 
 SUPERSAMPLE = 8
 
@@ -39,69 +41,71 @@ SUPERSAMPLE = 8
 # inside an executable the README keeps under 200 KB.
 #
 # Per size, in whole pixels:
-#   margin    the space left and right of the bar
-#   gap       between the two tabs
-#   bar       the height of the bar the tabs stand on
-#   tab       the height of a tab above the bar
-#   radius    the two top corners of a tab
-#   border    the outline of a tab, inside which it is filled
+#   pad     the blue left of the first tab, right of the second, and between the two,
+#           which is twice this. A tab is therefore (size - 4 * pad) / 2 wide.
+#   tab     the height of a tab, which is always less than its width
+#   radius  the four corners of the bar
+#   corner  the two top corners of a tab
+#
+# `pad` also has to keep a tab clear of the bar's own rounded corner, which reaches
+# 0.29 * radius in from the edge along the bottom row. A tab that crossed it would be cut
+# by the clip below and lose its square bottom corner.
 GEOMETRY = {
-    16: dict(margin=1, gap=1, bar=2, tab=9, radius=1, border=1),
-    20: dict(margin=1, gap=1, bar=2, tab=11, radius=2, border=1),
-    24: dict(margin=2, gap=2, bar=3, tab=13, radius=2, border=1),
-    32: dict(margin=2, gap=2, bar=4, tab=17, radius=3, border=2),
-    48: dict(margin=2, gap=2, bar=5, tab=24, radius=4, border=2),
+    16: dict(pad=1, tab=5, radius=2, corner=1),
+    20: dict(pad=1, tab=7, radius=3, corner=2),
+    24: dict(pad=1, tab=9, radius=3, corner=2),
+    32: dict(pad=2, tab=11, radius=4, corner=3),
+    48: dict(pad=3, tab=17, radius=6, corner=4),
 }
 
-# The active tab is the wider of the two, as it is on screen.
-ACTIVE_SHARE = 0.54
 
-
-def tab_shape(left, top, right, bottom, radius):
-    """A rectangle with its two top corners rounded and its bottom left square."""
+def rounded(left, top, right, bottom, radius, top_only=False):
+    """A rectangle with rounded corners; with top_only, the bottom two stay square."""
     def covers(x, y):
         if x < left or x >= right or y < top or y >= bottom:
             return False
-        if radius <= 0 or y >= top + radius:
+        if radius <= 0:
             return True
-        if x < left + radius:
-            dx, dy = (left + radius) - x, (top + radius) - y
-            return dx * dx + dy * dy <= radius * radius
-        if x > right - radius:
-            dx, dy = x - (right - radius), (top + radius) - y
-            return dx * dx + dy * dy <= radius * radius
+        if y < top + radius:
+            if x < left + radius:
+                dx, dy = (left + radius) - x, (top + radius) - y
+                return dx * dx + dy * dy <= radius * radius
+            if x > right - radius:
+                dx, dy = x - (right - radius), (top + radius) - y
+                return dx * dx + dy * dy <= radius * radius
+        if not top_only and y > bottom - radius:
+            if x < left + radius:
+                dx, dy = (left + radius) - x, y - (bottom - radius)
+                return dx * dx + dy * dy <= radius * radius
+            if x > right - radius:
+                dx, dy = x - (right - radius), y - (bottom - radius)
+                return dx * dx + dy * dy <= radius * radius
         return True
     return covers
-
-
-def band(left, top, right, bottom):
-    """A plain rectangle."""
-    return lambda x, y: left <= x < right and top <= y < bottom
 
 
 def layers(size):
     """What the icon is made of at this size, in the order it is painted."""
     g = GEOMETRY[size]
-    margin, gap, border = g['margin'], g['gap'], g['border']
-    width = size - 2 * margin
-    shared = width - gap
-    active = int(round(shared * ACTIVE_SHARE))
-    inactive = shared - active
+    pad, height = g['pad'], g['tab']
+    gap = 2 * pad
+    width = (size - 4 * pad) // 2
+    top = size - height
+    left_tab = pad
+    right_tab = pad + width + gap
 
-    bar_top = size - g['bar']
-    top = bar_top - g['tab']
-    left_a, right_a = margin, margin + active
-    left_b, right_b = right_a + gap, right_a + gap + inactive
-    inner_radius = max(0, g['radius'] - border)
+    bar = rounded(0, 0, size, size, g['radius'])
+
+    def on_the_bar(shape):
+        # A tab cannot reach past the bar it sits on, so it is clipped to it.
+        return lambda x, y: bar(x, y) and shape(x, y)
 
     return [
-        # Both tabs run to the bottom edge, so that the bar and the tabs are one shape.
-        (tab_shape(left_a, top, right_a, size, g['radius']), BLUE),
-        (tab_shape(left_b, top, right_b, size, g['radius']), BLUE),
-        (band(margin, bar_top, size - margin, size), BLUE),
-        # The fill of each tab stops at the bar, which stays solid across its whole width.
-        (tab_shape(left_a + border, top + border, right_a - border, bar_top, inner_radius), WHITE),
-        (tab_shape(left_b + border, top + border, right_b - border, bar_top, inner_radius), PALE),
+        (bar, BLUE),
+        (on_the_bar(rounded(left_tab, top, left_tab + width, size, g['corner'],
+                            top_only=True)), WHITE),
+        (on_the_bar(rounded(right_tab, top, right_tab + width, size, g['corner'],
+                            top_only=True)), PALE),
     ]
 
 

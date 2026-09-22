@@ -710,11 +710,12 @@ safety net in case an event is missed.
 
 ### The application icon
 
-`src/WindowsSimpleTaskTabBar/Properties/app.ico` is two tabs standing on the bar, drawn in the
-same shape the application draws its own tabs in: rounded at the top, square at the bottom, and
-flush with the bottom edge of the frame. The left tab is the active one and is filled white, the
-right one carries the pale shade of an inactive tab, and the outline and the bar are the blue the
-rest of the interface uses.
+`src/WindowsSimpleTaskTabBar/Properties/app.ico` is the bar itself, filled blue with rounded
+corners, carrying two tabs. Both tabs are the same size, as they are on screen, and both are
+wider than they are tall. Each is rounded at the top, square at the bottom and stands on the
+bottom edge of the bar. The left tab is the active one and is filled white, the right one
+carries the pale shade of an inactive tab, and the blue is the one the rest of the interface
+uses.
 
 `tools/make-app-icon.py` draws it, and is the only copy of that design; the `.ico` is an output.
 Run it by hand after changing the script, with `python3 tools/make-app-icon.py`. It writes the
@@ -725,10 +726,18 @@ the icon reads at 16 pixels, which is the size the taskbar and the notification 
 
 - **Every edge sits on a whole pixel, at every size.** An icon exported from a vector drawing puts
   its edges between pixels, and the renderer then spreads each one across two columns, which is
-  what makes a small icon look soft. Here only the four top corners of each tab are ever
-  part-transparent: 4 pixels of 256 at 16x16.
-- **The proportions are held per size rather than scaled from one drawing.** A border one pixel
-  wide at 16x16 has to stay one pixel rather than becoming two thirds of one.
+  what makes a small icon look soft. Here the only part-transparent pixels are on the four corners
+  of the bar and the two top corners of each tab: 12 pixels of 256 at 16x16.
+- **The proportions are held per size rather than scaled from one drawing.** At 16x16 a tab is 6
+  pixels wide and 5 tall, and both have to stay whole numbers.
+
+Two tabs side by side leave each one a little under half the width, so keeping a tab wider than it
+is tall also fixes how tall it can be: they stand in the lower part of the icon and the blue above
+them is the bar they sit on.
+
+Each tab is clipped to the bar, so a tab can never reach past the rounded corner it stands beside.
+`pad` in the script keeps it clear of that corner in the first place; the clip is what makes a
+value too small show as a cut corner rather than as blue spilling outside the icon.
 
 The five sizes are 16, 20, 24, 32 and 48, all stored uncompressed, which every reader of an icon
 understands. They come to about 19 KB inside an executable the READMEs keep under 200 KB, so a
