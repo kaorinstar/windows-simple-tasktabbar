@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text;
 using WindowsSimpleTaskTabBar.Core.Filtering;
 using WindowsSimpleTaskTabBar.Interop;
@@ -9,22 +10,78 @@ namespace WindowsSimpleTaskTabBar.Services;
 /// </summary>
 internal static class WindowService
 {
+    /// <summary>This application's own process, which owns no tab.</summary>
+    private static readonly uint OwnProcessId = NativeMethods.GetCurrentProcessId();
+
     /// <summary>
     /// Returns the windows that should be shown as tabs.
     /// </summary>
-    /// <param name="selfHandle">This application's own window, which is excluded.</param>
-    public static List<IntPtr> EnumerateTaskWindows(IntPtr selfHandle)
+    /// <remarks>
+    /// This application's own windows are left out by process rather than by handle. There is
+    /// one bar per monitor now, so there is no single handle to exclude, and the settings
+    /// dialog is a window of its own as well.
+    /// </remarks>
+    public static List<IntPtr> EnumerateTaskWindows()
     {
         var result = new List<IntPtr>();
 
         NativeMethods.EnumWindows((hwnd, _) =>
         {
-            if (hwnd == selfHandle) return true;
+            if (IsOwnWindow(hwnd)) return true;
             if (IsTaskWindow(hwnd)) result.Add(hwnd);
             return true;
         }, IntPtr.Zero);
 
         return result;
+    }
+
+    /// <summary>Whether a window belongs to this application rather than somebody else.</summary>
+    public static bool IsOwnWindow(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero) return false;
+
+        // A window this application may not query answers 0, which belongs to no process and
+        // so is somebody else's.
+        NativeMethods.GetWindowThreadProcessId(hwnd, out uint processId);
+        return processId == OwnProcessId;
+    }
+
+    /// <summary>
+    /// The rectangle that says which monitor a window belongs to: where it is drawn, or where
+    /// it comes back to when it is minimized.
+    /// </summary>
+    /// <remarks>
+    /// Windows parks a minimized window at roughly (-32000, -32000), which is on no monitor and
+    /// nearest to whichever one reaches furthest towards the top left. Asking where such a
+    /// window is drawn would put its tab on a bar it has nothing to do with, so
+    /// <c>rcNormalPosition</c> is read instead, which is where it restores onto.
+    ///
+    /// A call that fails leaves a rectangle of zeros, which lands on whichever monitor holds the
+    /// origin. That is the primary monitor on an ordinary desktop, so a window nothing can be
+    /// read about still gets a tab somewhere rather than none at all.
+    /// </remarks>
+    public static void RestoredBounds(IntPtr hwnd, out int left, out int top,
+                                      out int right, out int bottom)
+    {
+        NativeMethods.RECT rect = default;
+
+        if (NativeMethods.IsIconic(hwnd))
+        {
+            var placement = new NativeMethods.WINDOWPLACEMENT();
+            placement.length = Marshal.SizeOf<NativeMethods.WINDOWPLACEMENT>();
+
+            if (NativeMethods.GetWindowPlacement(hwnd, ref placement))
+                rect = placement.rcNormalPosition;
+        }
+        else
+        {
+            NativeMethods.GetWindowRect(hwnd, out rect);
+        }
+
+        left = rect.left;
+        top = rect.top;
+        right = rect.right;
+        bottom = rect.bottom;
     }
 
     private static bool IsTaskWindow(IntPtr hwnd)
@@ -45,7 +102,7 @@ internal static class WindowService
             return false;
 
         // The shell's own windows only. What the user excludes is an application, which needs
-        // the process behind the window and is settled in MainForm, where the answers are cached.
+        // the process behind the window and is settled in BarHost, where the answers are cached.
         return !WindowExclusion.IsShellWindow(GetClassName(hwnd));
     }
 

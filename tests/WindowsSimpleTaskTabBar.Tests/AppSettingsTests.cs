@@ -89,6 +89,30 @@ public class AppSettingsTests
     }
 
     [Fact]
+    public void DefaultsToABarOnEveryMonitor()
+    {
+        // Zero, so a settings file written before this setting existed reads the same way.
+        Assert.Equal(MonitorMode.EveryMonitor, new AppSettings().Monitors);
+    }
+
+    [Fact]
+    public void AnUnknownMonitorChoiceFallsBackToEveryMonitor()
+    {
+        var settings = new AppSettings { Monitors = (MonitorMode)99 };
+
+        Assert.Equal(MonitorMode.EveryMonitor, settings.Normalized().Monitors);
+    }
+
+    [Fact]
+    public void NormalizingKeepsAChosenMonitorMode()
+    {
+        var settings = new AppSettings { Monitors = MonitorMode.PrimaryOnly };
+        settings.Normalize();
+
+        Assert.Equal(MonitorMode.PrimaryOnly, settings.Monitors);
+    }
+
+    [Fact]
     public void NormalizingStampsTheCurrentSchema()
     {
         var settings = new AppSettings { Schema = 0 };

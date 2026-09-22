@@ -58,6 +58,12 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
   the top of the screen takes the bar up there with it, with nothing to set and no restart. A
   taskbar down the left or the right side leaves the bar at the bottom, because the row of tabs
   is horizontal.
+- **A bar on every display** — each one lists the windows on its own display, so a window always
+  has a bar beside it. Drag a window to the other display and its tab follows within a moment. A
+  window maximized on either display stops above that display's bar, and each display is drawn at
+  its own scale factor, so two displays at 100% and 150% both look right. Plugging a display in
+  or taking it away adds or removes its bar. **Main display only** in the settings leaves one
+  bar, which then lists every window wherever it is.
 - **A new version** — the bar checks for one when it starts and tells you when there is one.
   Nothing is downloaded. See [Updates](#updates).
 
@@ -76,7 +82,7 @@ the top edge of their tabs, with a rule between one group and the next.
 
 The settings:
 
-![The settings window in two columns: language, bar height, colours, tab order and window preview on the left, bar position, tab groups, excluded applications and updates on the right](docs/images/settings.png)
+![The settings window in two columns: language, bar height, colours, tab order, window preview and updates on the left, bar position, displays, tab groups and excluded applications on the right](docs/images/settings.png)
 
 ## Download
 
@@ -260,8 +266,6 @@ success rate. The bar is thin, so the visual effect is negligible.
   Task Manager is the example most people meet, because it elevates itself on an administrator
   account. Running this application elevated removes the limit, but then it runs elevated
   permanently.
-- **Primary monitor only.** A bar on every monitor, each listing that monitor's windows, is
-  planned ([#62](https://github.com/kaorinstar/windows-simple-tasktabbar/issues/62)).
 - **Full-screen applications cover the bar.** This is normal AppBar behaviour.
 - **The order is not remembered between runs.** Tabs come back in the order Windows lists the
   windows in. Turning grouping off leaves the tabs where grouping put them rather than restoring

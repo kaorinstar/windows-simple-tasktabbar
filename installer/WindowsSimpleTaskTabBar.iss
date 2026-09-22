@@ -174,7 +174,11 @@ begin
   { WM_CLOSE rather than a forced termination, for the reason CloseApplications is yes rather
     than force: the bar unregisters itself as an AppBar on its way out, and the desktop only
     gets that space back if that runs. The window is MainForm's, and its title is the
-    application name, set in the MainForm constructor and not translated. }
+    application name, set in the MainForm constructor and not translated.
+
+    There is one such window per monitor, and they all carry that title. Closing any one of
+    them closes the application, and every other bar unregisters itself on the way out with it,
+    so the first window found is the only one this has to post to. }
   Wnd := FindWindowByWindowName('{#AppName}');
   if Wnd <> 0 then
     PostMessage(Wnd, WM_CLOSE, 0, 0);

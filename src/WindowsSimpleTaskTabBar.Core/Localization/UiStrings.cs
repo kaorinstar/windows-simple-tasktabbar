@@ -55,6 +55,16 @@ public static class UiStrings
             + " A taskbar down the left or the right side leaves the bar at the bottom."
         },
 
+        { StringId.MonitorGroup, "Displays" },
+        { StringId.MonitorEvery, "Show a bar on all displays" },
+        { StringId.MonitorPrimaryOnly, "Main display only" },
+        {
+            StringId.MonitorNote,
+            "A bar on all displays lists the windows of the display it is on, so each window has a"
+            + " bar beside it. The main display alone leaves one bar, listing every window"
+            + " wherever it is."
+        },
+
         { StringId.ColourGroup, "Colours" },
         { StringId.ColourFollowWindows, "Follow Windows" },
         { StringId.ColourLight, "Light" },
@@ -176,6 +186,15 @@ public static class UiStrings
             + "タスクバーが左右にあるときは、バーは画面の下に表示されます。"
         },
 
+        { StringId.MonitorGroup, "ディスプレイ" },
+        { StringId.MonitorEvery, "すべてのディスプレイに表示する" },
+        { StringId.MonitorPrimaryOnly, "メイン ディスプレイのみ" },
+        {
+            StringId.MonitorNote,
+            "すべてのディスプレイに表示すると、それぞれのバーにはそのディスプレイ上のウィンドウだけが並びます。"
+            + "メイン ディスプレイのみのときは、1つのバーにすべてのウィンドウが並びます。"
+        },
+
         { StringId.ColourGroup, "配色" },
         { StringId.ColourFollowWindows, "Windows に合わせる" },
         { StringId.ColourLight, "ライト" },
@@ -286,6 +305,15 @@ public static class UiStrings
             + "任务栏位于左侧或右侧时，标签栏保持在屏幕底部。"
         },
 
+        { StringId.MonitorGroup, "显示器" },
+        { StringId.MonitorEvery, "在所有显示器上显示标签栏" },
+        { StringId.MonitorPrimaryOnly, "仅主显示器" },
+        {
+            StringId.MonitorNote,
+            "在所有显示器上显示时，每个标签栏只列出该显示器上的窗口。"
+            + "仅主显示器时，唯一的标签栏会列出所有窗口。"
+        },
+
         { StringId.ColourGroup, "颜色" },
         { StringId.ColourFollowWindows, "跟随 Windows" },
         { StringId.ColourLight, "浅色" },
@@ -382,6 +410,15 @@ public static class UiStrings
             StringId.EdgeNote,
             "跟隨工作列時，工作列移到螢幕上方，索引標籤列也會移到上方。"
             + "工作列位於左側或右側時，索引標籤列維持在螢幕下方。"
+        },
+
+        { StringId.MonitorGroup, "顯示器" },
+        { StringId.MonitorEvery, "在所有顯示器上顯示索引標籤列" },
+        { StringId.MonitorPrimaryOnly, "僅主顯示器" },
+        {
+            StringId.MonitorNote,
+            "在所有顯示器上顯示時，每個索引標籤列只列出該顯示器上的視窗。"
+            + "僅主顯示器時，唯一的索引標籤列會列出所有視窗。"
         },
 
         { StringId.ColourGroup, "色彩" },
@@ -483,6 +520,15 @@ public static class UiStrings
             StringId.EdgeNote,
             "Если панель задач находится вверху экрана, панель вкладок тоже переходит вверх."
             + " Когда панель задач расположена слева или справа, панель вкладок остаётся внизу."
+        },
+
+        { StringId.MonitorGroup, "Дисплеи" },
+        { StringId.MonitorEvery, "Показывать панель на всех дисплеях" },
+        { StringId.MonitorPrimaryOnly, "Только основной дисплей" },
+        {
+            StringId.MonitorNote,
+            "На каждом дисплее панель показывает только окна этого дисплея."
+            + " Если выбран только основной дисплей, единственная панель показывает все окна."
         },
 
         { StringId.ColourGroup, "Цвета" },
@@ -615,6 +661,15 @@ public static class UiStrings
             + " Bei einer Taskleiste am linken oder rechten Rand bleibt die Leiste unten."
         },
 
+        { StringId.MonitorGroup, "Bildschirme" },
+        { StringId.MonitorEvery, "Leiste auf allen Bildschirmen anzeigen" },
+        { StringId.MonitorPrimaryOnly, "Nur Hauptbildschirm" },
+        {
+            StringId.MonitorNote,
+            "Auf jedem Bildschirm zeigt die Leiste nur die Fenster dieses Bildschirms."
+            + " Bei \u201eNur Hauptbildschirm\u201c zeigt die eine Leiste alle Fenster."
+        },
+
         { StringId.ColourGroup, "Farben" },
         { StringId.ColourFollowWindows, "Systemstandard" },
         { StringId.ColourLight, "Hell" },
@@ -743,6 +798,15 @@ public static class UiStrings
             StringId.EdgeNote,
             "Si la barre des tâches est en haut de l'écran, la barre monte avec elle."
             + " Avec une barre des tâches à gauche ou à droite, la barre reste en bas."
+        },
+
+        { StringId.MonitorGroup, "Écrans" },
+        { StringId.MonitorEvery, "Afficher la barre sur tous les écrans" },
+        { StringId.MonitorPrimaryOnly, "Écran principal uniquement" },
+        {
+            StringId.MonitorNote,
+            "Sur chaque écran, la barre ne liste que les fenêtres de cet écran."
+            + " Avec l'écran principal uniquement, la seule barre liste toutes les fenêtres."
         },
 
         { StringId.ColourGroup, "Couleurs" },
@@ -874,6 +938,15 @@ public static class UiStrings
             + " Con la barra de tareas a la izquierda o a la derecha, la barra se queda abajo."
         },
 
+        { StringId.MonitorGroup, "Pantallas" },
+        { StringId.MonitorEvery, "Mostrar la barra en todas las pantallas" },
+        { StringId.MonitorPrimaryOnly, "Solo la pantalla principal" },
+        {
+            StringId.MonitorNote,
+            "En cada pantalla, la barra muestra solo las ventanas de esa pantalla."
+            + " Con solo la pantalla principal, la única barra muestra todas las ventanas."
+        },
+
         { StringId.ColourGroup, "Colores" },
         { StringId.ColourFollowWindows, "Seguir a Windows" },
         { StringId.ColourLight, "Claro" },
@@ -1002,6 +1075,15 @@ public static class UiStrings
             + " Com a barra de tarefas à esquerda ou à direita, a barra fica na parte inferior."
         },
 
+        { StringId.MonitorGroup, "Monitores" },
+        { StringId.MonitorEvery, "Mostrar a barra em todos os monitores" },
+        { StringId.MonitorPrimaryOnly, "Somente o monitor principal" },
+        {
+            StringId.MonitorNote,
+            "Em cada monitor, a barra mostra apenas as janelas daquele monitor."
+            + " Com somente o monitor principal, a única barra mostra todas as janelas."
+        },
+
         { StringId.ColourGroup, "Cores" },
         { StringId.ColourFollowWindows, "Seguir o Windows" },
         { StringId.ColourLight, "Claro" },
@@ -1124,6 +1206,15 @@ public static class UiStrings
             + "작업 표시줄이 왼쪽이나 오른쪽에 있으면 표시줄은 화면 아래쪽에 유지됩니다."
         },
 
+        { StringId.MonitorGroup, "디스플레이" },
+        { StringId.MonitorEvery, "모든 디스플레이에 표시" },
+        { StringId.MonitorPrimaryOnly, "주 디스플레이만" },
+        {
+            StringId.MonitorNote,
+            "모든 디스플레이에 표시하면 각 표시줄에는 해당 디스플레이의 창만 나열됩니다."
+            + "주 디스플레이만 사용하면 하나의 표시줄에 모든 창이 나열됩니다."
+        },
+
         { StringId.ColourGroup, "색" },
         { StringId.ColourFollowWindows, "시스템 설정 사용" },
         { StringId.ColourLight, "밝게" },
@@ -1231,6 +1322,15 @@ public static class UiStrings
             StringId.EdgeNote,
             "Gdy pasek zadań znajduje się u góry ekranu, pasek kart przenosi się razem z nim."
             + " Przy pasku zadań po lewej lub prawej stronie pasek kart pozostaje u dołu."
+        },
+
+        { StringId.MonitorGroup, "Ekrany" },
+        { StringId.MonitorEvery, "Pokaż pasek na wszystkich ekranach" },
+        { StringId.MonitorPrimaryOnly, "Tylko ekran główny" },
+        {
+            StringId.MonitorNote,
+            "Na każdym ekranie pasek pokazuje tylko okna z tego ekranu."
+            + " Przy ustawieniu \u201eTylko ekran główny\u201d jeden pasek pokazuje wszystkie okna."
         },
 
         { StringId.ColourGroup, "Kolory" },
@@ -1362,6 +1462,15 @@ public static class UiStrings
             StringId.EdgeNote,
             "Se la barra delle applicazioni si trova in alto, la barra si sposta in alto con essa."
             + " Con la barra delle applicazioni a sinistra o a destra, la barra resta in basso."
+        },
+
+        { StringId.MonitorGroup, "Schermi" },
+        { StringId.MonitorEvery, "Mostra la barra su tutti gli schermi" },
+        { StringId.MonitorPrimaryOnly, "Solo schermo principale" },
+        {
+            StringId.MonitorNote,
+            "Su ogni schermo la barra elenca solo le finestre di quello schermo."
+            + " Con solo lo schermo principale, l'unica barra elenca tutte le finestre."
         },
 
         { StringId.ColourGroup, "Colori" },

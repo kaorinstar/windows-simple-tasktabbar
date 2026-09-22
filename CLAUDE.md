@@ -125,10 +125,14 @@ Full details are in `docs/architecture.md`. The three rules that matter most:
 Calls flow in one direction only:
 
 ```
-Program.cs → UI/MainForm.cs → Services/WindowService.cs → Interop/NativeMethods.cs
-                    ↓
-          Core/Layout/TabStrip.cs, Core/Layout/BarMetrics.cs
+Program.cs → UI/BarHost.cs → UI/MainForm.cs → Services/WindowService.cs → Interop/NativeMethods.cs
+                                    ↓
+                     Core/Layout/TabStrip.cs, Core/Layout/BarMetrics.cs
 ```
+
+`BarHost` is the application and `MainForm` is one bar. There is one host and one bar per
+monitor, and the host owns everything there is one of: the settings, the tray icon, the caches,
+the event hooks and the timer.
 
 ## Conventions
 
@@ -279,8 +283,6 @@ application does today and disappears when the issue is closed.
   minimized, and closing is refused too. Neither returns an error a user would see. Task Manager
   is the example most people meet, because it elevates itself on an administrator account.
   Running this application elevated removes the limit but means running elevated permanently.
-- Only the primary monitor carries a bar, and it lists every window in the session, wherever it
-  is (#62).
 - Full-screen applications cover the bar. This is normal AppBar behaviour.
 - The order a user drags tabs into is not saved, so it is lost when the application exits.
   Turning grouping off also leaves the tabs where grouping put them: the order they opened in is

@@ -75,6 +75,14 @@ internal sealed class SettingsForm : Form
 
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
         Justification = "Owned by the Controls collection it is added to.")]
+    private RadioButton _everyMonitor;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
+    private RadioButton _primaryMonitorOnly;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
     private RadioButton _followWindows;
 
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
@@ -244,7 +252,8 @@ internal sealed class SettingsForm : Form
     /// The work area rather than the screen, because it is what is left after the taskbar and
     /// this application's own bar, which is an AppBar and reserves its strip. The primary
     /// monitor, because that is where <see cref="FormStartPosition.CenterScreen"/> puts the
-    /// dialog and the only monitor this application draws on (#62).
+    /// dialog. There is a bar on every monitor now, and each one reserves a strip of its own
+    /// monitor, so the work area the dialog is measured against is the one it opens on.
     /// </remarks>
     private void FitToScreen()
     {
@@ -395,23 +404,37 @@ internal sealed class SettingsForm : Form
         // Which box goes in which column is decided by height rather than by subject: the two
         // columns are here to be of a height, and a column left much longer than the other puts
         // the dialog back where it was. So the three boxes about tabs are not kept together -
-        // tab order stands on the left, and updates, which is about nothing else in this dialog,
-        // stands on the right to make up the difference. Moving tab order across instead was
-        // measured and only swaps which column is too long: it is the tallest box on its side.
-        // Bar position stands opposite bar height for the same reason, rather than under it
-        // where the subject would put it: the left column is the longer of the two.
+        // tab order stands on the left, and tab groups on the right. Moving tab order across
+        // instead was measured and only swaps which column is too long: it is the tallest box
+        // on its side. Bar position stands opposite bar height for the same reason, rather than
+        // under it where the subject would put it, and displays follows bar position, which is
+        // the other box about where the bar is.
+        //
+        // Updates is the box that makes up the difference, because it is about nothing else in
+        // this dialog and can stand in either column. It was on the right until displays was
+        // added there, which made the right column the longer of the two by about the height of
+        // a box; moving updates across took roughly half of that off the taller column and put
+        // the two back within a box's height of each other.
+        // The space between the boxes is tighter than it looks in the code: 8 pixels between
+        // one box and the next rather than 12, and a box's own bottom padding the same as its
+        // top. Ten boxes at the old spacing came to more than the work area of a 1080p screen
+        // once this application's own bar had taken its strip out of it, and FitToScreen put a
+        // scrollbar on the dialog, which is the thing the two columns are here to avoid. The
+        // spacing is what was given up for it, because it is the only height in this dialog
+        // that says nothing.
         FlowLayoutPanel left = Column();
         left.Controls.Add(BuildLanguageGroup());
         left.Controls.Add(BuildHeightGroup());
         left.Controls.Add(BuildColourGroup());
         left.Controls.Add(BuildPriorityGroup());
         left.Controls.Add(BuildPreviewGroup());
+        left.Controls.Add(BuildUpdatesGroup());
 
         FlowLayoutPanel right = Column();
         right.Controls.Add(BuildEdgeGroup());
+        right.Controls.Add(BuildMonitorGroup());
         right.Controls.Add(BuildGroupingGroup());
         right.Controls.Add(BuildExclusionsGroup());
-        right.Controls.Add(BuildUpdatesGroup());
 
         _boxes = new TableLayoutPanel
         {
@@ -513,7 +536,7 @@ internal sealed class SettingsForm : Form
             FlowDirection = FlowDirection.TopDown,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Padding = new Padding(8, 4, 8, 8),
+            Padding = new Padding(8, 4, 8, 4),
 
             // Docked, so that it starts below the caption. A control added to a group box
             // without this sits in the top left corner of the box, over the caption, and the
@@ -533,7 +556,7 @@ internal sealed class SettingsForm : Form
             Text = _text[StringId.LanguageGroup],
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Margin = new Padding(12, 12, 12, 6),
+            Margin = new Padding(12, 8, 12, 4),
         };
         box.Controls.Add(choices);
         return box;
@@ -564,7 +587,7 @@ internal sealed class SettingsForm : Form
             FlowDirection = FlowDirection.TopDown,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Padding = new Padding(8, 4, 8, 8),
+            Padding = new Padding(8, 4, 8, 4),
 
             // Docked, so that it starts below the caption. A control added to a group box
             // without this sits in the top left corner of the box, over the caption, and the
@@ -585,7 +608,7 @@ internal sealed class SettingsForm : Form
             Text = _text[StringId.HeightGroup],
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Margin = new Padding(12, 6, 12, 6),
+            Margin = new Padding(12, 4, 12, 4),
         };
         box.Controls.Add(choices);
         return box;
@@ -623,7 +646,7 @@ internal sealed class SettingsForm : Form
             // running past them, unseen at the bottom.
             MaximumSize = new Size(ColumnWidth * 2, 0),
             ForeColor = SystemColors.GrayText,
-            Margin = new Padding(4, 0, 4, 4),
+            Margin = new Padding(4, 0, 4, 2),
         };
 
         var content = new FlowLayoutPanel
@@ -631,7 +654,7 @@ internal sealed class SettingsForm : Form
             FlowDirection = FlowDirection.TopDown,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Padding = new Padding(8, 4, 8, 8),
+            Padding = new Padding(8, 4, 8, 4),
             Dock = DockStyle.Fill,
             WrapContents = false,
         };
@@ -643,7 +666,7 @@ internal sealed class SettingsForm : Form
             Text = _text[StringId.PreviewGroup],
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Margin = new Padding(12, 6, 12, 6),
+            Margin = new Padding(12, 4, 12, 4),
         };
         box.Controls.Add(content);
         return box;
@@ -685,7 +708,7 @@ internal sealed class SettingsForm : Form
             // enough to decide how wide the whole dialog is.
             MaximumSize = new Size(ColumnWidth * 2, 0),
             ForeColor = SystemColors.GrayText,
-            Margin = new Padding(4, 0, 4, 4),
+            Margin = new Padding(4, 0, 4, 2),
         };
 
         var choices = new FlowLayoutPanel
@@ -693,7 +716,7 @@ internal sealed class SettingsForm : Form
             FlowDirection = FlowDirection.TopDown,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Padding = new Padding(8, 4, 8, 8),
+            Padding = new Padding(8, 4, 8, 4),
 
             // Docked, for the reason given on the box above it.
             Dock = DockStyle.Fill,
@@ -709,7 +732,62 @@ internal sealed class SettingsForm : Form
             Text = _text[StringId.EdgeGroup],
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Margin = new Padding(12, 12, 12, 6),
+            Margin = new Padding(12, 8, 12, 4),
+        };
+        box.Controls.Add(choices);
+        return box;
+    }
+
+    private GroupBox BuildMonitorGroup()
+    {
+        _everyMonitor = new RadioButton
+        {
+            Text = _text[StringId.MonitorEvery],
+            AutoSize = true,
+            Margin = new Padding(4, 4, 4, 2),
+        };
+        _everyMonitor.CheckedChanged += (_, __) => OnMonitorsChanged();
+
+        _primaryMonitorOnly = new RadioButton
+        {
+            Text = _text[StringId.MonitorPrimaryOnly],
+            AutoSize = true,
+            Margin = new Padding(4, 2, 4, 4),
+        };
+        _primaryMonitorOnly.CheckedChanged += (_, __) => OnMonitorsChanged();
+
+        var explanation = new Label
+        {
+            Text = _text[StringId.MonitorNote],
+            AutoSize = true,
+
+            // Wrapped against the same width as every other note.
+            MaximumSize = new Size(ColumnWidth * 2, 0),
+            ForeColor = SystemColors.GrayText,
+            Margin = new Padding(4, 0, 4, 2),
+        };
+
+        var choices = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.TopDown,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(8, 4, 8, 4),
+
+            // Docked, for the reason given on the box above it.
+            Dock = DockStyle.Fill,
+            WrapContents = false,
+        };
+        choices.Controls.Add(_everyMonitor);
+        choices.Controls.Add(_primaryMonitorOnly);
+        choices.Controls.Add(explanation);
+
+        var box = new GroupBox
+        {
+            Text = _text[StringId.MonitorGroup],
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(12, 4, 12, 4),
         };
         box.Controls.Add(choices);
         return box;
@@ -746,7 +824,7 @@ internal sealed class SettingsForm : Form
             Text = _text[StringId.ColourNote],
             AutoSize = true,
             ForeColor = SystemColors.GrayText,
-            Margin = new Padding(4, 0, 4, 4),
+            Margin = new Padding(4, 0, 4, 2),
         };
 
         var choices = new FlowLayoutPanel
@@ -754,7 +832,7 @@ internal sealed class SettingsForm : Form
             FlowDirection = FlowDirection.TopDown,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Padding = new Padding(8, 4, 8, 8),
+            Padding = new Padding(8, 4, 8, 4),
 
             // Docked, so that it starts below the caption. A control added to a group box
             // without this sits in the top left corner of the box, over the caption, and the
@@ -777,7 +855,7 @@ internal sealed class SettingsForm : Form
             Text = _text[StringId.ColourGroup],
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Margin = new Padding(12, 6, 12, 6),
+            Margin = new Padding(12, 4, 12, 4),
         };
         box.Controls.Add(choices);
         return box;
@@ -847,7 +925,7 @@ internal sealed class SettingsForm : Form
             Text = _text[StringId.GroupsNew],
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Margin = new Padding(4, 0, 4, 4),
+            Margin = new Padding(4, 0, 4, 2),
         };
         _addGroup.Click += (_, __) => OnAddGroup();
 
@@ -894,7 +972,7 @@ internal sealed class SettingsForm : Form
             FlowDirection = FlowDirection.LeftToRight,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Margin = new Padding(4, 0, 4, 4),
+            Margin = new Padding(4, 0, 4, 2),
         };
         editRow.Controls.Add(_addGroup);
         editRow.Controls.Add(_removeGroup);
@@ -928,7 +1006,7 @@ internal sealed class SettingsForm : Form
             FlowDirection = FlowDirection.TopDown,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Padding = new Padding(8, 4, 8, 8),
+            Padding = new Padding(8, 4, 8, 4),
             Dock = DockStyle.Fill,    // below the caption; see BuildLanguageGroup
             WrapContents = false,
         };
@@ -941,7 +1019,7 @@ internal sealed class SettingsForm : Form
             Text = _text[StringId.GroupsGroup],
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Margin = new Padding(12, 6, 12, 6),
+            Margin = new Padding(12, 4, 12, 4),
         };
         box.Controls.Add(content);
         return box;
@@ -981,7 +1059,7 @@ internal sealed class SettingsForm : Form
         {
             Height = row * 5,
             Width = column,
-            Margin = new Padding(4, 0, 4, 4),
+            Margin = new Padding(4, 0, 4, 2),
             IntegralHeight = false,
         };
         _priority.SelectedIndexChanged += (_, __) => OnPrioritySelected();
@@ -991,7 +1069,7 @@ internal sealed class SettingsForm : Form
             Text = _text[StringId.PriorityUp],
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Margin = new Padding(4, 0, 4, 4),
+            Margin = new Padding(4, 0, 4, 2),
         };
         _priorityUp.Click += (_, __) => OnPriorityMoved(-1);
 
@@ -1049,7 +1127,7 @@ internal sealed class SettingsForm : Form
             FlowDirection = FlowDirection.LeftToRight,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Margin = new Padding(4, 0, 4, 4),
+            Margin = new Padding(4, 0, 4, 2),
         };
         addRow.Controls.Add(Caption(_text[StringId.PriorityAddCaption]));
         addRow.Controls.Add(_priorityName);
@@ -1060,7 +1138,7 @@ internal sealed class SettingsForm : Form
             FlowDirection = FlowDirection.TopDown,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Padding = new Padding(8, 4, 8, 8),
+            Padding = new Padding(8, 4, 8, 4),
             Dock = DockStyle.Fill,    // below the caption; see BuildLanguageGroup
             WrapContents = false,
         };
@@ -1075,7 +1153,7 @@ internal sealed class SettingsForm : Form
             Text = _text[StringId.PriorityGroup],
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Margin = new Padding(12, 6, 12, 6),
+            Margin = new Padding(12, 4, 12, 4),
         };
         box.Controls.Add(content);
         return box;
@@ -1114,7 +1192,7 @@ internal sealed class SettingsForm : Form
         {
             Height = row * 5,
             Width = column * 2,
-            Margin = new Padding(4, 0, 4, 4),
+            Margin = new Padding(4, 0, 4, 2),
             CheckOnClick = true,
             IntegralHeight = false,
         };
@@ -1144,7 +1222,7 @@ internal sealed class SettingsForm : Form
             FlowDirection = FlowDirection.LeftToRight,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Margin = new Padding(4, 0, 4, 4),
+            Margin = new Padding(4, 0, 4, 2),
         };
         addRow.Controls.Add(Caption(_text[StringId.ExclusionsAddCaption]));
         addRow.Controls.Add(_excludedName);
@@ -1155,7 +1233,7 @@ internal sealed class SettingsForm : Form
             FlowDirection = FlowDirection.TopDown,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Padding = new Padding(8, 4, 8, 8),
+            Padding = new Padding(8, 4, 8, 4),
             Dock = DockStyle.Fill,    // below the caption; see BuildLanguageGroup
             WrapContents = false,
         };
@@ -1169,7 +1247,7 @@ internal sealed class SettingsForm : Form
             Text = _text[StringId.ExclusionsGroup],
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Margin = new Padding(12, 6, 12, 6),
+            Margin = new Padding(12, 4, 12, 4),
         };
         box.Controls.Add(content);
         return box;
@@ -1207,7 +1285,7 @@ internal sealed class SettingsForm : Form
             FlowDirection = FlowDirection.TopDown,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Padding = new Padding(8, 4, 8, 8),
+            Padding = new Padding(8, 4, 8, 4),
             Dock = DockStyle.Fill,    // below the caption; see BuildLanguageGroup
             WrapContents = false,
         };
@@ -1219,7 +1297,7 @@ internal sealed class SettingsForm : Form
             Text = _text[StringId.UpdatesGroup],
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Margin = new Padding(12, 6, 12, 6),
+            Margin = new Padding(12, 4, 12, 4),
         };
         box.Controls.Add(content);
         return box;
@@ -1246,6 +1324,8 @@ internal sealed class SettingsForm : Form
         _followTaskbar.Checked = _settings.BarEdge == BarEdgeMode.FollowTaskbar;
         _edgeBottom.Checked = _settings.BarEdge == BarEdgeMode.Bottom;
         _edgeTop.Checked = _settings.BarEdge == BarEdgeMode.Top;
+        _everyMonitor.Checked = _settings.Monitors == MonitorMode.EveryMonitor;
+        _primaryMonitorOnly.Checked = _settings.Monitors == MonitorMode.PrimaryOnly;
         _followWindows.Checked = _settings.Colours == ColourMode.FollowWindows;
         _light.Checked = _settings.Colours == ColourMode.Light;
         _dark.Checked = _settings.Colours == ColourMode.Dark;
@@ -1323,6 +1403,21 @@ internal sealed class SettingsForm : Form
         if (mode == _settings.BarEdge) return;
 
         _settings.BarEdge = mode;
+        _onChanged();
+    }
+
+    private void OnMonitorsChanged()
+    {
+        if (_loading) return;
+
+        // As with the edge above: CheckedChanged fires for the button being cleared as well as
+        // the one being set, so the stored value decides whether anything happened.
+        MonitorMode mode = _primaryMonitorOnly.Checked
+            ? MonitorMode.PrimaryOnly
+            : MonitorMode.EveryMonitor;
+        if (mode == _settings.Monitors) return;
+
+        _settings.Monitors = mode;
         _onChanged();
     }
 
