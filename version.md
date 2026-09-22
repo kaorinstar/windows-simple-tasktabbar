@@ -19,7 +19,7 @@ in [README.md](README.md).
 - **Bar position** in the settings holds the bar at the top or at the bottom instead, wherever
   the taskbar is. A taskbar down the left or the right side leaves the bar at the bottom of the
   screen, which is where it has always been.
-- The application icon is now a square box with tabs stacked inside it, each one stepped down and
+- The application icon is now a square of blue with tabs stacked on it, each one stepped down and
   to the right of the one behind, the way overlapping windows sit on a screen. The tab in front is
   white, as the active tab is on the bar, and the ones behind it are the pale shade of an inactive
   tab. Every edge of it lands on a whole pixel and no pixel is part-transparent, so it stays sharp

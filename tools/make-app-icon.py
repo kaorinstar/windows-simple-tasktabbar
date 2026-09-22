@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """Draws src/WindowsSimpleTaskTabBar/Properties/app.ico.
 
-The icon is a square box with tabs stacked inside it, each one stepped down and to the right
-of the one behind, the way overlapping windows sit on a screen. The box is a blue outline.
-The tab in front is filled white, as the active tab is on the bar; the ones behind it carry
-the pale shade of an inactive tab, and each is partly hidden by the one in front of it.
+The icon is a square of blue with tabs stacked on it, each one stepped down and to the right
+of the one behind, the way overlapping windows sit on a screen. The blue fills the frame; the
+tab in front is filled white, as the active tab is on the bar; the ones behind it carry the
+pale shade of an inactive tab, and each is partly hidden by the one in front of it.
+
+Each tab keeps a blue outline of its own. Against the blue behind it that outline is only
+visible where two tabs overlap, and that is what it is for: without it, two pale tabs run
+into each other and the stack reads as one shape.
 
 Everything is drawn in straight lines on whole pixels, so no pixel is ever part-transparent
 and nothing is ever blended. That is what keeps the icon sharp at 16 pixels, which is the
@@ -45,23 +49,21 @@ SUPERSAMPLE = 8
 # inside an executable the README keeps under 200 KB.
 #
 # Per size, in whole pixels:
-#   frame   how far the box sits in from the edge of the icon
-#   edge    how thick the box's outline is
 #   side    how wide and tall a tab is
 #   step    how far each tab is stepped down and to the right of the one behind it
 #   stroke  how thick a tab's outline is
 #   start   where the tab at the back begins, measured from the edge of the icon
 #   count   how many tabs there are
 #
-# `start` has to clear the box's own outline, or the two run into each other and read as
-# one thick line. `start + (count - 1) * step + side` has to stay inside it at the other
-# end, for the same reason.
+# `start` is also the blue left above and to the left of the stack, and
+# `size - (start + (count - 1) * step + side)` is the blue below and to the right of it.
+# The two are kept equal, so the stack sits in the middle of the square.
 GEOMETRY = {
-    16: dict(frame=0, edge=1, side=8, step=4, stroke=1, start=2, count=2),
-    20: dict(frame=0, edge=1, side=11, step=5, stroke=1, start=2, count=2),
-    24: dict(frame=1, edge=1, side=10, step=4, stroke=1, start=3, count=3),
-    32: dict(frame=1, edge=2, side=14, step=5, stroke=2, start=4, count=3),
-    48: dict(frame=2, edge=2, side=22, step=7, stroke=2, start=6, count=3),
+    16: dict(side=8, step=4, stroke=1, start=2, count=2),
+    20: dict(side=11, step=5, stroke=1, start=2, count=2),
+    24: dict(side=10, step=4, stroke=1, start=3, count=3),
+    32: dict(side=14, step=5, stroke=2, start=4, count=3),
+    48: dict(side=22, step=7, stroke=2, start=6, count=3),
 }
 
 
@@ -83,8 +85,8 @@ def outline(left, top, right, bottom, thickness):
 def layers(size):
     """What the icon is made of at this size, in the order it is painted."""
     g = GEOMETRY[size]
-    frame, count = g['frame'], g['count']
-    shapes = [(outline(frame, frame, size - frame, size - frame, g['edge']), BLUE)]
+    count = g['count']
+    shapes = [(rectangle(0, 0, size, size), BLUE)]
 
     # Back to front, so each tab hides the part of the one behind it that it covers.
     for i in range(count):
