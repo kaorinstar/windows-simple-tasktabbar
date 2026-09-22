@@ -25,6 +25,11 @@ in [README.md](README.md).
   window wherever it is. That is the bar as it was before this release, so nothing becomes
   unreachable when a display is switched off. Every display is the default, including for
   settings written by an earlier release.
+- The installer no longer asks you to exit a running bar. Installing a newer version over an
+  older one closes the bar for you and replaces it, and uninstalling closes it before it removes
+  anything. Both close it the way the **Exit** menu item does, so the bar gives the desktop its
+  space back on the way out. A bar that will not close still produces the message it produced
+  before, asking you to close it and click OK.
 - The bar can sit at the top of the screen as well as at the bottom, and by default it follows
   the Windows taskbar. Moving the taskbar to the top of the screen now takes the bar up there
   with it, with nothing to set and no restart.
