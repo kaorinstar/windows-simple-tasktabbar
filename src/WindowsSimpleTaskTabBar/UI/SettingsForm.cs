@@ -252,7 +252,8 @@ internal sealed class SettingsForm : Form
     /// The work area rather than the screen, because it is what is left after the taskbar and
     /// this application's own bar, which is an AppBar and reserves its strip. The primary
     /// monitor, because that is where <see cref="FormStartPosition.CenterScreen"/> puts the
-    /// dialog and the only monitor this application draws on (#62).
+    /// dialog. There is a bar on every monitor now, and each one reserves a strip of its own
+    /// monitor, so the work area the dialog is measured against is the one it opens on.
     /// </remarks>
     private void FitToScreen()
     {
@@ -403,25 +404,30 @@ internal sealed class SettingsForm : Form
         // Which box goes in which column is decided by height rather than by subject: the two
         // columns are here to be of a height, and a column left much longer than the other puts
         // the dialog back where it was. So the three boxes about tabs are not kept together -
-        // tab order stands on the left, and updates, which is about nothing else in this dialog,
-        // stands on the right to make up the difference. Moving tab order across instead was
-        // measured and only swaps which column is too long: it is the tallest box on its side.
-        // Bar position stands opposite bar height for the same reason, rather than under it
-        // where the subject would put it: the left column is the longer of the two. Displays
-        // follows bar position, which is the other box about where the bar is.
+        // tab order stands on the left, and tab groups on the right. Moving tab order across
+        // instead was measured and only swaps which column is too long: it is the tallest box
+        // on its side. Bar position stands opposite bar height for the same reason, rather than
+        // under it where the subject would put it, and displays follows bar position, which is
+        // the other box about where the bar is.
+        //
+        // Updates is the box that makes up the difference, because it is about nothing else in
+        // this dialog and can stand in either column. It was on the right until displays was
+        // added there, which made the right column the longer of the two by about the height of
+        // a box; moving updates across took roughly half of that off the taller column and put
+        // the two back within a box's height of each other.
         FlowLayoutPanel left = Column();
         left.Controls.Add(BuildLanguageGroup());
         left.Controls.Add(BuildHeightGroup());
         left.Controls.Add(BuildColourGroup());
         left.Controls.Add(BuildPriorityGroup());
         left.Controls.Add(BuildPreviewGroup());
+        left.Controls.Add(BuildUpdatesGroup());
 
         FlowLayoutPanel right = Column();
         right.Controls.Add(BuildEdgeGroup());
         right.Controls.Add(BuildMonitorGroup());
         right.Controls.Add(BuildGroupingGroup());
         right.Controls.Add(BuildExclusionsGroup());
-        right.Controls.Add(BuildUpdatesGroup());
 
         _boxes = new TableLayoutPanel
         {
