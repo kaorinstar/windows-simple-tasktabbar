@@ -110,6 +110,26 @@ The executable is `artifacts\WindowsSimpleTaskTabBar.exe`.
 **`build.yml` is not a route to a build.** It compiles and tests and then packages nothing, so
 there is no artifact on it to download. Do not send anyone to a `build.yml` run for a file.
 
+## When the user raises a problem
+
+1. Decide whether it is an incidental fix.
+2. **An incidental fix** is committed on the branch already in progress, as a commit of its own
+   whose subject starts `Incidentally,`, and listed in the pull request. It gets no issue.
+3. **Anything else gets an issue, filed without asking first**, in the shape of
+   `.github/ISSUE_TEMPLATE/task.md`: `Problem`, `Proposal`, `Notes`, `Done when`.
+4. Link the issue and stop. The user reads it.
+5. **Once the user says it is right**, create the branch and start. If they ask for changes, edit
+   the issue and stop again.
+
+An incidental fix meets all three of these: a branch is already in progress; it needs no
+explanation to be seen as right — a typo, a comment, a dead link, a stale number or name; and it
+changes no behaviour and no string a user sees. **When in doubt it is not one.** A change to a
+string in `UiStrings.cs` is never one, because it has to be made in every table.
+
+Stopping at step 4 is the only stop before the work. Filing the issue is not a question to ask:
+what the user is asked to judge is the issue as written, which is quicker to check than a draft
+in the conversation and is already where the work will be tracked.
+
 ## Design rules
 
 Full details are in `docs/architecture.md`. The three rules that matter most:

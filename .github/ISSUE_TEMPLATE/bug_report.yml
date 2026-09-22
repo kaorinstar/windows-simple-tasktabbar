@@ -1,0 +1,78 @@
+name: Bug report
+description: Something the bar does wrongly, or does not do
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting it. A vulnerability goes to the private form in
+        [SECURITY.md](https://github.com/kaorinstar/windows-simple-tasktabbar/blob/main/SECURITY.md)
+        instead: an issue is public from the moment it is written.
+
+        Some behaviour is already documented as a limitation, such as windows owned by an
+        elevated application and full-screen applications covering the bar. The list is under
+        "Known limitations" in the
+        [README](https://github.com/kaorinstar/windows-simple-tasktabbar#known-limitations).
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What the bar did. A screenshot helps with anything about layout or colour.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What to do, in order, to make it happen again. Say so if it happens only sometimes.
+      placeholder: |
+        1. Open two File Explorer windows.
+        2. Minimize one of them.
+        3. Click its tab.
+    validations:
+      required: true
+  - type: input
+    id: release
+    attributes:
+      label: Release
+      description: >-
+        Right-click WindowsSimpleTaskTabBar.exe, choose Properties, and read Product version on the
+        Details tab.
+      placeholder: 0.9.0
+    validations:
+      required: true
+  - type: dropdown
+    id: installed-with
+    attributes:
+      label: Installed with
+      options:
+        - Installer
+        - Portable ZIP
+        - The executable on its own
+        - Built from source
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: Press Win+R, type winver, and press Enter.
+      placeholder: Windows 11 24H2 (build 26100)
+    validations:
+      required: true
+  - type: textarea
+    id: displays
+    attributes:
+      label: Monitors and scaling
+      description: >-
+        How many monitors, which one is the main display, and the scale set for each under
+        Settings > System > Display. Leave it empty if the problem has nothing to do with the screen.
+      placeholder: Two monitors. Main one 3840x2160 at 150%, second one 1920x1080 at 100%.
+    validations:
+      required: false
