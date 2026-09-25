@@ -115,8 +115,10 @@ there is no artifact on it to download. Do not send anyone to a `build.yml` run 
 1. Decide whether it is an incidental fix.
 2. **An incidental fix** is committed on the branch already in progress, as a commit of its own
    whose subject starts `Incidentally,`, and listed in the pull request. It gets no issue.
-3. **Anything else gets an issue, filed without asking first**, in the shape of
-   `.github/ISSUE_TEMPLATE/task.md`: `Problem`, `Proposal`, `Notes`, `Done when`.
+3. **Anything else gets an issue, filed without asking first.** A new feature or a change in how
+   the application behaves takes the shape of `.github/ISSUE_TEMPLATE/feature.md`, with sections
+   1-8 filled in. Everything else takes the shape of `.github/ISSUE_TEMPLATE/task.md`: `Problem`,
+   `Proposal`, `Notes`, `Done when`.
 4. Link the issue and stop. The user reads it.
 5. **Once the user says it is right**, create the branch and start. If they ask for changes, edit
    the issue and stop again.
@@ -129,6 +131,15 @@ string in `UiStrings.cs` is never one, because it has to be made in every table.
 Stopping at step 4 is the only stop before the work. Filing the issue is not a question to ask:
 what the user is asked to judge is the issue as written, which is quicker to check than a draft
 in the conversation and is already where the work will be tracked.
+
+A feature issue is linked only once all eight sections are filled in, and approving it approves the
+scope as written: what it changes, what it leaves out, and its appetite, the most time it is worth.
+When the work runs past the appetite, the scope is cut rather than the time extended, and what was
+cut is left as a comment on the issue. The sections follow Shape Up's appetite, no-gos and rabbit
+holes (https://basecamp.com/shapeup/1.2-chapter-03, https://basecamp.com/shapeup/1.5-chapter-06).
+
+A proposal for a mechanism or a working rule, in an issue or anywhere else, starts from the form in
+common use. Check it in a primary source first and cite the URL in the proposal.
 
 ## Design rules
 
