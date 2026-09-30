@@ -197,6 +197,28 @@ public class AppSettingsTests
     }
 
     [Fact]
+    public void AlwaysOnTopIsOffUntilItIsAskedFor()
+    {
+        // Off for a new installation and for a settings file written before the setting existed,
+        // which leaves the bar among ordinary windows as it was before.
+        var settings = new AppSettings();
+
+        Assert.False(settings.AlwaysOnTop);
+        Assert.False(settings.Normalized().AlwaysOnTop);
+    }
+
+    [Fact]
+    public void NormalizingKeepsAlwaysOnTop()
+    {
+        var settings = new AppSettings { AlwaysOnTop = true };
+
+        Assert.True(settings.Normalized().AlwaysOnTop);
+
+        settings.Normalize();
+        Assert.True(settings.AlwaysOnTop);
+    }
+
+    [Fact]
     public void GroupingIsOffUntilItIsAskedFor()
     {
         var settings = new AppSettings();

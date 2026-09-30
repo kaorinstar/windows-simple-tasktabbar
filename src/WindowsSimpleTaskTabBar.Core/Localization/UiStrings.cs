@@ -49,6 +49,7 @@ public static class UiStrings
         { StringId.EdgeFollowTaskbar, "Follow the taskbar" },
         { StringId.EdgeBottom, "Bottom of the screen" },
         { StringId.EdgeTop, "Top of the screen" },
+        { StringId.EdgeAlwaysOnTop, "Always on top" },
         {
             StringId.EdgeNote,
             "Following the taskbar puts the bar at the top of the screen when the taskbar is there."
@@ -180,6 +181,7 @@ public static class UiStrings
         { StringId.EdgeFollowTaskbar, "タスクバーに合わせる" },
         { StringId.EdgeBottom, "画面の下" },
         { StringId.EdgeTop, "画面の上" },
+        { StringId.EdgeAlwaysOnTop, "常に手前に表示" },
         {
             StringId.EdgeNote,
             "タスクバーに合わせると、タスクバーが画面の上にあるときはバーも上に表示されます。"
@@ -299,6 +301,7 @@ public static class UiStrings
         { StringId.EdgeFollowTaskbar, "跟随任务栏" },
         { StringId.EdgeBottom, "屏幕底部" },
         { StringId.EdgeTop, "屏幕顶部" },
+        { StringId.EdgeAlwaysOnTop, "置于顶层" },
         {
             StringId.EdgeNote,
             "跟随任务栏时，任务栏移到屏幕顶部，标签栏也会移到顶部。"
@@ -406,6 +409,7 @@ public static class UiStrings
         { StringId.EdgeFollowTaskbar, "跟隨工作列" },
         { StringId.EdgeBottom, "螢幕下方" },
         { StringId.EdgeTop, "螢幕上方" },
+        { StringId.EdgeAlwaysOnTop, "最上層顯示" },
         {
             StringId.EdgeNote,
             "跟隨工作列時，工作列移到螢幕上方，索引標籤列也會移到上方。"
@@ -516,6 +520,7 @@ public static class UiStrings
         { StringId.EdgeFollowTaskbar, "Как у панели задач" },
         { StringId.EdgeBottom, "Внизу экрана" },
         { StringId.EdgeTop, "Вверху экрана" },
+        { StringId.EdgeAlwaysOnTop, "Поверх остальных окон" },
         {
             StringId.EdgeNote,
             "Если панель задач находится вверху экрана, панель вкладок тоже переходит вверх."
@@ -655,6 +660,7 @@ public static class UiStrings
         { StringId.EdgeFollowTaskbar, "Taskleiste folgen" },
         { StringId.EdgeBottom, "Unterer Bildschirmrand" },
         { StringId.EdgeTop, "Oberer Bildschirmrand" },
+        { StringId.EdgeAlwaysOnTop, "Immer im Vordergrund" },
         {
             StringId.EdgeNote,
             "Liegt die Taskleiste am oberen Bildschirmrand, wandert die Leiste mit nach oben."
@@ -794,6 +800,7 @@ public static class UiStrings
         { StringId.EdgeFollowTaskbar, "Suivre la barre des tâches" },
         { StringId.EdgeBottom, "En bas de l'écran" },
         { StringId.EdgeTop, "En haut de l'écran" },
+        { StringId.EdgeAlwaysOnTop, "Toujours visible" },
         {
             StringId.EdgeNote,
             "Si la barre des tâches est en haut de l'écran, la barre monte avec elle."
@@ -932,6 +939,7 @@ public static class UiStrings
         { StringId.EdgeFollowTaskbar, "Seguir a la barra de tareas" },
         { StringId.EdgeBottom, "Parte inferior de la pantalla" },
         { StringId.EdgeTop, "Parte superior de la pantalla" },
+        { StringId.EdgeAlwaysOnTop, "Siempre visible" },
         {
             StringId.EdgeNote,
             "Si la barra de tareas está en la parte superior de la pantalla, la barra sube con ella."
@@ -1069,6 +1077,7 @@ public static class UiStrings
         { StringId.EdgeFollowTaskbar, "Seguir a barra de tarefas" },
         { StringId.EdgeBottom, "Parte inferior da tela" },
         { StringId.EdgeTop, "Parte superior da tela" },
+        { StringId.EdgeAlwaysOnTop, "Sempre visível" },
         {
             StringId.EdgeNote,
             "Se a barra de tarefas estiver na parte superior da tela, a barra sobe junto."
@@ -1200,6 +1209,7 @@ public static class UiStrings
         { StringId.EdgeFollowTaskbar, "작업 표시줄 따라가기" },
         { StringId.EdgeBottom, "화면 아래쪽" },
         { StringId.EdgeTop, "화면 위쪽" },
+        { StringId.EdgeAlwaysOnTop, "항상 위" },
         {
             StringId.EdgeNote,
             "작업 표시줄이 화면 위쪽에 있으면 표시줄도 위쪽으로 이동합니다."
@@ -1318,6 +1328,7 @@ public static class UiStrings
         { StringId.EdgeFollowTaskbar, "Jak pasek zadań" },
         { StringId.EdgeBottom, "U dołu ekranu" },
         { StringId.EdgeTop, "U góry ekranu" },
+        { StringId.EdgeAlwaysOnTop, "Zawsze na wierzchu" },
         {
             StringId.EdgeNote,
             "Gdy pasek zadań znajduje się u góry ekranu, pasek kart przenosi się razem z nim."
@@ -1458,6 +1469,7 @@ public static class UiStrings
         { StringId.EdgeFollowTaskbar, "Segui la barra delle applicazioni" },
         { StringId.EdgeBottom, "Parte inferiore dello schermo" },
         { StringId.EdgeTop, "Parte superiore dello schermo" },
+        { StringId.EdgeAlwaysOnTop, "Sempre in primo piano" },
         {
             StringId.EdgeNote,
             "Se la barra delle applicazioni si trova in alto, la barra si sposta in alto con essa."

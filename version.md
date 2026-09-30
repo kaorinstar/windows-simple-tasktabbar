@@ -13,10 +13,11 @@ in [README.md](README.md).
 
 ## Unreleased
 
-- The bar now stays above other windows. A window that is not maximized, dragged or sized over
-  the bar, passes behind it instead of hiding your tabs. While a video, a game or anything else
-  runs full screen on a display, that display's bar steps behind it, and comes back when full
-  screen ends.
+- **Always on top** under **Bar position** in the settings keeps the bar above other windows. A
+  window that is not maximized, dragged or sized over the bar, then passes behind it instead of
+  hiding your tabs. While a video, a game or anything else runs full screen on a display, that
+  display's bar steps behind it, and comes back when full screen ends. The setting is off by
+  default, which leaves the bar as it was.
 
 ## v0.9.0
 

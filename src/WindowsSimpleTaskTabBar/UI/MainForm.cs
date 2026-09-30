@@ -74,11 +74,20 @@ public class MainForm : Form
     /// <summary>Whether the bar has been put on screen yet. See <see cref="Prepare"/>.</summary>
     private bool _onScreen;
 
-    /// <summary>
-    /// Whether a full-screen application is open on this bar's monitor, which is the one time
-    /// the bar leaves the topmost band. See <see cref="ApplyZOrder"/>.
-    /// </summary>
-    private bool _fullScreenApp;
+    /// <summary>Where the bar last put itself in the z-order. See <see cref="KeepZOrder"/>.</summary>
+    private ZOrder _zOrder;
+
+    private enum ZOrder
+    {
+        /// <summary>Among ordinary windows, where a new window starts.</summary>
+        Ordinary,
+
+        /// <summary>Above ordinary windows.</summary>
+        Topmost,
+
+        /// <summary>Below everything, while a full-screen application is on this monitor.</summary>
+        Bottom,
+    }
 
     /// <summary>
     /// Which edge the bar is drawn against now. Settled by the setting and, when that says to
@@ -428,7 +437,8 @@ public class MainForm : Form
 
         // Here rather than once in the constructor: a recreated window starts out as an
         // ordinary one, and would lose its place above the other windows without a word.
-        ApplyZOrder();
+        _zOrder = ZOrder.Ordinary;
+        KeepZOrder(NativeMethods.GetForegroundWindow());
     }
 
     // ---------------------------------------------------------------
@@ -680,60 +690,61 @@ public class MainForm : Form
     }
 
     /// <summary>
-    /// Keeps the bar above ordinary windows, or below everything while a full-screen application
-    /// is open on its monitor.
+    /// Keeps the bar above ordinary windows while <see cref="AppSettings.AlwaysOnTop"/> is on,
+    /// and below everything while a full-screen application fills its monitor.
     /// </summary>
     /// <remarks>
     /// The reserved strip keeps maximized windows off the bar, but a window that is not
     /// maximized can still be dragged or sized over it, and would then hide the tab the user
     /// wants. Topmost puts the bar above that window. Only windows placed over the strip are
-    /// affected, since the rest of the desktop is outside it.
+    /// affected, since the rest of the desktop is outside it. The setting is off by default,
+    /// which leaves the bar among ordinary windows, where the Windows taskbar leaves itself.
     ///
     /// A full-screen application is the exception. Microsoft's documentation requires an appbar
     /// to drop to the bottom of the z-order while one is open and to come back when it closes
     /// (https://learn.microsoft.com/en-us/windows/win32/shell/abn-fullscreenapp), so a video or
-    /// a game is not drawn under a row of tabs. See <see cref="FollowFullScreen"/> for how the
-    /// bar finds out.
+    /// a game is not drawn under a row of tabs. Off, the bar needs nothing for this: a
+    /// full-screen window already covers an ordinary one.
     ///
-    /// <c>SWP_NOACTIVATE</c> throughout: the bar changes its place in the stack without taking
-    /// the foreground from whatever the user is working in. <c>Form.TopMost</c> is not used for
-    /// this reason, since it moves the window without that flag.
-    /// </remarks>
-    private void ApplyZOrder()
-    {
-        NativeMethods.SetWindowPos(Handle,
-            _fullScreenApp ? NativeMethods.HWND_BOTTOM : NativeMethods.HWND_TOPMOST,
-            0, 0, 0, 0,
-            NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
-    }
-
-    /// <summary>
-    /// Steps aside while the window in the foreground fills this bar's monitor, and comes back
-    /// once it no longer does.
-    /// </summary>
-    /// <remarks>
     /// Called by <see cref="BarHost"/> on every tick of its timer rather than from
     /// <c>ABN_FULLSCREENAPP</c>. That notification did not arrive for a browser put into full
     /// screen with F11 or by a video on a real machine, and it names no monitor when it does, so
     /// the bar looks for itself: the foreground window is the one a user has just sent full
     /// screen, and one that covers this monitor is full screen here. A bar on a second monitor
-    /// then stays above the windows there.
+    /// then stays above the windows there. The same tick picks up the setting being changed, so
+    /// the checkbox takes effect without a restart.
     ///
+    /// The window is moved only when the answer changes, and always with
+    /// <c>SWP_NOACTIVATE</c>: the bar changes its place in the stack without taking the
+    /// foreground from whatever the user is working in. <c>Form.TopMost</c> is not used for this
+    /// reason, since it moves the window without that flag.
+    /// </remarks>
+    internal void KeepZOrder(IntPtr foreground)
+    {
+        if (_released || !IsHandleCreated) return;
+
+        ZOrder wanted = !_settings.AlwaysOnTop ? ZOrder.Ordinary
+            : ForegroundCoversMonitor(foreground) ? ZOrder.Bottom
+            : ZOrder.Topmost;
+        if (wanted == _zOrder) return;
+
+        IntPtr after = wanted == ZOrder.Topmost ? NativeMethods.HWND_TOPMOST
+            : wanted == ZOrder.Bottom ? NativeMethods.HWND_BOTTOM
+            : NativeMethods.HWND_NOTOPMOST;
+
+        NativeMethods.SetWindowPos(Handle, after, 0, 0, 0, 0,
+            NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
+        _zOrder = wanted;
+    }
+
+    /// <summary>
+    /// Whether the window in the foreground fills this bar's monitor.
+    /// </summary>
+    /// <remarks>
     /// The desktop and the other windows the shell draws are left out. The desktop covers the
     /// whole monitor too, and a bar that stepped aside for it would sit behind every window the
     /// moment the user clicked on the wallpaper.
     /// </remarks>
-    internal void FollowFullScreen(IntPtr foreground)
-    {
-        if (_released || !IsHandleCreated) return;
-
-        bool fullScreenHere = ForegroundCoversMonitor(foreground);
-        if (fullScreenHere == _fullScreenApp) return;
-
-        _fullScreenApp = fullScreenHere;
-        ApplyZOrder();
-    }
-
     private bool ForegroundCoversMonitor(IntPtr foreground)
     {
         if (foreground == IntPtr.Zero || WindowService.IsOwnWindow(foreground)) return false;

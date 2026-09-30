@@ -75,6 +75,10 @@ internal sealed class SettingsForm : Form
 
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
         Justification = "Owned by the Controls collection it is added to.")]
+    private CheckBox _alwaysOnTop;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "Owned by the Controls collection it is added to.")]
     private RadioButton _everyMonitor;
 
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
@@ -724,8 +728,19 @@ internal sealed class SettingsForm : Form
         };
         choices.Controls.Add(_followTaskbar);
         choices.Controls.Add(_edgeBottom);
+        // In this group because it is about where the bar sits: in front of the other windows
+        // or among them.
+        _alwaysOnTop = new CheckBox
+        {
+            Text = _text[StringId.EdgeAlwaysOnTop],
+            AutoSize = true,
+            Margin = new Padding(4, 6, 4, 4),
+        };
+        _alwaysOnTop.CheckedChanged += (_, __) => OnAlwaysOnTopToggled();
+
         choices.Controls.Add(_edgeTop);
         choices.Controls.Add(explanation);
+        choices.Controls.Add(_alwaysOnTop);
 
         var box = new GroupBox
         {
@@ -1324,6 +1339,7 @@ internal sealed class SettingsForm : Form
         _followTaskbar.Checked = _settings.BarEdge == BarEdgeMode.FollowTaskbar;
         _edgeBottom.Checked = _settings.BarEdge == BarEdgeMode.Bottom;
         _edgeTop.Checked = _settings.BarEdge == BarEdgeMode.Top;
+        _alwaysOnTop.Checked = _settings.AlwaysOnTop;
         _everyMonitor.Checked = _settings.Monitors == MonitorMode.EveryMonitor;
         _primaryMonitorOnly.Checked = _settings.Monitors == MonitorMode.PrimaryOnly;
         _followWindows.Checked = _settings.Colours == ColourMode.FollowWindows;
@@ -1403,6 +1419,14 @@ internal sealed class SettingsForm : Form
         if (mode == _settings.BarEdge) return;
 
         _settings.BarEdge = mode;
+        _onChanged();
+    }
+
+    private void OnAlwaysOnTopToggled()
+    {
+        if (_loading) return;
+
+        _settings.AlwaysOnTop = _alwaysOnTop.Checked;
         _onChanged();
     }
 
