@@ -74,6 +74,12 @@ public class MainForm : Form
     private bool _onScreen;
 
     /// <summary>
+    /// Whether a full-screen application is open on this bar's monitor, which is the one time
+    /// the bar leaves the topmost band. See <see cref="ApplyZOrder"/>.
+    /// </summary>
+    private bool _fullScreenApp;
+
+    /// <summary>
     /// Which edge the bar is drawn against now. Settled by the setting and, when that says to
     /// follow the taskbar, by where the taskbar is; every size and every rounded corner below
     /// reads it rather than assuming the bottom.
@@ -418,6 +424,10 @@ public class MainForm : Form
         RebuildMetrics();
 
         RegisterAppBar();
+
+        // Here rather than once in the constructor: a recreated window starts out as an
+        // ordinary one, and would lose its place above the other windows without a word.
+        ApplyZOrder();
     }
 
     // ---------------------------------------------------------------
@@ -668,6 +678,64 @@ public class MainForm : Form
         Invalidate();
     }
 
+    /// <summary>
+    /// Keeps the bar above ordinary windows, or below everything while a full-screen application
+    /// is open on its monitor.
+    /// </summary>
+    /// <remarks>
+    /// The reserved strip keeps maximized windows off the bar, but a window that is not
+    /// maximized can still be dragged or sized over it, and would then hide the tab the user
+    /// wants. Topmost puts the bar above that window. Only windows placed over the strip are
+    /// affected, since the rest of the desktop is outside it.
+    ///
+    /// A full-screen application is the exception. Microsoft's documentation requires an appbar
+    /// to drop to the bottom of the z-order while one is open and to come back when it closes
+    /// (https://learn.microsoft.com/en-us/windows/win32/shell/abn-fullscreenapp), so a video or
+    /// a game is not drawn under a row of tabs.
+    ///
+    /// <c>SWP_NOACTIVATE</c> throughout: the bar changes its place in the stack without taking
+    /// the foreground from whatever the user is working in. <c>Form.TopMost</c> is not used for
+    /// this reason, since it moves the window without that flag.
+    /// </remarks>
+    private void ApplyZOrder()
+    {
+        NativeMethods.SetWindowPos(Handle,
+            _fullScreenApp ? NativeMethods.HWND_BOTTOM : NativeMethods.HWND_TOPMOST,
+            0, 0, 0, 0,
+            NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
+    }
+
+    /// <summary>
+    /// Steps aside for a full-screen application that has opened on this bar's monitor, or comes
+    /// back once one has closed.
+    /// </summary>
+    /// <remarks>
+    /// Windows does not say which monitor the application is on, so the bar looks at the window
+    /// in the foreground, which is the one that has just gone full screen, and steps aside only
+    /// when that window covers its own monitor. The bar on a second monitor then stays above the
+    /// windows there.
+    /// </remarks>
+    private void OnFullScreenApp(bool opening)
+    {
+        bool fullScreenHere = opening && ForegroundCoversMonitor();
+        if (fullScreenHere == _fullScreenApp) return;
+
+        _fullScreenApp = fullScreenHere;
+        ApplyZOrder();
+    }
+
+    private bool ForegroundCoversMonitor()
+    {
+        IntPtr foreground = NativeMethods.GetForegroundWindow();
+        if (foreground == IntPtr.Zero) return false;
+        if (!NativeMethods.GetWindowRect(foreground, out NativeMethods.RECT rect)) return false;
+
+        Rectangle screen = Monitor;
+        return BarPlacement.Covers(
+            new BarBox(rect.left, rect.top, rect.right, rect.bottom),
+            new BarBox(screen.Left, screen.Top, screen.Right, screen.Bottom));
+    }
+
     protected override void WndProc(ref Message m)
     {
         if (_callbackMessage != 0 && m.Msg == (int)_callbackMessage)
@@ -675,7 +743,11 @@ public class MainForm : Form
             switch (m.WParam.ToInt32())
             {
                 case NativeMethods.ABN_POSCHANGED:
+                    UpdateAppBarPosition();
+                    break;
+
                 case NativeMethods.ABN_FULLSCREENAPP:
+                    OnFullScreenApp(m.LParam != IntPtr.Zero);
                     UpdateAppBarPosition();
                     break;
             }

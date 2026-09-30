@@ -11,6 +11,13 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
+## Unreleased
+
+- The bar now stays above other windows. A window that is not maximized, dragged or sized over
+  the bar, passes behind it instead of hiding your tabs. While a video, a game or anything else
+  runs full screen on a display, that display's bar steps behind it, and comes back when full
+  screen ends.
+
 ## v0.9.0
 
 - Every display carries a bar, and each one lists the windows on its own display. A window is

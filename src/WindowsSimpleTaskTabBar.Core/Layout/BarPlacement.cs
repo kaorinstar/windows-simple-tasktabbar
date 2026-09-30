@@ -127,4 +127,20 @@ public static class BarPlacement
             ? new BarBox(granted.Left, granted.Top, granted.Right, granted.Top + thickness)
             : new BarBox(granted.Left, granted.Bottom - thickness, granted.Right, granted.Bottom);
     }
+
+    /// <summary>
+    /// Whether <paramref name="window"/> covers the whole of <paramref name="monitor"/>, which
+    /// is what makes it the full-screen application on that monitor.
+    /// </summary>
+    /// <remarks>
+    /// Windows reports that a full-screen application has opened without saying on which
+    /// monitor, and a bar that stepped aside for one on another monitor would leave its own
+    /// monitor's windows free to cover it. A window larger than the monitor still covers it:
+    /// some applications go full screen with their frame pushed past the edges.
+    /// </remarks>
+    public static bool Covers(BarBox window, BarBox monitor)
+    {
+        return window.Left <= monitor.Left && window.Top <= monitor.Top
+            && window.Right >= monitor.Right && window.Bottom >= monitor.Bottom;
+    }
 }
