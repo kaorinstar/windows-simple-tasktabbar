@@ -11,13 +11,15 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
-## Unreleased
+## v0.10.0
 
 - **Always on top** under **Bar position** in the settings keeps the bar above other windows. A
   window that is not maximized, dragged or sized over the bar, then passes behind it instead of
   hiding your tabs. While a video, a game or anything else runs full screen on a display, that
   display's bar steps behind it, and comes back when full screen ends. The setting is off by
   default, which leaves the bar as it was.
+- The executable is 193,024 bytes, against 190,976 in v0.9.0. The new setting and its string in
+  twelve languages are the difference.
 
 ## v0.9.0
 
