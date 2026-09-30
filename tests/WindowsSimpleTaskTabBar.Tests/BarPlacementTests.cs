@@ -153,4 +153,41 @@ public class BarPlacementTests
         Assert.Equal(1800, box.Right);
         Assert.Equal(1680, box.Width);
     }
+
+    // ---------------------------------------------------------------
+    // Full-screen applications
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public void AWindowTheSizeOfTheMonitorCoversIt()
+    {
+        var monitor = new BarBox(0, 0, 1920, 1080);
+
+        Assert.True(BarPlacement.Covers(new BarBox(0, 0, 1920, 1080), monitor));
+    }
+
+    [Fact]
+    public void AWindowPushedPastTheEdgesStillCoversTheMonitor()
+    {
+        var monitor = new BarBox(0, 0, 1920, 1080);
+
+        Assert.True(BarPlacement.Covers(new BarBox(-8, -8, 1928, 1088), monitor));
+    }
+
+    [Fact]
+    public void AMaximizedWindowDoesNotCoverTheMonitor()
+    {
+        // A maximized window stops at the work area, short of the taskbar and the bar.
+        var monitor = new BarBox(0, 0, 1920, 1080);
+
+        Assert.False(BarPlacement.Covers(new BarBox(0, 0, 1920, 998), monitor));
+    }
+
+    [Fact]
+    public void AFullScreenWindowOnAnotherMonitorDoesNotCoverThisOne()
+    {
+        var monitor = new BarBox(0, 0, 1920, 1080);
+
+        Assert.False(BarPlacement.Covers(new BarBox(1920, 0, 3840, 1080), monitor));
+    }
 }

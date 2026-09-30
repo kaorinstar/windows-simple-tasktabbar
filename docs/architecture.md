@@ -174,8 +174,20 @@ and must not appear anywhere else.
 
 `UI/MainForm.cs` registers an AppBar through `SHAppBarMessage`, which reserves part of the
 desktop work area. Windows takes one registration per monitor, so each bar reserves a strip of
-its own monitor. Because the area is reserved, maximized windows do not cover the bar. Simply
-setting a window to topmost would not achieve this — it would overlap other windows instead.
+its own monitor. Because the area is reserved, maximized windows do not cover the bar.
+
+The reserved area alone does not keep off a window that is not maximized and has been dragged or
+sized over the strip. The **Always on top** setting makes the bar topmost as well; it is off by
+default, which leaves the bar among ordinary windows as the Windows taskbar is. Since nothing else
+is laid out in the strip, topmost only puts the bar above windows placed over it. With the setting
+on, while a full-screen application is open on
+the bar's monitor the bar drops to the bottom of the z-order instead, and comes back when it
+closes, as Microsoft's documentation of `ABN_FULLSCREENAPP` requires. The bar does not wait for
+that notification, which did not arrive for a browser in full screen on a real machine and names
+no monitor when it does. On every tick of the timer each bar checks whether the foreground window
+covers its own monitor, leaving out the desktop and the shell's other windows;
+`BarPlacement.Covers` is that comparison. The same check reads the setting, so changing it takes
+effect without a restart.
 
 The edge the bar reserves is a setting, and by default it is the edge the Windows taskbar is on:
 `ABM_GETTASKBARPOS` answers where the taskbar is, and `Core/Layout/BarPlacement.cs` turns that

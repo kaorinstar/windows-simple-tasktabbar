@@ -52,6 +52,7 @@ public enum StringId
     EdgeBottom,
     EdgeTop,
     EdgeNote,
+    EdgeAlwaysOnTop,
 
     MonitorGroup,
     MonitorEvery,

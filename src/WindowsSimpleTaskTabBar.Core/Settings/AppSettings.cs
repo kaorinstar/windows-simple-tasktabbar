@@ -91,7 +91,7 @@ public class AppSettings
     /// The schema this instance was written with. Present from the first release so that a later
     /// version can tell an old file apart from a new one instead of guessing.
     /// </summary>
-    public const int CurrentSchema = 10;
+    public const int CurrentSchema = 11;
 
     /// <summary>How many accents a group can be marked with.</summary>
     public const int AccentCount = 8;
@@ -167,6 +167,18 @@ public class AppSettings
     /// gives the full title to everyone who leaves this alone.
     /// </remarks>
     public bool ShowWindowPreview { get; set; }
+
+    /// <summary>
+    /// Whether the bar stays above ordinary windows, so one dragged over it passes behind it.
+    /// </summary>
+    /// <remarks>
+    /// Off by default, and a plain <c>bool</c> for the reason given on
+    /// <see cref="ShowWindowPreview"/>: a settings file written before this existed reads as
+    /// off. Off leaves the bar where the Windows taskbar leaves itself, among ordinary windows,
+    /// which is how the bar behaved before the setting existed. Either way the bar steps aside
+    /// for a full-screen application.
+    /// </remarks>
+    public bool AlwaysOnTop { get; set; }
 
     /// <summary>
     /// Which language the interface is drawn in, as a language code, or
@@ -267,6 +279,7 @@ public class AppSettings
             Colours = IsKnown(Colours) ? Colours : ColourMode.FollowWindows,
             GroupByApplication = GroupByApplication,
             ShowWindowPreview = ShowWindowPreview,
+            AlwaysOnTop = AlwaysOnTop,
             Language = Languages.Find(Language)?.Code ?? Languages.Automatic,
             Groups = NormalizedGroups(Groups),
             ApplicationPriority = NormalizedNames(ApplicationPriority, MaxPrioritizedApplications),
@@ -297,6 +310,7 @@ public class AppSettings
         Colours = tidy.Colours;
         GroupByApplication = tidy.GroupByApplication;
         ShowWindowPreview = tidy.ShowWindowPreview;
+        AlwaysOnTop = tidy.AlwaysOnTop;
         Language = tidy.Language;
         Groups = tidy.Groups;
         ApplicationPriority = tidy.ApplicationPriority;
