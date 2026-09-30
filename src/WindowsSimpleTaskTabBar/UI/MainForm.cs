@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
+using WindowsSimpleTaskTabBar.Core.Filtering;
 using WindowsSimpleTaskTabBar.Core.Grouping;
 using WindowsSimpleTaskTabBar.Core.Layout;
 using WindowsSimpleTaskTabBar.Core.Localization;
@@ -691,7 +692,8 @@ public class MainForm : Form
     /// A full-screen application is the exception. Microsoft's documentation requires an appbar
     /// to drop to the bottom of the z-order while one is open and to come back when it closes
     /// (https://learn.microsoft.com/en-us/windows/win32/shell/abn-fullscreenapp), so a video or
-    /// a game is not drawn under a row of tabs.
+    /// a game is not drawn under a row of tabs. See <see cref="FollowFullScreen"/> for how the
+    /// bar finds out.
     ///
     /// <c>SWP_NOACTIVATE</c> throughout: the bar changes its place in the stack without taking
     /// the foreground from whatever the user is working in. <c>Form.TopMost</c> is not used for
@@ -706,34 +708,44 @@ public class MainForm : Form
     }
 
     /// <summary>
-    /// Steps aside for a full-screen application that has opened on this bar's monitor, or comes
-    /// back once one has closed.
+    /// Steps aside while the window in the foreground fills this bar's monitor, and comes back
+    /// once it no longer does.
     /// </summary>
     /// <remarks>
-    /// Windows does not say which monitor the application is on, so the bar looks at the window
-    /// in the foreground, which is the one that has just gone full screen, and steps aside only
-    /// when that window covers its own monitor. The bar on a second monitor then stays above the
-    /// windows there.
+    /// Called by <see cref="BarHost"/> on every tick of its timer rather than from
+    /// <c>ABN_FULLSCREENAPP</c>. That notification did not arrive for a browser put into full
+    /// screen with F11 or by a video on a real machine, and it names no monitor when it does, so
+    /// the bar looks for itself: the foreground window is the one a user has just sent full
+    /// screen, and one that covers this monitor is full screen here. A bar on a second monitor
+    /// then stays above the windows there.
+    ///
+    /// The desktop and the other windows the shell draws are left out. The desktop covers the
+    /// whole monitor too, and a bar that stepped aside for it would sit behind every window the
+    /// moment the user clicked on the wallpaper.
     /// </remarks>
-    private void OnFullScreenApp(bool opening)
+    internal void FollowFullScreen(IntPtr foreground)
     {
-        bool fullScreenHere = opening && ForegroundCoversMonitor();
+        if (_released || !IsHandleCreated) return;
+
+        bool fullScreenHere = ForegroundCoversMonitor(foreground);
         if (fullScreenHere == _fullScreenApp) return;
 
         _fullScreenApp = fullScreenHere;
         ApplyZOrder();
     }
 
-    private bool ForegroundCoversMonitor()
+    private bool ForegroundCoversMonitor(IntPtr foreground)
     {
-        IntPtr foreground = NativeMethods.GetForegroundWindow();
-        if (foreground == IntPtr.Zero) return false;
+        if (foreground == IntPtr.Zero || WindowService.IsOwnWindow(foreground)) return false;
         if (!NativeMethods.GetWindowRect(foreground, out NativeMethods.RECT rect)) return false;
 
         Rectangle screen = Monitor;
-        return BarPlacement.Covers(
+        bool covers = BarPlacement.Covers(
             new BarBox(rect.left, rect.top, rect.right, rect.bottom),
             new BarBox(screen.Left, screen.Top, screen.Right, screen.Bottom));
+
+        // The class name only once the rectangle has matched: this runs four times a second.
+        return covers && !WindowExclusion.IsShellWindow(WindowService.GetClassName(foreground));
     }
 
     protected override void WndProc(ref Message m)
@@ -743,11 +755,7 @@ public class MainForm : Form
             switch (m.WParam.ToInt32())
             {
                 case NativeMethods.ABN_POSCHANGED:
-                    UpdateAppBarPosition();
-                    break;
-
                 case NativeMethods.ABN_FULLSCREENAPP:
-                    OnFullScreenApp(m.LParam != IntPtr.Zero);
                     UpdateAppBarPosition();
                     break;
             }

@@ -180,9 +180,11 @@ The reserved area alone does not keep off a window that is not maximized and has
 sized over the strip, so the bar is also topmost. Since nothing else is laid out in the strip,
 that only puts the bar above windows placed over it. While a full-screen application is open on
 the bar's monitor the bar drops to the bottom of the z-order instead, and comes back when it
-closes, as Microsoft's documentation of `ABN_FULLSCREENAPP` requires. That notification does not
-name a monitor, so each bar checks whether the foreground window covers its own monitor before
-stepping aside; `BarPlacement.Covers` is that comparison.
+closes, as Microsoft's documentation of `ABN_FULLSCREENAPP` requires. The bar does not wait for
+that notification, which did not arrive for a browser in full screen on a real machine and names
+no monitor when it does. On every tick of the timer each bar checks whether the foreground window
+covers its own monitor, leaving out the desktop and the shell's other windows;
+`BarPlacement.Covers` is that comparison.
 
 The edge the bar reserves is a setting, and by default it is the edge the Windows taskbar is on:
 `ABM_GETTASKBARPOS` answers where the taskbar is, and `Core/Layout/BarPlacement.cs` turns that

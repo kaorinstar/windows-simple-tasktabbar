@@ -487,6 +487,11 @@ internal sealed class BarHost : ApplicationContext
             Refresh();
         }
 
+        // Every tick rather than on a refresh: a window going full screen only changes its size,
+        // which no hook here reports, and the bar should be out of the way within 250 ms.
+        IntPtr foreground = NativeMethods.GetForegroundWindow();
+        foreach (MainForm bar in _bars) bar.FollowFullScreen(foreground);
+
         TakeUpdateAnswer();
         StartUpdateCheckOnce();
     }
