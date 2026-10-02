@@ -18,6 +18,7 @@ in [README.md](README.md).
   anyone updating from v0.9.0 or earlier. Anyone updating from v0.10.0 keeps the setting they
   had, which is off unless they turned it on: v0.10.0 saved it as off either way, so turn it on
   under **Bar position** in the settings.
+- The executable is 193,024 bytes, the same as v0.10.0.
 
 ## v0.10.0
 
