@@ -141,6 +141,39 @@ holes (https://basecamp.com/shapeup/1.2-chapter-03, https://basecamp.com/shapeup
 A proposal for a mechanism or a working rule, in an issue or anywhere else, starts from the form in
 common use. Check it in a primary source first and cite the URL in the proposal.
 
+### A requirement too large for one issue
+
+A requirement that does not fit "one session and one pull request, checked by a test or by a hand
+check on Windows" is split into a parent issue and sub-issues. Piling it into one issue runs past
+the appetite and leaves no way to see how much of it is done.
+
+- **The parent** holds sections 1-8 for the whole requirement, has "the sub-issues are closed in
+  dependency order" under Done when, and lists the sub-issues in dependency order as a checklist.
+- **Each sub-issue** opens with `Parent: #n` and `Depends on: #n`, has its own sections 1-8, and an
+  appetite of one session at most.
+- **One sub-issue, one branch, one pull request.** The branch takes the sub-issue's number; the pull
+  request says `Closes #sub-issue` and `Refs #parent`. The parent is closed once every sub-issue is.
+- **Link them with GitHub's sub-issue feature.** A number written in the body does not make an issue
+  a sub-issue, and the parent then shows no progress. The API takes the issue's ID, not its number:
+
+  ```
+  gh api repos/{owner}/{repo}/issues/<parent>/sub_issues \
+    -F sub_issue_id="$(gh api repos/{owner}/{repo}/issues/<sub-issue> --jq .id)"
+  ```
+
+- **One approval.** The parent and its sub-issues are filed together, and approving the parent
+  approves every sub-issue, so step 4 stays the only stop. A sub-issue added later is the only one
+  checked on its own.
+- **Work found later** inside the parent's scope becomes another sub-issue; outside it, a separate
+  issue.
+
+These are the tracking issues "Not yet implemented" points to. The shape follows
+MOTO-VISION/repository_template_wordpress#137 and its sub-issues #138-#149. Sources: GitHub's
+sub-issues, "to break down larger pieces of work into tasks"
+(https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/adding-sub-issues),
+and Shape Up's scopes, which "can be finished independently of each other"
+(https://basecamp.com/shapeup/3.3-chapter-12).
+
 ## Design rules
 
 Full details are in `docs/architecture.md`. The three rules that matter most:
