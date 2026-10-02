@@ -177,8 +177,8 @@ desktop work area. Windows takes one registration per monitor, so each bar reser
 its own monitor. Because the area is reserved, maximized windows do not cover the bar.
 
 The reserved area alone does not keep off a window that is not maximized and has been dragged or
-sized over the strip. The **Always on top** setting makes the bar topmost as well; it is off by
-default, which leaves the bar among ordinary windows as the Windows taskbar is. Since nothing else
+sized over the strip. The **Always on top** setting makes the bar topmost as well. It is on by
+default; turned off, it leaves the bar among ordinary windows as the Windows taskbar is. Since nothing else
 is laid out in the strip, topmost only puts the bar above windows placed over it. With the setting
 on, while a full-screen application is open on
 the bar's monitor the bar drops to the bottom of the z-order instead, and comes back when it

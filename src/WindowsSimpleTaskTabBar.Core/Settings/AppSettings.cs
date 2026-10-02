@@ -172,13 +172,17 @@ public class AppSettings
     /// Whether the bar stays above ordinary windows, so one dragged over it passes behind it.
     /// </summary>
     /// <remarks>
-    /// Off by default, and a plain <c>bool</c> for the reason given on
-    /// <see cref="ShowWindowPreview"/>: a settings file written before this existed reads as
-    /// off. Off leaves the bar where the Windows taskbar leaves itself, among ordinary windows,
-    /// which is how the bar behaved before the setting existed. Either way the bar steps aside
-    /// for a full-screen application.
+    /// On by default, so a window dragged over the bar does not hide the tabs from someone who
+    /// has never opened the settings. Either way the bar steps aside for a full-screen
+    /// application.
+    ///
+    /// Nullable for the reason given on <see cref="CheckForUpdates"/>: a settings file written
+    /// before v0.10.0 has no value for it, and a plain <c>bool</c> would arrive as false. Null
+    /// means "not chosen" and <see cref="Normalized"/> turns it on. A file written by v0.10.0,
+    /// when this was off by default, holds <c>false</c> whether or not the user chose it; the
+    /// two cannot be told apart, so the stored value is kept rather than overriding a choice.
     /// </remarks>
-    public bool AlwaysOnTop { get; set; }
+    public bool? AlwaysOnTop { get; set; } = true;
 
     /// <summary>
     /// Which language the interface is drawn in, as a language code, or
@@ -279,7 +283,7 @@ public class AppSettings
             Colours = IsKnown(Colours) ? Colours : ColourMode.FollowWindows,
             GroupByApplication = GroupByApplication,
             ShowWindowPreview = ShowWindowPreview,
-            AlwaysOnTop = AlwaysOnTop,
+            AlwaysOnTop = AlwaysOnTop ?? true,
             Language = Languages.Find(Language)?.Code ?? Languages.Automatic,
             Groups = NormalizedGroups(Groups),
             ApplicationPriority = NormalizedNames(ApplicationPriority, MaxPrioritizedApplications),

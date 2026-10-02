@@ -11,6 +11,15 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
+## v0.11.0
+
+- **Always on top** is now on by default, so a window dragged over the bar passes behind it
+  without anything being changed in the settings. It is on for a new installation and for
+  anyone updating from v0.9.0 or earlier. Anyone updating from v0.10.0 keeps the setting they
+  had, which is off unless they turned it on: v0.10.0 saved it as off either way, so turn it on
+  under **Bar position** in the settings.
+- The executable is 193,024 bytes, the same as v0.10.0.
+
 ## v0.10.0
 
 - **Always on top** under **Bar position** in the settings keeps the bar above other windows. A

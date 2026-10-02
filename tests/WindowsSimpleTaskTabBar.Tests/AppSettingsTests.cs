@@ -197,14 +197,33 @@ public class AppSettingsTests
     }
 
     [Fact]
-    public void AlwaysOnTopIsOffUntilItIsAskedFor()
+    public void AlwaysOnTopIsOnUntilItIsTurnedOff()
     {
-        // Off for a new installation and for a settings file written before the setting existed,
-        // which leaves the bar among ordinary windows as it was before.
         var settings = new AppSettings();
 
+        Assert.True(settings.AlwaysOnTop);
+        Assert.True(settings.Normalized().AlwaysOnTop);
+    }
+
+    [Fact]
+    public void ASettingsFileWrittenBeforeAlwaysOnTopExistedComesBackWithItOn()
+    {
+        // DataContractJsonSerializer does not run the constructor, so a file written before
+        // v0.10.0 leaves the property unset rather than at its initializer.
+        var settings = new AppSettings { AlwaysOnTop = null };
+
+        Assert.True(settings.Normalized().AlwaysOnTop);
+    }
+
+    [Fact]
+    public void TurningAlwaysOnTopOffSurvivesNormalizing()
+    {
+        // Also what a file written by v0.10.0 holds when its user never opened the settings: the
+        // two cannot be told apart, so the stored value is kept.
+        var settings = new AppSettings { AlwaysOnTop = false };
+        settings.Normalize();
+
         Assert.False(settings.AlwaysOnTop);
-        Assert.False(settings.Normalized().AlwaysOnTop);
     }
 
     [Fact]
