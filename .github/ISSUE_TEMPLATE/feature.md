@@ -10,6 +10,9 @@ assignees: ''
 Fill in sections 1-8 before the issue is approved. They settle the scope and what has to be decided
 first; the design itself belongs in the pull request. A fix, the build or the documentation uses
 the Task template instead.
+A requirement too large for one session and one pull request is split into a parent and
+sub-issues (CLAUDE.md, "A requirement too large for one issue"): each sub-issue opens with
+`Parent: #n` and `Depends on: #n` and is linked to the parent as a sub-issue.
 -->
 
 ## 1. Who and for what
