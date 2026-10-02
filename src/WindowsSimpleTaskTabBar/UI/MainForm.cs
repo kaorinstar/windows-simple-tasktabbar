@@ -697,8 +697,8 @@ public class MainForm : Form
     /// The reserved strip keeps maximized windows off the bar, but a window that is not
     /// maximized can still be dragged or sized over it, and would then hide the tab the user
     /// wants. Topmost puts the bar above that window. Only windows placed over the strip are
-    /// affected, since the rest of the desktop is outside it. The setting is off by default,
-    /// which leaves the bar among ordinary windows, where the Windows taskbar leaves itself.
+    /// affected, since the rest of the desktop is outside it. The setting is on by default; off
+    /// leaves the bar among ordinary windows, where the Windows taskbar leaves itself.
     ///
     /// A full-screen application is the exception. Microsoft's documentation requires an appbar
     /// to drop to the bottom of the z-order while one is open and to come back when it closes
@@ -723,7 +723,7 @@ public class MainForm : Form
     {
         if (_released || !IsHandleCreated) return;
 
-        ZOrder wanted = !_settings.AlwaysOnTop ? ZOrder.Ordinary
+        ZOrder wanted = _settings.AlwaysOnTop == false ? ZOrder.Ordinary
             : ForegroundCoversMonitor(foreground) ? ZOrder.Bottom
             : ZOrder.Topmost;
         if (wanted == _zOrder) return;

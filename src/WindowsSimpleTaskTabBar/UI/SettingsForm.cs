@@ -1339,7 +1339,7 @@ internal sealed class SettingsForm : Form
         _followTaskbar.Checked = _settings.BarEdge == BarEdgeMode.FollowTaskbar;
         _edgeBottom.Checked = _settings.BarEdge == BarEdgeMode.Bottom;
         _edgeTop.Checked = _settings.BarEdge == BarEdgeMode.Top;
-        _alwaysOnTop.Checked = _settings.AlwaysOnTop;
+        _alwaysOnTop.Checked = _settings.AlwaysOnTop != false;
         _everyMonitor.Checked = _settings.Monitors == MonitorMode.EveryMonitor;
         _primaryMonitorOnly.Checked = _settings.Monitors == MonitorMode.PrimaryOnly;
         _followWindows.Checked = _settings.Colours == ColourMode.FollowWindows;
