@@ -11,7 +11,7 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
-## Unreleased
+## v0.11.0
 
 - **Always on top** is now on by default, so a window dragged over the bar passes behind it
   without anything being changed in the settings. It is on for a new installation and for
