@@ -15,7 +15,6 @@
       "Bash(mkdir *)",
       "Bash(mv *)",
       "Bash(pwd)",
-      "Bash(rm -rf tmp/*)",
       "Bash(sed *)",
       "Bash(tail *)",
       "Bash(tree *)",
@@ -48,8 +47,6 @@
       "Bash(rm * ..*)",
       "Bash(rm * .git*)",
       "Bash(rm * /*)",
-      "Bash(rm * docs/*)",
-      "Bash(rm * src/*)",
       "Bash(rm * ~*)"
     ],
     "deny": [
