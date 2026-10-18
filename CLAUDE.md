@@ -208,6 +208,9 @@ the event hooks and the timer.
   A Claude Code session is assigned a `claude/...` branch by default. **That name is not part of
   this convention** — it describes the session rather than the change. Point it out and move the
   work to a branch that follows the convention before pushing.
+- Run git as `git -C <path>`. Do not `cd` into another directory and then run git: Claude Code
+  asks for approval every time, because git there could run that directory's hooks
+  (https://code.claude.com/docs/en/permissions, "Read-only commands").
 - Two target frameworks are supported: `net8.0-windows` and `net48`. Differences are handled
   with `#if NETFRAMEWORK`. **Do not break the net48 target.** Running on the .NET Framework 4.8
   that ships with Windows 10 and 11 is a hard distribution requirement.
