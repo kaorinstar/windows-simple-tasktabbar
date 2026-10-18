@@ -15,6 +15,7 @@
       "Bash(mkdir *)",
       "Bash(mv *)",
       "Bash(pwd)",
+      "Bash(rm *)",
       "Bash(sed *)",
       "Bash(tail *)",
       "Bash(tree *)",
@@ -47,7 +48,11 @@
       "Bash(rm * ..*)",
       "Bash(rm * .git*)",
       "Bash(rm * /*)",
-      "Bash(rm * ~*)"
+      "Bash(rm * ~*)",
+      "Bash(rm ..*)",
+      "Bash(rm .git*)",
+      "Bash(rm /*)",
+      "Bash(rm ~*)"
     ],
     "deny": [
       "Bash(cat *.env *)",
