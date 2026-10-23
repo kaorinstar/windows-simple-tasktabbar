@@ -18,6 +18,13 @@ public enum StringId
     MenuRefresh,
     MenuExit,
 
+    // Putting the application in the Start menu from the tray menu, for a copy that was not
+    // installed. One entry does both jobs, as the update entry does: it adds the shortcut while
+    // there is none and removes it once there is.
+    MenuAddToStartMenu,
+    MenuRemoveFromStartMenu,
+    StartMenuFailed,
+
     // Looking for a newer release. One menu entry does both jobs: it asks when nothing is known
     // yet, and opens the release page once a newer version has been found.
     MenuCheckForUpdates,

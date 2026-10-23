@@ -380,4 +380,56 @@ internal static class NativeMethods
 
     // Per-monitor DPI awareness, version 2.
     public static readonly IntPtr DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = new IntPtr(-4);
+
+    // ---------------------------------------------------------------
+    // Shortcut files (.lnk), for the Start menu entry
+    // ---------------------------------------------------------------
+
+    /// <summary>The shell's object that writes a shortcut. Created, then asked to save itself.</summary>
+    [ComImport, Guid("00021401-0000-0000-C000-000000000046")]
+    public class ShellLink
+    {
+    }
+
+    /// <summary>
+    /// The shortcut's own properties. The methods are declared in the order the interface lists
+    /// them, because a call goes by position in that list and not by name. Only the setters are
+    /// used; the getters are here to keep the positions right.
+    /// </summary>
+    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown),
+     Guid("000214F9-0000-0000-C000-000000000046")]
+    public interface IShellLinkW
+    {
+        void GetPath([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder file, int maxChars, IntPtr findData, uint flags);
+        void GetIDList(out IntPtr idList);
+        void SetIDList(IntPtr idList);
+        void GetDescription([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder name, int maxChars);
+        void SetDescription([MarshalAs(UnmanagedType.LPWStr)] string name);
+        void GetWorkingDirectory([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder dir, int maxChars);
+        void SetWorkingDirectory([MarshalAs(UnmanagedType.LPWStr)] string dir);
+        void GetArguments([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder args, int maxChars);
+        void SetArguments([MarshalAs(UnmanagedType.LPWStr)] string args);
+        void GetHotkey(out short hotkey);
+        void SetHotkey(short hotkey);
+        void GetShowCmd(out int showCmd);
+        void SetShowCmd(int showCmd);
+        void GetIconLocation([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder iconPath, int maxChars, out int index);
+        void SetIconLocation([MarshalAs(UnmanagedType.LPWStr)] string iconPath, int index);
+        void SetRelativePath([MarshalAs(UnmanagedType.LPWStr)] string relativePath, uint reserved);
+        void Resolve(IntPtr hwnd, uint flags);
+        void SetPath([MarshalAs(UnmanagedType.LPWStr)] string path);
+    }
+
+    /// <summary>Saves the shortcut to a file. The shell object answers to this as well.</summary>
+    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown),
+     Guid("0000010B-0000-0000-C000-000000000046")]
+    public interface IPersistFile
+    {
+        void GetClassID(out Guid classId);
+        [PreserveSig] int IsDirty();
+        void Load([MarshalAs(UnmanagedType.LPWStr)] string fileName, uint mode);
+        void Save([MarshalAs(UnmanagedType.LPWStr)] string fileName, [MarshalAs(UnmanagedType.Bool)] bool remember);
+        void SaveCompleted([MarshalAs(UnmanagedType.LPWStr)] string fileName);
+        void GetCurFile([MarshalAs(UnmanagedType.LPWStr)] out string fileName);
+    }
 }

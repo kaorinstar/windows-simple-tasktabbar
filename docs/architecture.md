@@ -718,6 +718,15 @@ already had the application, while a new installation got it. Null means "not ch
 and once for the tray, so two live items exist for every entry and a field could only point at one
 of them. The `Opening` handler is added in `BuildMenu` too, so both copies get it from one place.
 
+**The Start menu entry reads the folder, not a remembered answer.** It is added by the same
+`Opening` handler, because the shortcut can be made or deleted by hand while the menu is closed.
+`Services/StartMenuShortcut.cs` writes the `.lnk` through `IShellLinkW` and `IPersistFile`, declared
+in `NativeMethods.cs`, into the current user's Programs folder, and `Core/StartMenu/StartMenuEntry.cs`
+names the places it can be: directly in that folder, or in the folder of the same name that
+installers up to v0.11.0 made. Both count as "already there", so a second shortcut is never made
+beside the installer's. The installer puts its own shortcut in the first place, and removes the
+old folder when it installs over one (#141).
+
 **The menu remembers across runs, the notice does not.** `LastNoticedRelease` is read at startup
 and, when it names a release newer than this build, the menu says so before any check has run. The
 check runs at most once a day, so a bar started again the same day runs none; without this the
