@@ -19,8 +19,7 @@ in [README.md](README.md).
   once the shortcut exists. Nothing is added unless you choose it.
 - The installer now puts its Start menu entry directly in the list of apps, instead of inside a
   folder of the same name. Installing over an older version removes that folder.
-- The executable is 198,144 bytes, against 193,024 in v0.11.0. The new menu entry and its three
-  strings in twelve languages are most of the difference.
+- The executable is 198,144 bytes, against 193,024 in v0.11.0.
 
 ## v0.11.0
 
