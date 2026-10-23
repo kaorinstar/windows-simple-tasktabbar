@@ -211,6 +211,7 @@ the event hooks and the timer.
 - Run git as `git -C <path>`. Do not `cd` into another directory and then run git: Claude Code
   asks for approval every time, because git there could run that directory's hooks
   (https://code.claude.com/docs/en/permissions, "Read-only commands").
+  The PreToolUse hook `.claude/hooks/block-cd-git.mjs` blocks a command that puts `cd` and git together, before it runs.
 - Two target frameworks are supported: `net8.0-windows` and `net48`. Differences are handled
   with `#if NETFRAMEWORK`. **Do not break the net48 target.** Running on the .NET Framework 4.8
   that ships with Windows 10 and 11 is a hard distribution requirement.
