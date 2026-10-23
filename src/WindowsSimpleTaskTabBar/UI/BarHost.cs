@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using WindowsSimpleTaskTabBar.Core.Filtering;
 using WindowsSimpleTaskTabBar.Core.Focus;
@@ -792,6 +793,7 @@ internal sealed class BarHost : ApplicationContext
         menu.Items.Add(UpdateMenuText, null, (_, __) => OnUpdateMenuClicked()).Name = UpdateItemName;
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_text[StringId.MenuRefresh], null, (_, __) => RefreshNow());
+        menu.Items.Add(StartMenuText, null, (_, __) => OnStartMenuClicked()).Name = StartMenuItemName;
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_text[StringId.MenuExit], null, (_, __) => RequestExit());
 
@@ -802,6 +804,11 @@ internal sealed class BarHost : ApplicationContext
         {
             ToolStripItem item = menu.Items[UpdateItemName];
             if (item != null) item.Text = UpdateMenuText;
+
+            // The shortcut can be added or removed by hand while the menu is closed, so the
+            // entry reads the folder each time it opens rather than remembering the last answer.
+            ToolStripItem startItem = menu.Items[StartMenuItemName];
+            if (startItem != null) startItem.Text = StartMenuText;
         };
 
         return menu;
@@ -886,6 +893,40 @@ internal sealed class BarHost : ApplicationContext
         }
 
         return SystemIcons.Application;
+    }
+
+    // ---------------------------------------------------------------
+    // The Start menu entry
+    // ---------------------------------------------------------------
+
+    /// <summary>The name the Start menu entry is found by in both menus.</summary>
+    private const string StartMenuItemName = "startmenu";
+
+    private string StartMenuText =>
+        _text[StartMenuShortcut.Exists(AppName) ? StringId.MenuRemoveFromStartMenu : StringId.MenuAddToStartMenu];
+
+    /// <summary>
+    /// Adds the shortcut while there is none and removes it once there is. A copy that was
+    /// installed already has one, so the entry then offers to remove it, which is the same
+    /// shortcut the uninstaller would have deleted.
+    /// </summary>
+    private void OnStartMenuClicked()
+    {
+        try
+        {
+            if (StartMenuShortcut.Exists(AppName))
+            {
+                StartMenuShortcut.Remove(AppName);
+            }
+            else
+            {
+                StartMenuShortcut.Create(AppName, Application.ExecutablePath);
+            }
+        }
+        catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is COMException)
+        {
+            Say(_text[StringId.StartMenuFailed]);
+        }
     }
 
     // ---------------------------------------------------------------
