@@ -11,7 +11,7 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
-## Unreleased
+## v0.12.0
 
 - **Add to Start menu** in the tray menu puts a shortcut in the Start menu, so the bar can be
   started again after **Exit** by typing its name. It is meant for the portable ZIP and the bare
@@ -19,6 +19,7 @@ in [README.md](README.md).
   once the shortcut exists. Nothing is added unless you choose it.
 - The installer now puts its Start menu entry directly in the list of apps, instead of inside a
   folder of the same name. Installing over an older version removes that folder.
+- The executable is 198,144 bytes, against 193,024 in v0.11.0.
 
 ## v0.11.0
 
