@@ -6,6 +6,12 @@
  * into an allowed base (CLAUDE_AUTO_MERGE_BASES, default "develop") run without a prompt. Every other merge, and
  * every merge it cannot check, gets permissionDecision "ask".
  *
+ * The hook passes only the forms it has verified: a lone `gh pr merge` into an allowed base. Any other command that
+ * contains "merge" asks, unless it is plain git or a program that only reads or prints text. `gh api` writes and
+ * GraphQL calls, and `gh alias set`, ask even without the word. Recognising every shell form one by one leaves gaps,
+ * so the default is to ask. The `ask` rule for `gh pr merge` was removed from settings.json because a hook's
+ * "allow" cannot override an `ask` rule (https://code.claude.com/docs/en/hooks, PreToolUse decision control).
+ *
  * Output: nothing (the permission rules decide), or a JSON "ask" decision on stdout. The exit code is always 0.
  */
 
@@ -45,12 +51,26 @@ const VALUE_FLAGS = new Set([
   "--match-head-commit",
 ]);
 const REPO_FLAGS = new Set(["-R", "--repo"]);
-// コマンド名の前に付いても、実行するコマンドを変えない語。オプションを取る形（env -u・timeout 60 など）は含めない。
-const WRAPPERS = new Set(["command", "exec", "nohup", "time", "env"]);
-// 区切りの直後に来ても、コマンド名ではない語。
-const SHELL_KEYWORDS = new Set(["{", "}", "!", "if", "then", "elif", "else", "fi", "do", "done", "while", "until"]);
-// 引数の文字列を、別のシェルとして実行するコマンド。
-const NESTED_SHELLS = new Set(["bash", "sh", "zsh", "dash", "eval", "xargs", "pwsh", "powershell", "cmd"]);
+// merge の語を含んでいても、その語を実行しないコマンド。awk・sed・find は中から別のコマンドを動かせるので入れない。
+const TEXT_ONLY_PROGRAMS = new Set([
+  "cat",
+  "cut",
+  "diff",
+  "echo",
+  "grep",
+  "head",
+  "ls",
+  "printf",
+  "rg",
+  "sort",
+  "tail",
+  "tee",
+  "tr",
+  "uniq",
+  "wc",
+]);
+// gh api で書き込みになるフラグ。merge の語が無くても、ファイルや標準入力からマージの指示を送れる。
+const GH_API_WRITE_FLAGS = /^(-X|--method|-f|-F|--field|--raw-field|--input)(=|$)|^-[XfF]./;
 // gh の組み込みのコマンドのうち、マージをしないもの。ここに無い語は別名（gh alias）かもしれないので確認を出す。
 const GH_NON_MERGE_COMMANDS = new Set([
   "agent-task",
@@ -59,7 +79,6 @@ const GH_NON_MERGE_COMMANDS = new Set([
   "auth",
   "browse",
   "cache",
-  "co",
   "codespace",
   "completion",
   "config",
@@ -108,7 +127,11 @@ const GH_PR_NON_MERGE_COMMANDS = new Set([
 
 export const REASONS = {
   admin: "--admin はブランチ保護を飛ばすため、確認を出します。",
-  api: "gh api でのマージは、マージ先を確かめられないため確認を出します。gh pr merge を使ってください。",
+  alias: "gh の別名を作ると、別名からマージできるため確認を出します。",
+  api: "gh api の書き込みと GraphQL は、マージかどうかを確かめられないため確認を出します。マージには gh pr merge を使ってください。",
+  heredoc: "ヒアドキュメントの本文に gh とマージの語があるため、確認を出します。",
+  mentionsMerge:
+    "マージの語を含むコマンドのうち、確かめた形でないものは確認を出します。マージには gh pr merge を単独で使ってください。",
   chained: "gh pr merge は単独で実行してください。他のコマンドと並べると、マージ先を確かめられないため確認を出します。",
   lookup: "PR のマージ先を調べられなかったため、確認を出します。",
   nested: "別のシェルの中のマージは、マージ先を確かめられないため確認を出します。",
@@ -242,6 +265,10 @@ export function tokenize(command) {
           if ((allowTabs ? line.replace(/^\t+/, "") : line) === delimiter) {
             break;
           }
+          // $((1<<x)) のように、<< がヒアドキュメントでない書き方がある。読み違えて本文を飛ばしても通さない。
+          if (/\bgh\b/.test(line) && /merge/i.test(line)) {
+            tokens.push({ type: "risk", value: "heredoc" });
+          }
         }
       }
       continue;
@@ -308,6 +335,9 @@ export function splitSegments(tokens) {
       skipNext = false;
       continue;
     }
+    if ("risk" === token.type) {
+      continue;
+    }
     if ("redirect" === token.type) {
       // 2>&1 のように行き先を含む記号は、次の語を行き先として取らない。
       skipNext = !/&-?[0-9]*$/.test(token.value) || /^&>/.test(token.value);
@@ -340,16 +370,6 @@ function programName(word) {
 }
 
 /**
- * Tells whether a text names both gh and a merge.
- *
- * @param {string} text Any text.
- * @returns {boolean} True when the text could be a merge through gh.
- */
-function mentionsGhMerge(text) {
-  return /\bgh\b/.test(text) && /merge/i.test(text);
-}
-
-/**
  * Classifies one simple command.
  *
  * @param {{value: string, dynamic: boolean}[]} segment The words of a simple command.
@@ -359,18 +379,16 @@ export function classifySegment(segment) {
   const env = {};
   let index = 0;
   while (index < segment.length) {
-    const { value } = segment[index];
-    const assignment = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/s.exec(value);
-    if (null !== assignment) {
-      env[assignment[1]] = assignment[2];
-      index += 1;
-      continue;
+    const assignment = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/s.exec(segment[index].value);
+    if (null === assignment) {
+      break;
     }
-    if (WRAPPERS.has(value) || SHELL_KEYWORDS.has(value)) {
-      index += 1;
-      continue;
+    if (segment[index].dynamic && /merge/i.test(segment.map((word) => word.value).join(" "))) {
+      // GH_REPO=$R のように値が決まらないと、調べる PR と実際にマージする PR が食い違うおそれがある。
+      return { kind: "ask", reason: REASONS.unparsable };
     }
-    break;
+    env[assignment[1]] = assignment[2];
+    index += 1;
   }
 
   const words = segment.slice(index);
@@ -378,42 +396,53 @@ export function classifySegment(segment) {
     return { kind: "other" };
   }
 
-  const name = programName(words[0].value);
-  const rest = words.slice(1);
-
-  if (NESTED_SHELLS.has(name) && mentionsGhMerge(rest.map((word) => word.value).join(" "))) {
+  // 変数やコマンド置換の中のマージは、実行するまで中身が決まらない。
+  if (words.some((word) => word.dynamic && /merge/i.test(word.value))) {
     return { kind: "ask", reason: REASONS.nested };
   }
 
+  const name = programName(words[0].value);
+  const rest = words.slice(1);
   if ("gh" === name) {
     return classifyGh(rest, env);
   }
 
-  // timeout 60 gh pr merge・sudo gh pr merge のように、前のコマンドが gh を動かす形。
-  for (let position = 1; position < words.length; position += 1) {
-    if ("gh" === programName(words[position].value) && looksLikeMerge(words.slice(position + 1))) {
-      return { kind: "ask", reason: REASONS.prefixed };
-    }
+  // 確認なしで通すのは、確かめた形だけにする。シェルの書き方を1つずつ見抜く方式では、抜け道が残るため。
+  if (!words.some((word) => /merge/i.test(word.value))) {
+    return { kind: "other" };
   }
-
-  if (words.some((word) => word.dynamic && mentionsGhMerge(word.value))) {
-    return { kind: "ask", reason: REASONS.nested };
+  if (TEXT_ONLY_PROGRAMS.has(name) || ("git" === name && isPlainGit(rest))) {
+    return { kind: "other" };
   }
-  return { kind: "other" };
+  const runsGh = rest.some((word) => "gh" === programName(word.value));
+  return { kind: "ask", reason: runsGh ? REASONS.prefixed : REASONS.mentionsMerge };
 }
 
 /**
- * Tells whether the words after `gh` could merge a pull request.
+ * Tells whether a git command runs only git itself, without an alias or a config value that runs a shell command.
  *
- * @param {{value: string, dynamic: boolean}[]} rest The words after `gh`.
- * @returns {boolean} True when the words are `pr merge`, a flag in place of the subcommand, or an API call that names a merge.
+ * @param {{value: string, dynamic: boolean}[]} rest The words after `git`.
+ * @returns {boolean} True for commands such as `git merge --ff-only origin/develop` or `git log --merges`.
  */
-function looksLikeMerge(rest) {
-  const [first, second] = rest.map((word) => word.value);
-  if ("pr" === first) {
-    return "merge" === second || (undefined !== second && second.startsWith("-"));
+function isPlainGit(rest) {
+  // git -c alias.m='!gh pr merge 1' m のように、別名と設定から任意のコマンドを動かせる。
+  if (rest.some((word) => /alias/i.test(word.value) || word.value.startsWith("!"))) {
+    return false;
   }
-  return "api" === first && rest.some((word) => /merge/i.test(word.value));
+  for (let index = 0; index < rest.length; index += 1) {
+    const { value } = rest[index];
+    if ("-C" === value) {
+      index += 1;
+      continue;
+    }
+    if (value.startsWith("-c") || value.startsWith("--config-env") || value.startsWith("--exec-path")) {
+      return false;
+    }
+    if (!value.startsWith("-")) {
+      return "config" !== value;
+    }
+  }
+  return true;
 }
 
 /**
@@ -435,7 +464,14 @@ function classifyGh(rest, env) {
       : { kind: "ask", reason: REASONS.unparsable };
   }
   if ("api" === command.value) {
-    return rest.some((word) => /merge/i.test(word.value)) ? { kind: "ask", reason: REASONS.api } : { kind: "other" };
+    // GraphQL と書き込みは、merge の語が無くても、ファイルや標準入力からマージの指示を送れる。
+    const writes = rest.some(
+      (word) => "graphql" === word.value || GH_API_WRITE_FLAGS.test(word.value) || /merge/i.test(word.value),
+    );
+    return writes ? { kind: "ask", reason: REASONS.api } : { kind: "other" };
+  }
+  if ("alias" === command.value && ["set", "import"].includes(rest[1]?.value)) {
+    return { kind: "ask", reason: REASONS.alias };
   }
   if ("pr" === command.value) {
     const sub = rest[1];
@@ -495,7 +531,8 @@ export function parseMergeArgs(args) {
 
     if (VALUE_FLAGS.has(flag)) {
       const flagValue = undefined !== inline ? inline : args[index + 1]?.value;
-      if (undefined === flagValue || (undefined === inline && args[index + 1].dynamic && REPO_FLAGS.has(flag))) {
+      // -b "$(...)" のように、値の中で別のコマンドが動く形も通さない。
+      if (undefined === flagValue || (undefined === inline && args[index + 1].dynamic)) {
         return { reason: REASONS.unparsable };
       }
       if (REPO_FLAGS.has(flag)) {
@@ -544,14 +581,14 @@ export function autoMergeBases(value) {
  * @returns {string} The base branch name.
  */
 export function lookupBaseWithGh({ selector, repo, cwd, env }) {
-  const args = ["pr", "view"];
-  if ("" !== selector) {
-    args.push(selector);
-  }
+  const args = ["pr", "view", "--json", "baseRefName", "--jq", ".baseRefName"];
   if ("" !== repo) {
     args.push("--repo", repo);
   }
-  args.push("--json", "baseRefName", "--jq", ".baseRefName");
+  if ("" !== selector) {
+    // PR の指定がフラグとして読まれないよう、-- の後ろに置く。
+    args.push("--", selector);
+  }
   const output = execFileSync("gh", args, {
     cwd,
     env: { ...process.env, ...env },
@@ -572,6 +609,9 @@ export function lookupBaseWithGh({ selector, repo, cwd, env }) {
 export function decide(command, options = {}) {
   const { bases = autoMergeBases(undefined), cwd, lookupBase = lookupBaseWithGh } = options;
   const tokens = tokenize(command);
+  if (tokens.some((token) => "risk" === token.type)) {
+    return { decision: "ask", reason: REASONS.heredoc };
+  }
   const segments = splitSegments(tokens);
   const classified = segments.map(classifySegment);
 

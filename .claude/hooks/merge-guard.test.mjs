@@ -45,11 +45,11 @@ const PASSES_INTO_DEVELOP = [
   "gh pr merge 12 -R o/r --squash",
   "gh pr merge 12 --repo=o/r",
   'gh pr merge 12 --squash --subject "fix: a; b && c" --body "x | y"',
+  "gh pr merge 12 --squash --body '$(not run)'",
   "gh pr merge 12 --squash 2>&1",
   "GH_REPO=o/r gh pr merge 12",
   "/usr/bin/gh pr merge 12",
   "gh pr merge 12 \\\n  --squash \\\n  --delete-branch",
-  "! gh pr merge 12",
 ];
 
 for (const command of PASSES_INTO_DEVELOP) {
@@ -83,46 +83,82 @@ test("前に置いた環境変数を gh pr view に渡す", () => {
   assert.deepEqual(calls[0].env, { GH_REPO: "o/r" });
 });
 
-const ASKS_WITHOUT_LOOKUP = [
+// 理由の文まで決まっているもの。
+const ASKS_WITH_REASON = [
   ["gh pr merge 12 --admin", REASONS.admin],
+  ["gh pr \\\nmerge 12 --admin", REASONS.admin],
   ["gh pr merge 12 --squash && git pull", REASONS.chained],
   ["git fetch; gh pr merge 12", REASONS.chained],
   ["gh pr merge 12 | tail -1", REASONS.chained],
   ["gh pr merge 12\ngit status", REASONS.chained],
-  ["echo $(gh pr merge 12)", REASONS.chained],
   ["(gh pr merge 12)", REASONS.chained],
   ["$(gh pr merge 12)", REASONS.chained],
   ["`gh pr merge 12`", REASONS.chained],
-  ["{ gh pr merge 12; }", REASONS.chained],
-  ["if true; then gh pr merge 12; fi", REASONS.chained],
-  ["for i in 1; do gh pr merge 12; done", REASONS.chained],
   ["timeout 60 gh pr merge 12", REASONS.prefixed],
-  ["nice gh pr merge 12", REASONS.prefixed],
-  ["env -u X gh pr merge 12", REASONS.prefixed],
-  ["command -p gh pr merge 12", REASONS.prefixed],
   ["sudo gh pr merge 12", REASONS.prefixed],
-  ["timeout 60 gh api -X PUT repos/o/r/pulls/12/merge", REASONS.prefixed],
-  ["gh pr \\\nmerge 12 --admin", REASONS.admin],
   ["gh m 12", REASONS.unknownCommand],
+  ["gh co 34", REASONS.unknownCommand],
   ["gh pr m 12", REASONS.unknownCommand],
   ["gh pr --repo o/r merge 12", REASONS.unparsable],
   ["gh --repo o/r pr merge 12", REASONS.unparsable],
-  ["gh api graphql -f query='mutation { mergePullRequest(input: {}) { clientMutationId } }'", REASONS.api],
+  ["gh alias set co 'pr merge' --clobber", REASONS.alias],
+  ["gh alias import aliases.yml", REASONS.alias],
   ["gh api -X PUT repos/o/r/pulls/12/merge", REASONS.api],
   ["gh api --method PUT /repos/o/r/pulls/12/merge -f merge_method=squash", REASONS.api],
-  ['bash -c "gh pr merge 12"', REASONS.nested],
-  ["eval gh pr merge 12", REASONS.nested],
-  ['echo "$(gh pr merge 12)"', REASONS.nested],
+  ["gh api graphql -F query=@/tmp/q.graphql", REASONS.api],
+  ["gh api graphql -f query='mutation { mergePullRequest(input: {}) { clientMutationId } }'", REASONS.api],
+  ["gh api repos/o/r/pulls/12/merge -XPUT", REASONS.api],
+  ["gh api --input body.json repos/o/r/pulls/12", REASONS.api],
   ["gh pr merge $PR", REASONS.unparsable],
   ["gh pr merge 12 13", REASONS.unparsable],
   ["gh pr merge 12 --unknown-flag x", REASONS.unparsable],
   ["gh pr merge 12 -R", REASONS.unparsable],
+  ["GH_REPO=$R gh pr merge 34", REASONS.unparsable],
+  ["git commit -F - <<'EOF'\ngh pr merge 12\nEOF", REASONS.heredoc],
+  ["echo $((1<<pwd))\ngh pr merge 34\npwd", REASONS.heredoc],
 ];
 
-for (const [command, reason] of ASKS_WITHOUT_LOOKUP) {
+for (const [command, reason] of ASKS_WITH_REASON) {
   test(`調べずに確認を出す: ${JSON.stringify(command)}`, () => {
     const { result, calls } = run(command, "develop");
     assert.deepEqual(result, { decision: "ask", reason });
+    assert.equal(calls.length, 0);
+  });
+}
+
+// 確認を出すことだけを確かめるもの。シェルの書き方は多く、理由の文はどれでもよい。
+const ASKS = [
+  "echo $(gh pr merge 12)",
+  'echo "$(gh pr merge 12)"',
+  "{ gh pr merge 12; }",
+  "! gh pr merge 12",
+  "if true; then gh pr merge 12; fi",
+  "for i in 1; do gh pr merge 12; done",
+  "nice gh pr merge 12",
+  "env -u X gh pr merge 12",
+  "env -S 'gh pr merge 34'",
+  "command -p gh pr merge 12",
+  "timeout 60 gh api -X PUT repos/o/r/pulls/12/merge",
+  'bash -c "gh pr merge 12"',
+  "sudo bash -c 'gh pr merge 34'",
+  "eval gh pr merge 12",
+  "python3 -c 'import os; os.system(\"gh pr merge 34\")'",
+  'gh pr view 5 --json title -q "$(gh pr merge 34)"',
+  'gh issue list --search "`gh pr merge 34`"',
+  'gh pr merge 12 -b "$(gh pr merge 34)"',
+  'gh pr merge 12 --body="$(gh pr merge 34)"',
+  "gh api graphql --input - <<'EOF'\nmutation { mergePullRequest(input: {}) { clientMutationId } }\nEOF",
+  "git -c alias.m='!gh pr merge 34' m",
+  "git config alias.m '!gh pr merge 34'",
+  "git -C x config --global alias.mm 'merge --no-ff'",
+  // GET でも、パスに merge があれば書き込みと区別せずに確認を出す。
+  "gh api repos/o/r/pulls/12/merge",
+];
+
+for (const command of ASKS) {
+  test(`確認を出す: ${JSON.stringify(command)}`, () => {
+    const { result, calls } = run(command, "develop");
+    assert.equal(result.decision, "ask");
     assert.equal(calls.length, 0);
   });
 }
@@ -145,14 +181,17 @@ const UNRELATED = [
   'grep -rn "gh pr merge" .claude',
   "grep -rn 'gh pr merge' . && git status",
   "git merge --ff-only origin/develop",
+  "git -C /x merge --no-edit origin/main",
+  'git commit -m "Merge branch develop"',
+  "git log --merges --oneline",
   "gh pr view 12 --json baseRefName",
   "gh pr list --state merged",
-  "git -C x commit -F - <<'EOF'\ngh pr merge 12\nEOF",
-  "cat > a.md <<-EOF\n\tgh api repos/o/r/pulls/1/merge\n\tEOF\ngit status",
-  "git commit -F - <<\\EOF\ngh pr merge 12\nEOF",
+  "gh api repos/o/r/pulls/12",
+  "cat > a.md <<-EOF\n\tmerge の手順\n\tEOF\ngit status",
   "gh pr checks 12 && gh pr view 12",
   "gh issue list; gh api repos/o/r/pulls/12",
   "grep -n gh a.txt",
+  "echo gh pr merge",
   "gh --version",
   "gh",
   "ls # gh pr merge 12",
@@ -179,10 +218,6 @@ test("確認なしで通す先が空のときは、どのマージにも確認�
   const result = decide("gh pr merge 12", { bases: [], lookupBase: () => "develop" });
   assert.equal(result.decision, "ask");
   assert.match(result.reason, /確認なしで取り込める先が設定されていない/);
-});
-
-test("echo gh pr merge は確認を出す側に倒す（別のコマンドが gh を動かす形と区別しない）", () => {
-  assert.deepEqual(run("echo gh pr merge", "main").result, { decision: "ask", reason: REASONS.prefixed });
 });
 
 /**
