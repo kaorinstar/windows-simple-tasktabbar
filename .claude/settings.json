@@ -31,7 +31,6 @@
       "Bash(gh api *DELETE*)",
       "Bash(gh issue delete:*)",
       "Bash(gh label delete *)",
-      "Bash(gh pr merge:*)",
       "Bash(gh release delete *)",
       "Bash(gh repo delete *)",
       "Bash(gh repo edit*)",
@@ -140,6 +139,11 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-cd-git.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/merge-guard.mjs\"",
+            "timeout": 15
           }
         ]
       }
