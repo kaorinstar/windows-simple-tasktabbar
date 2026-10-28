@@ -267,3 +267,39 @@ test("入口: 読めない入力にマージの語があれば確認を出す", 
   assert.equal(result.status, 0);
   assert.equal(JSON.parse(result.stdout).hookSpecificOutput.permissionDecision, "ask");
 });
+
+const GUARD_SH = fileURLToPath(new URL("./merge-guard.sh", import.meta.url));
+
+/**
+ * Runs the sh prefilter with the given command, with node replaced by a command that always fails.
+ *
+ * @param {string} command The Bash command in the hook input.
+ * @returns {import("node:child_process").SpawnSyncReturns<string>} The process result.
+ */
+function runPrefilterWithFailingNode(command) {
+  const input = JSON.stringify({ tool_name: "Bash", tool_input: { command } });
+  return spawnSync("sh", [GUARD_SH], { input, encoding: "utf8", env: { ...process.env, MERGE_GUARD_NODE: "false" } });
+}
+
+for (const command of ["ls -la", "cat a.txt", "git status", "npm test"]) {
+  test(`前段: gh も merge も無ければ Node を起こさない: ${JSON.stringify(command)}`, () => {
+    // node を false に差し替えているので、起こしていれば終了コードが 0 にならない。
+    const result = runPrefilterWithFailingNode(command);
+    assert.equal(result.status, 0);
+    assert.equal(result.stdout, "");
+  });
+}
+
+for (const command of ["gh pr merge 1", "gh api graphql -F query=@q.graphql", "git -c alias.m='!x' m merge", "MERGE"]) {
+  test(`前段: gh か merge があれば Node に渡す: ${JSON.stringify(command)}`, () => {
+    const result = runPrefilterWithFailingNode(command);
+    assert.notEqual(result.status, 0);
+  });
+}
+
+test("前段: Node に渡したときは、Node の判定をそのまま返す", () => {
+  const input = JSON.stringify({ tool_name: "Bash", tool_input: { command: "gh pr merge 1 --admin" } });
+  const result = spawnSync("sh", [GUARD_SH], { input, encoding: "utf8" });
+  assert.equal(result.status, 0);
+  assert.equal(JSON.parse(result.stdout).hookSpecificOutput.permissionDecision, "ask");
+});
