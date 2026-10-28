@@ -252,7 +252,8 @@ plain `SetForegroundWindow` call therefore fails, and the taskbar button flashes
 
 1. Call `SetForegroundWindow` directly.
 2. If that fails, temporarily attach this thread to the input threads of both the current
-   foreground window and the target window (`AttachThreadInput`), then activate.
+   foreground window and the target window (`AttachThreadInput`), then activate. A thread whose
+   window has stopped responding is left out, so a frozen application cannot freeze the bar.
 3. If that also fails, send an Alt key press and release to lift the foreground lock, then
    activate.
 
