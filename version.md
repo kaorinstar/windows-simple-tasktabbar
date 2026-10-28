@@ -11,6 +11,12 @@ in [README.md](README.md).
 
 `version.ja.md` is the Japanese translation of this file and is updated in the same commit.
 
+## Unreleased
+
+- Clicking a tab while another application has stopped responding no longer freezes the bar.
+  Before, the bar could freeze along with that application whichever tab was clicked, and
+  Windows then closed it.
+
 ## v0.12.0
 
 - **Add to Start menu** in the tray menu puts a shortcut in the Start menu, so the bar can be

@@ -266,7 +266,9 @@ Windows prevents a process that is not in the foreground from bringing a window 
 plain `SetForegroundWindow` call fails. `Activate` tries three strategies in order:
 
 1. `SetForegroundWindow` directly
-2. `AttachThreadInput` against the foreground and target input threads, then activate
+2. `AttachThreadInput` against the foreground and target input threads, then activate. A thread
+   whose window `IsHungAppWindow` reports as hung is not attached: sharing its input queue made
+   the bar freeze along with it, whichever tab was clicked (#150)
 3. An Alt key press and release to lift the foreground lock, then activate
 
 **This sequence is the core of the application.** Which strategy succeeds depends on the
@@ -347,10 +349,11 @@ application does today and disappears when the issue is closed.
 - A window owned by an elevated application cannot be fully controlled, because of Windows
   integrity levels. `SetForegroundWindow` still tends to succeed, since `Activate` is called with
   the bar already in the foreground, so switching to a window that is on screen works. The
-  `ShowWindow(SW_RESTORE)` that `Activate` issues first is refused, so a minimized window stays
-  minimized, and closing is refused too. Neither returns an error a user would see. Task Manager
-  is the example most people meet, because it elevates itself on an administrator account.
-  Running this application elevated removes the limit but means running elevated permanently.
+  `ShowWindowAsync(SW_RESTORE)` that `Activate` issues first is refused, so a minimized window
+  stays minimized, and closing is refused too. Neither returns an error a user would see. Task
+  Manager is the example most people meet, because it elevates itself on an administrator
+  account. Running this application elevated removes the limit but means running elevated
+  permanently.
 - Full-screen applications cover the bar. This is normal AppBar behaviour.
 - The order a user drags tabs into is not saved, so it is lost when the application exits.
   Turning grouping off also leaves the tabs where grouping put them: the order they opened in is
