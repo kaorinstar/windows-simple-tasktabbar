@@ -141,6 +141,18 @@ holes (https://basecamp.com/shapeup/1.2-chapter-03, https://basecamp.com/shapeup
 A proposal for a mechanism or a working rule, in an issue or anywhere else, starts from the form in
 common use. Check it in a primary source first and cite the URL in the proposal.
 
+### A review finding outside the pull request's scope
+
+A finding from a review that lies outside what the pull request changes is not fixed in that pull
+request, and the pull request is not widened for it. If it is a real defect, propose an issue for
+it. If it is only a matter of taste or something noticed in passing, mention it in the report and
+file nothing.
+
+### Listing the failure cases before writing behaviour
+
+Before writing code that changes how the application behaves, list the cases in which it could go
+wrong, and write them down as the test list first. Then write the behaviour to satisfy that list.
+
 ### A requirement too large for one issue
 
 A requirement that does not fit "one session and one pull request, checked by a test or by a hand
@@ -367,8 +379,10 @@ application does today and disappears when the issue is closed.
 Two workflows build on Windows, so that a verification run never needs write access to the
 repository.
 
-- `.github/workflows/build.yml` builds and tests for every push to `main` and every pull
-  request. It packages nothing and runs with `contents: read`.
+- `.github/workflows/build.yml` builds and tests for every push to `main` and for every
+  pull request that is ready for review and changes something other than Markdown. A draft pull
+  request, and one that changes only `.md` files, runs nothing. It packages nothing and runs
+  with `contents: read`.
 - `.github/workflows/release.yml` builds, tests and packages. Pushing a tag such as `v0.1.0`
   publishes a release with three files attached: the installer, the portable ZIP and the net48
   executable. Starting it by hand produces the same three as a build artifact and creates no
@@ -401,7 +415,8 @@ understood. Pull requests are excluded on purpose, since a failing pull request 
 failure on itself. `issues: write` is granted to the calling job alone, so the build keeps its
 read-only token. Nothing is built there, so it runs on Linux.
 
-Both files carry the same build and test steps. Change them together. The one deliberate
+Both files carry the same build and test steps. Change them together, and change the `pull_request`
+trigger and the draft condition of `build.yml` and `codeql.yml` together too. The one deliberate
 difference is the version: a release build takes it from the tag, while a verification build keeps
 the value in `Directory.Build.props`.
 
@@ -412,7 +427,8 @@ package: the check comes with the SDK. It covers other people's code only, so th
 is analysed separately.
 
 A fourth file, `.github/workflows/codeql.yml`, is that analysis. CodeQL reads this project's own C#
-on every push to `main`, on every pull request, and weekly, because GitHub updates its queries and a
+on every push to `main`, on every pull request under the same two exceptions as `build.yml`
+(a draft, and Markdown only), and weekly, because GitHub updates its queries and a
 run over unchanged code can find what the run before it could not. It analyses without a build, so
 it neither needs Windows nor puts a third copy of the build steps in this repository, and
 `security-events: write` is granted to its job alone. Code scanning is free on public repositories
@@ -421,7 +437,7 @@ alone, which is why the file arrived when the repository was published (#26).
 Every action is pinned to a full commit SHA, with its version in a comment beside it. A tag is a
 pointer its owner can move, and `softprops/action-gh-release` is a third-party action that runs
 with write access. `.github/dependabot.yml` watches NuGet and the actions weekly, so pinning does
-not mean going stale, and its pull requests run `build.yml` like any other. Dependabot names its
+not mean going stale, and its pull requests run `build.yml` like any other, since they are not drafts. Dependabot names its
 own branches (`dependabot/...`), which is outside the naming convention above and cannot be
 changed.
 
