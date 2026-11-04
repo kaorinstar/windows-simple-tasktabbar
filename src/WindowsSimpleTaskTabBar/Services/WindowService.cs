@@ -202,14 +202,22 @@ internal static class WindowService
     /// Brings the given window to the foreground as reliably as possible.
     /// Windows restricts foreground changes, so three strategies are tried in order.
     /// </summary>
+    /// <remarks>
+    /// Nothing here may wait on a window that has stopped responding, or the bar stops with it
+    /// (#150). The show command is posted rather than sent, and strategy 2 does not attach to
+    /// the thread of a hung window: "Sharing an input queue takes what used to be asynchronous
+    /// and makes it synchronous, like focus changes"
+    /// (https://devblogs.microsoft.com/oldnewthing/20130619-00/?p=4043). The foreground window
+    /// is the one that matters there, because it is attached to whichever tab was clicked.
+    /// </remarks>
     public static void Activate(IntPtr hwnd)
     {
         if (!NativeMethods.IsWindow(hwnd)) return;
 
         if (NativeMethods.IsIconic(hwnd))
-            NativeMethods.ShowWindow(hwnd, NativeMethods.SW_RESTORE);
+            NativeMethods.ShowWindowAsync(hwnd, NativeMethods.SW_RESTORE);
         else
-            NativeMethods.ShowWindow(hwnd, NativeMethods.SW_SHOW);
+            NativeMethods.ShowWindowAsync(hwnd, NativeMethods.SW_SHOW);
 
         // Strategy 1: try the plain call first.
         if (NativeMethods.SetForegroundWindow(hwnd) && NativeMethods.GetForegroundWindow() == hwnd)
@@ -226,10 +234,12 @@ internal static class WindowService
 
         try
         {
-            if (foregroundThread != 0 && foregroundThread != currentThread)
+            if (foregroundThread != 0 && foregroundThread != currentThread
+                && !NativeMethods.IsHungAppWindow(foreground))
                 attachedForeground = NativeMethods.AttachThreadInput(currentThread, foregroundThread, true);
 
-            if (targetThread != 0 && targetThread != currentThread && targetThread != foregroundThread)
+            if (targetThread != 0 && targetThread != currentThread && targetThread != foregroundThread
+                && !NativeMethods.IsHungAppWindow(hwnd))
                 attachedTarget = NativeMethods.AttachThreadInput(currentThread, targetThread, true);
 
             NativeMethods.BringWindowToTop(hwnd);
@@ -252,7 +262,7 @@ internal static class WindowService
     public static void Minimize(IntPtr hwnd)
     {
         if (NativeMethods.IsWindow(hwnd))
-            NativeMethods.ShowWindow(hwnd, NativeMethods.SW_MINIMIZE);
+            NativeMethods.ShowWindowAsync(hwnd, NativeMethods.SW_MINIMIZE);
     }
 
     public static void Close(IntPtr hwnd)
