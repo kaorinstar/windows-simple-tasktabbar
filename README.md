@@ -28,7 +28,10 @@ three-step activation strategy — see [Reliable window activation](#reliable-wi
   whole group with it. A window that is the only one of its application travels on its own.
 - **Right-click a tab** — opens a menu with Close, Close other tabs, Close tabs to the left,
   Close tabs to the right, Minimize and Exclude this application.
-- **Right-click the space around the tabs** — opens a menu with Settings, Refresh and Exit.
+- **Right-click the space around the tabs** — opens a menu with Settings, Refresh and Exit, and
+  one entry that adds the bar to the Start menu (or removes it again). The entry is for the
+  portable ZIP and the bare executable. With it, typing the name in the Start menu starts the bar
+  again after Exit.
 - **Scroll the wheel over the bar, or click the arrows at either end** — moves the row when
   there are more tabs than fit. The row also follows the window you switch to.
 - **Group tabs by application** — an option in the settings. Windows of one application sit
@@ -91,7 +94,7 @@ Three files are attached to each
 same build. Take whichever suits you.
 
 - **`WindowsSimpleTaskTabBar-Setup-<version>.exe`** — the installer. It adds a Start menu entry
-  and an uninstaller, and offers an **Automatically start WindowsSimpleTaskTabBar** checkbox. It
+  (found by typing the name) and an uninstaller, and offers an **Automatically start WindowsSimpleTaskTabBar** checkbox. It
   speaks ten of the twelve languages the bar does; the other two see it in English.
 - **`WindowsSimpleTaskTabBar-<version>.zip`** — portable. The executable, `LICENSE` and both
   READMEs, for anyone who cannot or would rather not run an installer.
@@ -202,8 +205,8 @@ See [docs/architecture.md](docs/architecture.md) for details.
 
 Two workflows run on Windows.
 
-`build.yml` verifies. Every push to `main` and every pull request runs a build and the unit
-tests. Warnings are treated as errors, so a warning fails the build. The dependencies are checked
+`build.yml` verifies. Every push to `main`, and every pull request that is ready for review and changes more than
+Markdown, runs a build and the unit tests. Warnings are treated as errors, so a warning fails the build. The dependencies are checked
 against the list of known vulnerabilities first, and a match fails the build too. Nothing is
 packaged, and the run has read-only access to the repository.
 
@@ -249,7 +252,8 @@ plain `SetForegroundWindow` call therefore fails, and the taskbar button flashes
 
 1. Call `SetForegroundWindow` directly.
 2. If that fails, temporarily attach this thread to the input threads of both the current
-   foreground window and the target window (`AttachThreadInput`), then activate.
+   foreground window and the target window (`AttachThreadInput`), then activate. A thread whose
+   window has stopped responding is left out, so a frozen application cannot freeze the bar.
 3. If that also fails, send an Alt key press and release to lift the foreground lock, then
    activate.
 

@@ -21,6 +21,10 @@ public static class UiStrings
         { StringId.MenuRefresh, "Refresh" },
         { StringId.MenuExit, "Exit" },
 
+        { StringId.MenuAddToStartMenu, "Add to Start menu" },
+        { StringId.MenuRemoveFromStartMenu, "Remove from Start menu" },
+        { StringId.StartMenuFailed, "Could not change the Start menu entry." },
+
         { StringId.MenuCheckForUpdates, "Check for updates..." },
         { StringId.MenuUpdateAvailable, "Update available: {0}..." },
         { StringId.UpdateCheckFailed, "Could not reach GitHub to check for a new version." },
@@ -153,6 +157,10 @@ public static class UiStrings
         { StringId.MenuRefresh, "更新" },
         { StringId.MenuExit, "終了" },
 
+        { StringId.MenuAddToStartMenu, "スタート メニューに追加" },
+        { StringId.MenuRemoveFromStartMenu, "スタート メニューから削除" },
+        { StringId.StartMenuFailed, "スタート メニューの項目を変更できませんでした。" },
+
         { StringId.MenuCheckForUpdates, "更新を確認..." },
         { StringId.MenuUpdateAvailable, "新しい版があります: {0}..." },
         { StringId.UpdateCheckFailed, "GitHub に接続できず、新しい版を確認できませんでした。" },
@@ -273,6 +281,10 @@ public static class UiStrings
         { StringId.MenuRefresh, "刷新" },
         { StringId.MenuExit, "退出" },
 
+        { StringId.MenuAddToStartMenu, "添加到开始菜单" },
+        { StringId.MenuRemoveFromStartMenu, "从开始菜单中移除" },
+        { StringId.StartMenuFailed, "无法更改开始菜单项。" },
+
         { StringId.MenuCheckForUpdates, "检查更新..." },
         { StringId.MenuUpdateAvailable, "有新版本：{0}..." },
         { StringId.UpdateCheckFailed, "无法连接 GitHub，未能检查新版本。" },
@@ -381,6 +393,10 @@ public static class UiStrings
         { StringId.MenuRefresh, "重新整理" },
         { StringId.MenuExit, "結束" },
 
+        { StringId.MenuAddToStartMenu, "新增至開始功能表" },
+        { StringId.MenuRemoveFromStartMenu, "從開始功能表移除" },
+        { StringId.StartMenuFailed, "無法變更開始功能表項目。" },
+
         { StringId.MenuCheckForUpdates, "檢查更新..." },
         { StringId.MenuUpdateAvailable, "有新版本：{0}..." },
         { StringId.UpdateCheckFailed, "無法連線 GitHub，未能檢查新版本。" },
@@ -488,6 +504,10 @@ public static class UiStrings
         { StringId.MenuSettings, "Параметры..." },
         { StringId.MenuRefresh, "Обновить" },
         { StringId.MenuExit, "Выход" },
+
+        { StringId.MenuAddToStartMenu, "Добавить в меню «Пуск»" },
+        { StringId.MenuRemoveFromStartMenu, "Удалить из меню «Пуск»" },
+        { StringId.StartMenuFailed, "Не удалось изменить ярлык в меню «Пуск»." },
 
         { StringId.MenuCheckForUpdates, "Проверить наличие обновлений..." },
         { StringId.MenuUpdateAvailable, "Доступно обновление: {0}..." },
@@ -624,6 +644,10 @@ public static class UiStrings
         { StringId.MenuSettings, "Einstellungen..." },
         { StringId.MenuRefresh, "Aktualisieren" },
         { StringId.MenuExit, "Beenden" },
+
+        { StringId.MenuAddToStartMenu, "Zum Startmenü hinzufügen" },
+        { StringId.MenuRemoveFromStartMenu, "Aus Startmenü entfernen" },
+        { StringId.StartMenuFailed, "Der Eintrag im Startmenü konnte nicht geändert werden." },
 
         { StringId.MenuCheckForUpdates, "Nach Updates suchen..." },
         { StringId.MenuUpdateAvailable, "Update verfügbar: {0}..." },
@@ -766,6 +790,10 @@ public static class UiStrings
         { StringId.MenuRefresh, "Actualiser" },
         { StringId.MenuExit, "Quitter" },
 
+        { StringId.MenuAddToStartMenu, "Ajouter au menu Démarrer" },
+        { StringId.MenuRemoveFromStartMenu, "Supprimer du menu Démarrer" },
+        { StringId.StartMenuFailed, "Impossible de modifier l'entrée du menu Démarrer." },
+
         { StringId.MenuCheckForUpdates, "Rechercher des mises à jour..." },
         { StringId.MenuUpdateAvailable, "Mise à jour disponible : {0}..." },
         {
@@ -905,6 +933,10 @@ public static class UiStrings
         { StringId.MenuRefresh, "Actualizar" },
         { StringId.MenuExit, "Salir" },
 
+        { StringId.MenuAddToStartMenu, "Agregar al menú Inicio" },
+        { StringId.MenuRemoveFromStartMenu, "Quitar del menú Inicio" },
+        { StringId.StartMenuFailed, "No se pudo cambiar la entrada del menú Inicio." },
+
         { StringId.MenuCheckForUpdates, "Buscar actualizaciones..." },
         { StringId.MenuUpdateAvailable, "Actualización disponible: {0}..." },
         {
@@ -1042,6 +1074,10 @@ public static class UiStrings
         { StringId.MenuSettings, "Configurações..." },
         { StringId.MenuRefresh, "Atualizar" },
         { StringId.MenuExit, "Sair" },
+
+        { StringId.MenuAddToStartMenu, "Adicionar ao menu Iniciar" },
+        { StringId.MenuRemoveFromStartMenu, "Remover do menu Iniciar" },
+        { StringId.StartMenuFailed, "Não foi possível alterar o item do menu Iniciar." },
 
         { StringId.MenuCheckForUpdates, "Verificar atualizações..." },
         { StringId.MenuUpdateAvailable, "Atualização disponível: {0}..." },
@@ -1181,6 +1217,10 @@ public static class UiStrings
         { StringId.MenuRefresh, "새로 고침" },
         { StringId.MenuExit, "끝내기" },
 
+        { StringId.MenuAddToStartMenu, "시작 메뉴에 추가" },
+        { StringId.MenuRemoveFromStartMenu, "시작 메뉴에서 제거" },
+        { StringId.StartMenuFailed, "시작 메뉴 항목을 변경할 수 없습니다." },
+
         { StringId.MenuCheckForUpdates, "업데이트 확인..." },
         { StringId.MenuUpdateAvailable, "새 버전 있음: {0}..." },
         { StringId.UpdateCheckFailed, "GitHub에 연결하지 못해 새 버전을 확인할 수 없습니다." },
@@ -1293,6 +1333,10 @@ public static class UiStrings
         { StringId.MenuSettings, "Ustawienia..." },
         { StringId.MenuRefresh, "Odśwież" },
         { StringId.MenuExit, "Zakończ" },
+
+        { StringId.MenuAddToStartMenu, "Dodaj do menu Start" },
+        { StringId.MenuRemoveFromStartMenu, "Usuń z menu Start" },
+        { StringId.StartMenuFailed, "Nie można zmienić wpisu w menu Start." },
 
         { StringId.MenuCheckForUpdates, "Sprawdź aktualizacje..." },
         { StringId.MenuUpdateAvailable, "Dostępna aktualizacja: {0}..." },
@@ -1431,6 +1475,10 @@ public static class UiStrings
         { StringId.MenuSettings, "Impostazioni..." },
         { StringId.MenuRefresh, "Aggiorna" },
         { StringId.MenuExit, "Esci" },
+
+        { StringId.MenuAddToStartMenu, "Aggiungi al menu Start" },
+        { StringId.MenuRemoveFromStartMenu, "Rimuovi dal menu Start" },
+        { StringId.StartMenuFailed, "Impossibile modificare la voce del menu Start." },
 
         { StringId.MenuCheckForUpdates, "Cerca aggiornamenti..." },
         { StringId.MenuUpdateAvailable, "Aggiornamento disponibile: {0}..." },
