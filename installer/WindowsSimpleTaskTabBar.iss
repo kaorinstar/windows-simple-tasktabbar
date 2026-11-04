@@ -118,6 +118,11 @@ Name: "italian"; MessagesFile: "compiler:Languages\Italian.isl"
 [Tasks]
 Name: "startupicon"; Description: "{cm:AutoStartProgram,{#AppName}}"; GroupDescription: "{cm:AutoStartProgramGroupDescription}"
 
+; Releases up to v0.11.0 put the shortcut in a folder of the same name. Installing over one of
+; them removes that folder, or the Start menu would list the bar twice.
+[InstallDelete]
+Type: filesandordirs; Name: "{group}"
+
 [Files]
 Source: "{#PackageDir}\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
@@ -125,7 +130,11 @@ Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\README.ja.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
+; Directly in the Programs folder rather than in a folder of its own, so the Start menu lists it
+; among the apps and finds it by name without anyone opening a folder. The bar's tray menu puts
+; a shortcut in the same place for a copy that was not installed (#141), which is why this is
+; the path Core/StartMenu/StartMenuEntry.cs names.
+Name: "{userprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"
 ; The Start with Windows checkbox is this shortcut and nothing else: no registry value, no
 ; scheduled task. The uninstaller removes every shortcut it created, so nothing of it is left
 ; in shell:startup afterwards.

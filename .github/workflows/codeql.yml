@@ -23,8 +23,13 @@ name: codeql
 on:
   push:
     branches: [main]
+  # The three default types plus ready_for_review, so that marking a draft ready runs the job.
+  # A pull request that changes only Markdown runs nothing: paths-ignore applies only when every
+  # changed file matches (#148).
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore: ['**/*.md']
   schedule:
     # Mondays, 03:17 UTC. Not on the hour: everything scheduled there queues behind everything
     # else scheduled there.
@@ -36,6 +41,9 @@ permissions:
 
 jobs:
   analyse:
+    # Not run while the pull request is a draft, so that pushes made mid-work cost nothing (#148).
+    # Pushes, the weekly schedule and manual runs are unaffected.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -58,10 +66,10 @@ jobs:
       # failed twice over (#104, #105). .github/dependabot.yml now groups them into one pull
       # request; change them together here as well.
       - name: Initialise CodeQL
-        uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd   # v4.38.1
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370   # v4.39.1
         with:
           languages: csharp
           build-mode: none
 
       - name: Analyse
-        uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd   # v4.38.1
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370   # v4.39.1
