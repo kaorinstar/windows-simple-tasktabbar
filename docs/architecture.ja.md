@@ -19,7 +19,7 @@ windows-simple-tasktabbar/
 ├── version.ja.md                  変更履歴の日本語版
 ├── .github/
 │   └── workflows/
-│       ├── build.yml              push とプルリクエストでのビルドとテスト
+│       ├── build.yml              push とレビュー待ちのプルリクエストでのビルドとテスト
 │       ├── release.yml            ビルド・テスト・配布物の作成とリリース
 │       └── report-build-status.yml  push のビルド失敗時に課題を作成
 ├── docs/
