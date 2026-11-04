@@ -261,9 +261,22 @@ internal static class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool BringWindowToTop(IntPtr hWnd);
 
+    /// <summary>
+    /// Posts the show command to the window's own thread rather than sending it, so a window
+    /// that has stopped responding cannot stop the caller with it. Every window this
+    /// application shows or minimizes belongs to another process.
+    /// </summary>
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+
+    /// <summary>
+    /// Whether Windows considers the window to have stopped responding: it has not read its
+    /// messages for several seconds. The same test Windows uses before it ghosts a window.
+    /// </summary>
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool IsHungAppWindow(IntPtr hWnd);
 
     public const int SW_HIDE = 0;
     public const int SW_SHOWNORMAL = 1;
