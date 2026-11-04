@@ -23,8 +23,13 @@ name: codeql
 on:
   push:
     branches: [main]
+  # The three default types plus ready_for_review, so that marking a draft ready runs the job.
+  # A pull request that changes only Markdown runs nothing: paths-ignore applies only when every
+  # changed file matches (#148).
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore: ['**/*.md']
   schedule:
     # Mondays, 03:17 UTC. Not on the hour: everything scheduled there queues behind everything
     # else scheduled there.
@@ -36,6 +41,9 @@ permissions:
 
 jobs:
   analyse:
+    # Not run while the pull request is a draft, so that pushes made mid-work cost nothing (#148).
+    # Pushes, the weekly schedule and manual runs are unaffected.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     permissions:
       contents: read

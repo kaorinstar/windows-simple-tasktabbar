@@ -20,7 +20,7 @@ windows-simple-tasktabbar/
 ├── version.ja.md                  Japanese translation
 ├── .github/
 │   └── workflows/
-│       ├── build.yml              Build and test, on pushes and pull requests
+│       ├── build.yml              Build and test, on pushes and ready pull requests
 │       ├── release.yml            Build, test, package, and publish a release
 │       └── report-build-status.yml  Open an issue when a push fails to build
 ├── docs/

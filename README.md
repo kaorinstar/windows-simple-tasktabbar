@@ -205,8 +205,8 @@ See [docs/architecture.md](docs/architecture.md) for details.
 
 Two workflows run on Windows.
 
-`build.yml` verifies. Every push to `main` and every pull request runs a build and the unit
-tests. Warnings are treated as errors, so a warning fails the build. The dependencies are checked
+`build.yml` verifies. Every push to `main`, and every pull request that is ready for review and changes more than
+Markdown, runs a build and the unit tests. Warnings are treated as errors, so a warning fails the build. The dependencies are checked
 against the list of known vulnerabilities first, and a match fails the build too. Nothing is
 packaged, and the run has read-only access to the repository.
 
